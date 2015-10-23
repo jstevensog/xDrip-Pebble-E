@@ -1,16 +1,19 @@
 {
   "appKeys": {
-    "bg": 1,
-    "dlta": 4,
     "icon": 0,
-    "name": 6,
-    "tapp": 3,
+    "bg": 1,
     "tcgm": 2,
-    "ubat": 5
+    "tapp": 3,
+    "dlta": 4,
+    "ubat": 5,
+    "name": 6,
+    "t_beg": 7,
+    "t_dat": 8,
+    "t_end": 9
   },
   "capabilities": [
   ],
-  "companyName": "Nightscout Contributors",
+  "companyName": "Nightscout Foundation",
   "longName": "xDrip Watch Face",
   "projectType": "native",
   "resources": {
