@@ -1708,7 +1708,8 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context) {
 			#endif
 			if(trend_buffer) free(trend_buffer);
 			trend_buffer = malloc(expected_trend_buffer_length);
-			trend_buffer_length = expected_trend_buffer_length;
+			//trend_buffer_length = expected_trend_buffer_length;
+			trend_buffer_length = 0;
 			#if DEBUG_LEVEL > 1
 			if(trend_buffer == NULL) {
 				APP_LOG(APP_LOG_LEVEL_DEBUG, "TREND_BEGIN: Could not allocate trend_buffer");
@@ -1720,7 +1721,11 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context) {
 			APP_LOG(APP_LOG_LEVEL_INFO, "TREND_DATA: receiving Trend Image chunk");
 			#endif
 			if(trend_buffer) {
-				memcpy(trend_buffer, data->value->data, data->length);
+				memcpy((trend_buffer+trend_buffer_length), data->value->data, data->length);
+				trend_buffer_length += data->length;
+				#ifdef DEBUG_LEVEL
+				APP_LOG(APP_LOG_LEVEL_INFO, "TREND_DATA: received %u of %u so far", trend_buffer_length, expected_trend_buffer_length);
+				#endif
 			}
 			#if DEBUG_LEVEL > 1
 			else {
@@ -1744,7 +1749,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context) {
 			#endif
 			
 			#ifdef APP_BASALT
-			bg_trend_bitmap = gbitmap_create_from_png_data(trend_buffer, trend_buffer_length);
+			bg_trend_bitmap = gbitmap_create_from_png_data(trend_buffer, expected_trend_buffer_length);
 			#endif
 			if(bg_trend_bitmap) {
 				#ifdef DEBUG_LEVEL
@@ -2106,7 +2111,7 @@ void window_load_cgm(Window *window_cgm) {
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating BG Trend Bitmap layer");
 	#endif
 	#ifdef APP_BASALT
-	bg_trend_layer = bitmap_layer_create(Grect(0,0,71,82);
+	bg_trend_layer = bitmap_layer_create(Grect(0,0,142,82);
 	bitmap_layer_set_background_color(bg_trend_layer, GColorClear);
 	layer_add_child(window_layer_cgm, gbitmap_layer_get_layer(bg_trend_layer);
 	#endif
@@ -2114,23 +2119,19 @@ void window_load_cgm(Window *window_cgm) {
 
 	// put " " (space) in bg field so logo continues to show
 	// " " (space) also shows these are init values, not bad or null values
-	#ifndef TRENDING
-	const Tuplet initial_values_cgm[] = {
-		TupletCString(CGM_ICON_KEY, " "),
-		TupletCString(CGM_BG_KEY, " "),
-		TupletInteger(CGM_TCGM_KEY, 0),
-		TupletInteger(CGM_TAPP_KEY, 0),
-		TupletCString(CGM_DLTA_KEY, "LOAD"),
-		TupletCString(CGM_UBAT_KEY, " "),
-		TupletCString(CGM_NAME_KEY, " ")
-		#ifdef TRENDING
-		,
-		TupletInteger(CGM_TREND_BEGIN_KEY,0),
-		TupletInteger(CGM_TREND_END_KEY,0),
-		TupletBytes(CGM_TREND_DATA_KEY,trend_chunk,CHUNK_SIZE)
-		#endif
-	};
-	#endif
+	snprintf(current_icon, 1, " ");
+	load_icon();
+	snprintf(last_bg, BG_MSGSTR_SIZE, " ");
+	load_bg();
+	current_cgm_time = 0;
+	load_cgmtime();
+	current_app_time = 0;
+	load_apptime();		
+	snprintf(current_bg_delta, BGDELTA_MSGSTR_SIZE, "LOAD");
+	load_bg_delta();
+	snprintf(last_battlevel, BATTLEVEL_MSGSTR_SIZE, " ");
+	load_battlevel();
+
 	//APP_LOG(APP_LOG_LEVEL_INFO, "WINDOW LOAD, ABOUT TO CALL APP SYNC INIT");
 	//app_sync_init(&sync_cgm, sync_buffer_cgm, sizeof(sync_buffer_cgm), initial_values_cgm, ARRAY_LENGTH(initial_values_cgm), sync_tuple_changed_callback_cgm, sync_error_callback_cgm, NULL);
 	// init timer to null if needed, and register timer
