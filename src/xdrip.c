@@ -1,6 +1,6 @@
 #include "pebble.h"
 
-#define TRENDING 0
+//#define TRENDING 0
 
 /* The line below will set the debug message level.  
 Make sure you set this to 0 before building a release. */
@@ -49,7 +49,7 @@ AppSync sync_cgm;
 //static uint8_t trend_buffer[4096];
 uint8_t trend_chunk[CHUNK_SIZE];
 #ifdef TRENDING
-void *trend_buffer = NULL;
+uint8_t *trend_buffer = NULL;
 static uint16_t trend_buffer_length = 0;
 static uint16_t expected_trend_buffer_length = 0;
 #endif
@@ -1706,7 +1706,15 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context) {
 			#ifdef DEBUG_LEVEL
 			APP_LOG(APP_LOG_LEVEL_INFO, "TREND_BEGIN; About to receive Trend Image of %i size.", expected_trend_buffer_length);
 			#endif
-			if(trend_buffer) free(trend_buffer);
+			if(trend_buffer) {
+				#ifdef DEBUG_LEVEL
+				APP_LOG(APP_LOG_LEVEL_INFO, "TREND_BEGIN; Freeing trend_buffer.");
+				#endif
+				free(trend_buffer);
+			}
+			#ifdef DEBUG_LEVEL
+			APP_LOG(APP_LOG_LEVEL_INFO, "TREND_BEGIN; Allocating trend_buffer.");
+			#endif			
 			trend_buffer = malloc(expected_trend_buffer_length);
 			//trend_buffer_length = expected_trend_buffer_length;
 			trend_buffer_length = 0;
@@ -1714,6 +1722,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context) {
 			if(trend_buffer == NULL) {
 				APP_LOG(APP_LOG_LEVEL_DEBUG, "TREND_BEGIN: Could not allocate trend_buffer");
 			}
+			APP_LOG(APP_LOG_LEVEL_DEBUG, "TREND_BEGIN: trend_buffer is %lx, trend_buffer_length is %i", (uint32_t)trend_buffer, trend_buffer_length);
 			#endif
 			break;
 		case CGM_TREND_DATA_KEY:
@@ -1739,7 +1748,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context) {
 			APP_LOG(APP_LOG_LEVEL_INFO, "Finished receiving Trend Image");
 			#endif
 			if(bg_trend_bitmap) {
-				#ifdef DEBUG_LEVEL
+				#if DEBUG_LEVEL > 1
 				APP_LOG(APP_LOG_LEVEL_INFO, "Destroying bg_trend_bitmap");
 				#endif
 				gbitmap_destroy(bg_trend_bitmap);
@@ -1748,19 +1757,23 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context) {
 			APP_LOG(APP_LOG_LEVEL_INFO, "Creating Trend Image");
 			#endif
 			
-			#ifdef APP_BASALT
-			bg_trend_bitmap = gbitmap_create_from_png_data(trend_buffer, expected_trend_buffer_length);
-			#endif
+			#ifdef PBL_PLATFORM_BASALT
+			APP_LOG(APP_LOG_LEVEL_DEBUG, "TREND_BEGIN: trend_buffer is %lx, trend_buffer_length is %i", (uint32_t)trend_buffer, trend_buffer_length);
+			bg_trend_bitmap = gbitmap_create_from_png_data(trend_buffer, trend_buffer_length);
 			if(bg_trend_bitmap) {
+				GColor *palette = gbitmap_get_palette(bg_trend_bitmap);
+				palette[0] = GColorClear;
+				gbitmap_set_palette(bg_trend_bitmap, palette, true);
 				#ifdef DEBUG_LEVEL
 				APP_LOG(APP_LOG_LEVEL_INFO, "bg_trend_bitmap created, setting to layer");
 				#endif
-				bitmap_layer_set_bitmap(bg_trend_layer, (GBitmap *)bg_trend_bitmap);
+				bitmap_layer_set_bitmap(bg_trend_layer, bg_trend_bitmap);
 			} 
 			#ifdef DEBUG_LEVEL 
 			else {
 				APP_LOG(APP_LOG_LEVEL_INFO, "bg_trend_bitmap creation FAILED!");
 			}
+			#endif
 			#endif
 			//free(trend_buffer);
 			break;
@@ -1939,6 +1952,7 @@ void window_load_cgm(Window *window_cgm) {
 	#endif
 	#ifdef PBL_COLOR
 	icon_layer = bitmap_layer_create(GRect(85, -9, 78, 49));
+	bitmap_layer_set_compositing_mode(icon_layer, GCompOpSet);
 	#else
 	icon_layer = bitmap_layer_create(GRect(85, -7, 78, 51));
 	#endif
@@ -1952,6 +1966,7 @@ void window_load_cgm(Window *window_cgm) {
 	#endif
 	#ifdef PBL_COLOR
 	appicon_layer = bitmap_layer_create(GRect(118, 63, 40, 24));
+	bitmap_layer_set_compositing_mode(appicon_layer, GCompOpSet);
 	#else
 	appicon_layer = bitmap_layer_create(GRect(118, 63, 40, 24));
 	#endif
@@ -2110,10 +2125,11 @@ void window_load_cgm(Window *window_cgm) {
 	#ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating BG Trend Bitmap layer");
 	#endif
-	#ifdef APP_BASALT
-	bg_trend_layer = bitmap_layer_create(Grect(0,0,142,82);
+	#ifdef PBL_PLATFORM_BASALT
+	bg_trend_layer = bitmap_layer_create(GRect(0,0,144,84));
 	bitmap_layer_set_background_color(bg_trend_layer, GColorClear);
-	layer_add_child(window_layer_cgm, gbitmap_layer_get_layer(bg_trend_layer);
+	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
+	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(bg_trend_layer));
 	#endif
 	#endif
 
