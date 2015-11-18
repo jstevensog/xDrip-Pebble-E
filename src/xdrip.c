@@ -1,6 +1,10 @@
 #include "pebble.h"
 
-//#define TRENDING 0
+#define TRENDING 0
+
+#ifdef PBL_PLATFORM_APLITE
+#include "png.h"
+#endif
 
 /* The line below will set the debug message level.  
 Make sure you set this to 0 before building a release. */
@@ -47,6 +51,7 @@ AppSync sync_cgm;
 //static uint8_t *sync_buffer_cgm;
 //static uint8_t sync_buffer_cgm[CHUNK_SIZE];
 //static uint8_t trend_buffer[4096];
+bool doing_trend = false;
 uint8_t trend_chunk[CHUNK_SIZE];
 #ifdef TRENDING
 uint8_t *trend_buffer = NULL;
@@ -705,7 +710,11 @@ void sync_error_callback_cgm(DictionaryResult appsync_dict_error, AppMessageResu
 	}
 		
 	// set message to RESTART WATCH -> PHONE
+	#ifdef DEBUG
+	text_layer_set_text(message_layer, translate_app_error(appsync_err_openerr));
+	#else
 	text_layer_set_text(message_layer, "RSTRT WCH/PH");
+	#endif
 		
 	// erase cgm and app ago times
 	text_layer_set_text(cgmtime_layer, "");
@@ -831,11 +840,11 @@ void outbox_failed_handler_cgm(DictionaryIterator *failed, AppMessageResult appm
 	appmsg_outfail_openerr = app_message_outbox_begin(&iter);
 	
 	if (appmsg_outfail_openerr == APP_MSG_OK) {
-			// reset AppMsgOutFailAlert to flag for vibrate
+		// reset AppMsgOutFailAlert to flag for vibrate
 		AppMsgOutFailAlert = false;
 	
-			// send message
-			appmsg_outfail_senderr = app_message_outbox_send();
+		// send message
+/*		appmsg_outfail_senderr = app_message_outbox_send();
 		if (appmsg_outfail_senderr != APP_MSG_OK) {
 			#ifdef DEBUG_LEVEL
 			APP_LOG(APP_LOG_LEVEL_INFO, "APPMSG OUT FAIL SEND ERROR");
@@ -843,8 +852,8 @@ void outbox_failed_handler_cgm(DictionaryIterator *failed, AppMessageResult appm
 			#endif
 		} 
 		else {
-			return;
-		}
+*/			return;
+//		}
 	}
 
 	#ifdef DEBUG_LEVEL
@@ -855,13 +864,17 @@ void outbox_failed_handler_cgm(DictionaryIterator *failed, AppMessageResult appm
 		
 	bluetooth_connected_cgm = bluetooth_connection_service_peek();
 		
-	if (!bluetooth_connected_cgm) {
+	if (!bluetooth_connected_cgm || appmsg_outfail_senderr != APP_MSG_SEND_REJECTED) {
 			// bluetooth is out, BT message already set; return out
 			return;
 	}
 		
 	// set message to RESTART WATCH -> PHONE
-	text_layer_set_text(message_layer, "RSTRT WCH/PHN");
+	#ifdef DEBUG
+	text_layer_set_text(message_layer, translate_app_error(appmsg_outfail_openerr));
+	#else
+	text_layer_set_text(message_layer, "RSTRT WCH/PH");
+	#endif
 		
 	// erase cgm and app ago times
 	text_layer_set_text(cgmtime_layer, "");
@@ -1699,8 +1712,8 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context) {
 			//APP_LOG(APP_LOG_LEVEL_INFO, "SYNC TUPLE: T1D NAME");
 			//text_layer_set_text(t1dname_layer, new_tuple->value->cstring);
 			break; // break for CGM_NAME_KEY
+
 		
-		#ifdef TRENDING		
 		case CGM_TREND_BEGIN_KEY:
 			expected_trend_buffer_length = data->value->uint16;
 			#ifdef DEBUG_LEVEL
@@ -1716,11 +1729,11 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context) {
 			APP_LOG(APP_LOG_LEVEL_INFO, "TREND_BEGIN; Allocating trend_buffer.");
 			#endif			
 			trend_buffer = malloc(expected_trend_buffer_length);
-			//trend_buffer_length = expected_trend_buffer_length;
 			trend_buffer_length = 0;
 			#if DEBUG_LEVEL > 1
 			if(trend_buffer == NULL) {
 				APP_LOG(APP_LOG_LEVEL_DEBUG, "TREND_BEGIN: Could not allocate trend_buffer");
+				break;
 			}
 			APP_LOG(APP_LOG_LEVEL_DEBUG, "TREND_BEGIN: trend_buffer is %lx, trend_buffer_length is %i", (uint32_t)trend_buffer, trend_buffer_length);
 			#endif
@@ -1741,32 +1754,48 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context) {
 				APP_LOG(APP_LOG_LEVEL_DEBUG, "TREND_DATA: trend_buffer not allocated, ignoring");
 			}
 			#endif
+			if(trend_buffer_length == expected_trend_buffer_length) doing_trend = true;
 			break;
 		
 		case CGM_TREND_END_KEY:
+			if(!doing_trend) {
+				#ifdef DEBUG_LEVEL
+				APP_LOG(APP_LOG_LEVEL_INFO, "Got a TREND_END without TREND_START");
+				#endif
+				break;
+			}
 			#ifdef DEBUG_LEVEL
 			APP_LOG(APP_LOG_LEVEL_INFO, "Finished receiving Trend Image");
 			#endif
-			if(bg_trend_bitmap) {
+			if(bg_trend_bitmap != NULL) {
 				#if DEBUG_LEVEL > 1
 				APP_LOG(APP_LOG_LEVEL_INFO, "Destroying bg_trend_bitmap");
 				#endif
 				gbitmap_destroy(bg_trend_bitmap);
+				bg_trend_bitmap = NULL;
 			}
+
 			#ifdef DEBUG_LEVEL
 			APP_LOG(APP_LOG_LEVEL_INFO, "Creating Trend Image");
 			#endif
 			
-			#ifdef PBL_PLATFORM_BASALT
 			APP_LOG(APP_LOG_LEVEL_DEBUG, "TREND_BEGIN: trend_buffer is %lx, trend_buffer_length is %i", (uint32_t)trend_buffer, trend_buffer_length);
+			#ifdef PBL_PLATFORM_BASALT
 			bg_trend_bitmap = gbitmap_create_from_png_data(trend_buffer, trend_buffer_length);
-			if(bg_trend_bitmap) {
-				GColor *palette = gbitmap_get_palette(bg_trend_bitmap);
-				palette[0] = GColorClear;
-				gbitmap_set_palette(bg_trend_bitmap, palette, true);
+			#else
+			bg_trend_bitmap = gbitmap_create_with_png_data(trend_buffer, trend_buffer_length);
+			#endif
+			//graphics_context_set_antialiased(bg_trend_bitmap, false);
+
+			if(bg_trend_bitmap != NULL) {				
 				#ifdef DEBUG_LEVEL
 				APP_LOG(APP_LOG_LEVEL_INFO, "bg_trend_bitmap created, setting to layer");
 				#endif
+//				#ifdef PBL_PLATFORM_BASALT
+//				GColor *palette = gbitmap_get_palette(bg_trend_bitmap);
+//				palette[0]=GColorClear;
+//				gbitmap_set_palette(bg_trend_bitmap, palette, true);
+//				#endif
 				bitmap_layer_set_bitmap(bg_trend_layer, bg_trend_bitmap);
 			} 
 			#ifdef DEBUG_LEVEL 
@@ -1774,11 +1803,9 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context) {
 				APP_LOG(APP_LOG_LEVEL_INFO, "bg_trend_bitmap creation FAILED!");
 			}
 			#endif
-			#endif
 			//free(trend_buffer);
 			break;
-			//#else
-		#endif
+			
 		default:
 			#ifdef DEBUG_LEVEL 
 			APP_LOG(APP_LOG_LEVEL_INFO, "sync_tuple_cgm_callback: Dictionary Key not recognised");
@@ -1927,24 +1954,18 @@ void window_load_cgm(Window *window_cgm) {
 	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(upper_face_layer));
 	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(lower_face_layer));
 	
-	
-	// DELTA BG
+	//create the bg_trend_layer
+	#ifdef TRENDING
 	#ifdef DEBUG_LEVEL
-	APP_LOG(APP_LOG_LEVEL_INFO, "Creating Delta BG Text layer");
+	APP_LOG(APP_LOG_LEVEL_INFO, "Creating BG Trend Bitmap layer");
 	#endif
-	message_layer = text_layer_create(GRect(0, 38, 143, 50));
-	#ifdef PBL_COLOR
-	text_layer_set_text_color(message_layer, GColorDukeBlue);
-	text_layer_set_background_color(message_layer, GColorClear);
-	#else
-	//message_layer = text_layer_create(GRect(0, 33, 143, 55));
-	text_layer_set_text_color(message_layer, GColorBlack);
-	text_layer_set_background_color(message_layer, GColorClear);
-	//text_layer_set_font(message_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
+	#ifdef PBL_PLATFORM_BASALT
+	bg_trend_layer = bitmap_layer_create(GRect(0,0,144,84));
+	bitmap_layer_set_background_color(bg_trend_layer, GColorClear);
+	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
+	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(bg_trend_layer));
 	#endif
-	text_layer_set_font(message_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
-	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
-	layer_add_child(window_layer_cgm, text_layer_get_layer(message_layer));
+	#endif
 
 	// ARROW OR SPECIAL VALUE
 	#ifdef DEBUG_LEVEL
@@ -1991,6 +2012,24 @@ void window_load_cgm(Window *window_cgm) {
 	text_layer_set_text_alignment(time_app_layer, GTextAlignmentRight);
 	layer_add_child(window_layer_cgm, text_layer_get_layer(time_app_layer));
 	
+	// DELTA BG
+	#ifdef DEBUG_LEVEL
+	APP_LOG(APP_LOG_LEVEL_INFO, "Creating Delta BG Text layer");
+	#endif
+	message_layer = text_layer_create(GRect(0, 38, 143, 50));
+	#ifdef PBL_COLOR
+	text_layer_set_text_color(message_layer, GColorDukeBlue);
+	text_layer_set_background_color(message_layer, GColorClear);
+	#else
+	//message_layer = text_layer_create(GRect(0, 33, 143, 55));
+	text_layer_set_text_color(message_layer, GColorBlack);
+	text_layer_set_background_color(message_layer, GColorClear);
+	//text_layer_set_font(message_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
+	#endif
+	text_layer_set_font(message_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
+	layer_add_child(window_layer_cgm, text_layer_get_layer(message_layer));
+
 	// BG
 	#ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating BG Text layer");
@@ -2119,18 +2158,6 @@ void window_load_cgm(Window *window_cgm) {
 	battery_handler(charge_state);
 	#ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "watch_battlevel_layer; %s", text_layer_get_text(watch_battlevel_layer));
-	#endif
-	//create the bg_trend_layer
-	#ifdef TRENDING
-	#ifdef DEBUG_LEVEL
-	APP_LOG(APP_LOG_LEVEL_INFO, "Creating BG Trend Bitmap layer");
-	#endif
-	#ifdef PBL_PLATFORM_BASALT
-	bg_trend_layer = bitmap_layer_create(GRect(0,0,144,84));
-	bitmap_layer_set_background_color(bg_trend_layer, GColorClear);
-	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
-	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(bg_trend_layer));
-	#endif
 	#endif
 
 	// put " " (space) in bg field so logo continues to show

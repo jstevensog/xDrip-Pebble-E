@@ -1,4 +1,18 @@
 {
+  "uuid": "79f8ecb3-7214-4bfc-b996-cb95148ee6d3",
+  "shortName": "xDrip Watch Face",
+  "longName": "xDrip Watch Face",
+  "companyName": "Nightscout Foundation",
+  "versionCode": 1,
+  "versionLabel": "1.4",
+  "watchapp": {
+    "watchface": true
+  },
+  "targetPlatforms": [
+    "aplite",
+    "basalt"
+  ],
+  "sdkVersion": "3",
   "appKeys": {
     "icon": 0,
     "bg": 1,
@@ -13,8 +27,6 @@
   },
   "capabilities": [
   ],
-  "companyName": "Nightscout Foundation",
-  "longName": "xDrip Watch Face",
   "projectType": "native",
   "resources": {
     "media": [
@@ -110,17 +122,5 @@
         "type": "png"
       }
     ]
-  },
-  "shortName": "xDrip Watch Face",
-  "uuid": "79f8ecb3-7214-4bfc-b996-cb95148ee6d3",
-  "versionCode": 1,
-  "versionLabel": "1.4",
-  "watchapp": {
-    "watchface": true
-  },
-  "targetPlatforms": [
-    "aplite",
-    "basalt"
-  ],
-  "sdkVersion": "3"
+  }
 }
