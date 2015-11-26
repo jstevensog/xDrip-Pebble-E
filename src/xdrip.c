@@ -1921,8 +1921,8 @@ void handle_second_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
 			if(!layer_get_hidden((Layer *)message_layer)) layer_set_hidden((Layer *)message_layer, true);
 			if(layer_get_hidden((Layer *)delta_layer)) layer_set_hidden((Layer *)delta_layer, false);
 		} else {
-			layer_set_hidden((Layer *)delta_layer,!layer_get_hidden((Layer *)delta_layer));
-			layer_set_hidden((Layer *)message_layer, !layer_get_hidden((Layer *)message_layer));
+			layer_set_hidden((Layer *)delta_layer,!(tick_time_cgm->tm_sec && 0x02));
+			layer_set_hidden((Layer *)message_layer, (tick_time_cgm->tm_sec && 0x02));
 		}
 	}
 	if (units_changed_cgm & MINUTE_UNIT) {
