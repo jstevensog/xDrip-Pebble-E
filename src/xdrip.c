@@ -1954,19 +1954,6 @@ void window_load_cgm(Window *window_cgm) {
 	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(upper_face_layer));
 	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(lower_face_layer));
 	
-	//create the bg_trend_layer
-	#ifdef TRENDING
-	#ifdef DEBUG_LEVEL
-	APP_LOG(APP_LOG_LEVEL_INFO, "Creating BG Trend Bitmap layer");
-	#endif
-	#ifdef PBL_PLATFORM_BASALT
-	bg_trend_layer = bitmap_layer_create(GRect(0,0,144,84));
-	bitmap_layer_set_background_color(bg_trend_layer, GColorClear);
-	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
-	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(bg_trend_layer));
-	#endif
-	#endif
-
 	// ARROW OR SPECIAL VALUE
 	#ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating Arrow Bitmap layer");
@@ -2012,6 +1999,19 @@ void window_load_cgm(Window *window_cgm) {
 	text_layer_set_text_alignment(time_app_layer, GTextAlignmentRight);
 	layer_add_child(window_layer_cgm, text_layer_get_layer(time_app_layer));
 	
+	//create the bg_trend_layer
+	#ifdef TRENDING
+	#ifdef DEBUG_LEVEL
+	APP_LOG(APP_LOG_LEVEL_INFO, "Creating BG Trend Bitmap layer");
+	#endif
+	#ifdef PBL_PLATFORM_BASALT
+	bg_trend_layer = bitmap_layer_create(GRect(0,0,144,84));
+	bitmap_layer_set_background_color(bg_trend_layer, GColorClear);
+	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
+	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(bg_trend_layer));
+	#endif
+	#endif
+
 	// DELTA BG
 	#ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating Delta BG Text layer");
