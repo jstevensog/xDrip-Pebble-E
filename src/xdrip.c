@@ -18,7 +18,8 @@ Window *window_cgm = NULL;
 
 TextLayer *bg_layer = NULL;
 TextLayer *cgmtime_layer = NULL;
-TextLayer *message_layer = NULL;		// BG DELTA & MESSAGE LAYER
+TextLayer *delta_layer = NULL;		// BG DELTA LAYER
+TextLayer *message_layer = NULL;	// MESSAGE LAYER
 TextLayer *battlevel_layer = NULL;
 TextLayer *watch_battlevel_layer = NULL;
 TextLayer *time_watch_layer = NULL;
@@ -203,6 +204,8 @@ static uint8_t minutes_cgm = 0;
 #define	CGM_TREND_BEGIN_KEY 	7		// TUPLE_BYTE[], No Maximum
 #define	CGM_TREND_DATA_KEY 	8
 #define	CGM_TREND_END_KEY 	9
+#define CGM_MESSAGE_KEY		10
+#define CGM_VIBE_KEY		11
  
 // TOTAL MESSAGE DATA 4x3+2+5+3+9 = 31 BYTES
 // TOTAL KEY HEADER DATA (STRINGS) 4x6+2 = 26 BYTES
@@ -576,9 +579,9 @@ void handle_bluetooth_cgm(bool bt_connected) {
 		//APP_LOG(APP_LOG_LEVEL_INFO, "NO BLUETOOTH");
 		if (!TurnOff_NOBLUETOOTH_Msg) {
 			#ifdef PBL_COLOR
-			text_layer_set_text_color(message_layer, GColorRed);
+			text_layer_set_text_color(delta_layer, GColorRed);
 			#endif
-			text_layer_set_text(message_layer, "NO BLUETOOTH");
+			text_layer_set_text(delta_layer, "NO BLUETOOTH");
 		} 
 		
 		// erase cgm and app ago times
@@ -600,7 +603,7 @@ void handle_bluetooth_cgm(bool bt_connected) {
 			BT_timer_pop = false;
 		}
 		#ifdef PBL_COLOR
-		text_layer_set_text_color(message_layer, GColorBlack);
+		text_layer_set_text_color(delta_layer, GColorBlack);
 		#endif
 
 	}
@@ -711,9 +714,9 @@ void sync_error_callback_cgm(DictionaryResult appsync_dict_error, AppMessageResu
 		
 	// set message to RESTART WATCH -> PHONE
 	#ifdef DEBUG
-	text_layer_set_text(message_layer, translate_app_error(appsync_err_openerr));
+	text_layer_set_text(delta_layer, translate_app_error(appsync_err_openerr));
 	#else
-	text_layer_set_text(message_layer, "RSTRT WCH/PH");
+	text_layer_set_text(delta_layer, "RSTRT WCH/PH");
 	#endif
 		
 	// erase cgm and app ago times
@@ -791,7 +794,7 @@ void inbox_dropped_handler_cgm(AppMessageResult appmsg_indrop_error, void *conte
 	}
 		
 	// set message to RESTART WATCH -> PHONE
-	text_layer_set_text(message_layer, "RSTRT WCH/PHN");
+	text_layer_set_text(delta_layer, "RSTRT WCH/PHN");
 		
 	// erase cgm and app ago times
 	text_layer_set_text(cgmtime_layer, "");
@@ -871,9 +874,9 @@ void outbox_failed_handler_cgm(DictionaryIterator *failed, AppMessageResult appm
 		
 	// set message to RESTART WATCH -> PHONE
 	#ifdef DEBUG
-	text_layer_set_text(message_layer, translate_app_error(appmsg_outfail_openerr));
+	text_layer_set_text(delta_layer, translate_app_error(appmsg_outfail_openerr));
 	#else
-	text_layer_set_text(message_layer, "RSTRT WCH/PH");
+	text_layer_set_text(delta_layer, "RSTRT WCH/PH");
 	#endif
 		
 	// erase cgm and app ago times
@@ -1124,7 +1127,7 @@ static void load_bg() {
 			// Bluetooth is out; set BT message
 			//APP_LOG(APP_LOG_LEVEL_INFO, "LOAD BG, BG INIT: NO BT, SET NO BT MESSAGE");
 			if (!TurnOff_NOBLUETOOTH_Msg) {
-				text_layer_set_text(message_layer, "NO BLUETOOTH");
+				text_layer_set_text(delta_layer, "NO BLUETOOTH");
 			} // if turnoff nobluetooth msg
 		}// if !bluetooth connected
 		else {
@@ -1469,14 +1472,14 @@ static void load_bg_delta() {
 		
 	// check for CHECK PHONE condition, if true set message
 	if ((PhoneOffAlert) && (!TurnOff_CHECKPHONE_Msg)) {
-		text_layer_set_text(message_layer, "CHECK PHONE");
+		text_layer_set_text(delta_layer, "CHECK PHONE");
 		return;	
 	}
 	
 	// check for special messages; if no string, set no message
 	if (strcmp(current_bg_delta, "") == 0) {
 		strncpy(formatted_bg_delta, "", MSGLAYER_BUFFER_SIZE);
-		text_layer_set_text(message_layer, formatted_bg_delta);
+		text_layer_set_text(delta_layer, formatted_bg_delta);
 		return;	
 	}
 	
@@ -1489,7 +1492,7 @@ static void load_bg_delta() {
 			#endif
 
 		strncpy(formatted_bg_delta, "LOADING...", MSGLAYER_BUFFER_SIZE);
-		text_layer_set_text(message_layer, formatted_bg_delta);
+		text_layer_set_text(delta_layer, formatted_bg_delta);
 		text_layer_set_text(bg_layer, " ");
 		create_update_bitmap(&icon_bitmap,icon_layer,SPECIAL_VALUE_ICONS[LOGO_SPECVALUE_ICON_INDX]);
 		specvalue_alert = false;
@@ -1499,14 +1502,14 @@ static void load_bg_delta() {
 	//check for "--" indicating an indeterminate delta.  Display it.
 	if (strcmp(current_bg_delta, "???") == 0) {
 		strncpy(formatted_bg_delta, current_bg_delta, BGDELTA_FORMATTED_SIZE);
-		text_layer_set_text(message_layer, formatted_bg_delta);
+		text_layer_set_text(delta_layer, formatted_bg_delta);
 		return;	
 	}
 	
 	//check for "ERR" indicating an indeterminate delta.  Display it.
 	if (strcmp(current_bg_delta, "ERR") == 0) {
 		strncpy(formatted_bg_delta, current_bg_delta, BGDELTA_FORMATTED_SIZE);
-		text_layer_set_text(message_layer, formatted_bg_delta);
+		text_layer_set_text(delta_layer, formatted_bg_delta);
 		return;	
 	}
 
@@ -1519,23 +1522,23 @@ static void load_bg_delta() {
 	//strcat(formatted_bg_delta, delta_label_buffer);
 	strncpy(formatted_bg_delta, current_bg_delta, BGDELTA_FORMATTED_SIZE);
 
-	if(strncmp(last_bg,"5.5", 3) == 0 || strncmp(last_bg,"99", 2) == 0 || strncmp(last_bg, "100", 3) == 0) {
-		text_layer_set_text(message_layer, "BAZINGA!");
+/*	if(strncmp(last_bg,"5.5", 3) == 0 || strncmp(last_bg,"99", 2) == 0 || strncmp(last_bg, "100", 3) == 0) {
+		text_layer_set_text(delta_layer, "BAZINGA!");
 		#ifdef PBL_COLOR
-		text_layer_set_text_color(message_layer, GColorDukeBlue);
+		text_layer_set_text_color(delta_layer, GColorDukeBlue);
 		#endif
-	} else {
+	} else { */
 		#ifdef DEBUG_LEVEL
 		APP_LOG(APP_LOG_LEVEL_INFO, "LOAD_BG_DELTA: All good. Setting \"%s\"", formatted_bg_delta);
 		#endif
 
-		text_layer_set_text(message_layer, formatted_bg_delta);
+		text_layer_set_text(delta_layer, formatted_bg_delta);
 		#ifdef PBL_COLOR
-		text_layer_set_text_color(message_layer,GColorBlack);
+		text_layer_set_text_color(delta_layer,GColorBlack);
 		#endif
-	}
+	//}
 	#ifdef DEBUG_LEVEL
-	APP_LOG(APP_LOG_LEVEL_INFO, "LOAD_BG_DELTA: message_layer is \"%s\"", text_layer_get_text(message_layer));
+	APP_LOG(APP_LOG_LEVEL_INFO, "LOAD_BG_DELTA: delta_layer is \"%s\"", text_layer_get_text(delta_layer));
 	#endif
 	
 } // end load_bg_delta
@@ -1805,7 +1808,18 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context) {
 			#endif
 			//free(trend_buffer);
 			break;
-			
+
+		case CGM_MESSAGE_KEY:
+			text_layer_set_text(message_layer,data->value->cstring);
+			if(strcmp(data->value->cstring, "")==0) {
+				layer_set_hidden((Layer *)message_layer, true);
+				layer_set_hidden((Layer *)delta_layer, false);
+			} else {
+				layer_set_hidden((Layer *)message_layer, false);
+				layer_set_hidden((Layer *)message_layer, true);
+			}
+			break;
+							
 		default:
 			#ifdef DEBUG_LEVEL 
 			APP_LOG(APP_LOG_LEVEL_INFO, "sync_tuple_cgm_callback: Dictionary Key not recognised");
@@ -1892,16 +1906,25 @@ void timer_callback_cgm(void *data) {
 
 // format current time from watch
 
-void handle_minute_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cgm) {
-	#ifdef DEBUG_LEVEL
-	APP_LOG(APP_LOG_LEVEL_INFO, "Handling minute tick");
-	#endif
+void handle_second_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cgm) {
+	//#ifdef DEBUG_LEVEL
+	//APP_LOG(APP_LOG_LEVEL_INFO, "Handling minute tick");
+	//#endif
 	
 	// VARIABLES
 	size_t tick_return_cgm = 0;
 	
 	// CODE START
-	
+	if (units_changed_cgm & SECOND_UNIT && tick_time_cgm->tm_sec && 0x02) {
+		
+		if(strcmp(text_layer_get_text(message_layer), "") ==0 ){
+			if(!layer_get_hidden((Layer *)message_layer)) layer_set_hidden((Layer *)message_layer, true);
+			if(layer_get_hidden((Layer *)delta_layer)) layer_set_hidden((Layer *)delta_layer, false);
+		} else {
+			layer_set_hidden((Layer *)delta_layer,!layer_get_hidden((Layer *)delta_layer));
+			layer_set_hidden((Layer *)message_layer, !layer_get_hidden((Layer *)message_layer));
+		}
+	}
 	if (units_changed_cgm & MINUTE_UNIT) {
 		//APP_LOG(APP_LOG_LEVEL_INFO, "TICK TIME MINUTE CODE");
 	if(clock_is_24h_style() == true) {
@@ -2016,6 +2039,24 @@ void window_load_cgm(Window *window_cgm) {
 	#ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating Delta BG Text layer");
 	#endif
+	delta_layer = text_layer_create(GRect(0, 38, 143, 50));
+	#ifdef PBL_COLOR
+	text_layer_set_text_color(delta_layer, GColorDukeBlue);
+	text_layer_set_background_color(delta_layer, GColorClear);
+	#else
+	//delta_layer = text_layer_create(GRect(0, 33, 143, 55));
+	text_layer_set_text_color(delta_layer, GColorBlack);
+	text_layer_set_background_color(delta_layer, GColorClear);
+	//text_layer_set_font(delta_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
+	#endif
+	text_layer_set_font(delta_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+	text_layer_set_text_alignment(delta_layer, GTextAlignmentCenter);
+	layer_add_child(window_layer_cgm, text_layer_get_layer(delta_layer));
+
+	// MESSAGE
+	#ifdef DEBUG_LEVEL
+	APP_LOG(APP_LOG_LEVEL_INFO, "Creating Message Text layer");
+	#endif
 	message_layer = text_layer_create(GRect(0, 38, 143, 50));
 	#ifdef PBL_COLOR
 	text_layer_set_text_color(message_layer, GColorDukeBlue);
@@ -2028,6 +2069,8 @@ void window_load_cgm(Window *window_cgm) {
 	#endif
 	text_layer_set_font(message_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
 	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
+	text_layer_set_text(message_layer, "");
+	layer_set_hidden((Layer *)message_layer, true);
 	layer_add_child(window_layer_cgm, text_layer_get_layer(message_layer));
 
 	// BG
@@ -2212,6 +2255,7 @@ void window_unload_cgm(Window *window_cgm) {
 	//APP_LOG(APP_LOG_LEVEL_INFO, "WINDOW UNLOAD, DESTROY TEXT LAYERS IF EXIST");	
 	destroy_null_TextLayer(&bg_layer);
 	destroy_null_TextLayer(&cgmtime_layer);
+	destroy_null_TextLayer(&delta_layer);
 	destroy_null_TextLayer(&message_layer);
 	destroy_null_TextLayer(&battlevel_layer);
 	destroy_null_TextLayer(&watch_battlevel_layer);
@@ -2233,7 +2277,7 @@ static void init_cgm(void) {
 	//APP_LOG(APP_LOG_LEVEL_INFO, "INIT CODE IN");
 	
 	// subscribe to the tick timer service
-	tick_timer_service_subscribe(MINUTE_UNIT, &handle_minute_tick_cgm);
+	tick_timer_service_subscribe(SECOND_UNIT, &handle_second_tick_cgm);
 
 	// subscribe to the bluetooth connection service
 	bluetooth_connection_service_subscribe(handle_bluetooth_cgm);
