@@ -9,7 +9,7 @@
 /* The line below will set the debug message level.  
 Make sure you set this to 0 before building a release. */
 
-#define DEBUG_LEVEL 2
+#define DEBUG_LEVEL 1
 
 // global window variables
 // ANYTHING THAT IS CALLED BY PEBBLE API HAS TO BE NOT STATIC
@@ -59,6 +59,7 @@ uint8_t *trend_buffer = NULL;
 static uint16_t trend_buffer_length = 0;
 static uint16_t expected_trend_buffer_length = 0;
 #endif
+bool display_message = false;
 
 // variables for timers and time
 AppTimer *timer_cgm = NULL;
@@ -1810,13 +1811,24 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context) {
 			break;
 
 		case CGM_MESSAGE_KEY:
+			#ifdef DEBUG_LEVEL
+			APP_LOG(APP_LOG_LEVEL_INFO, "Got Message Key, message is \"%s\"", data->value->cstring);
+			#endif
 			text_layer_set_text(message_layer,data->value->cstring);
 			if(strcmp(data->value->cstring, "")==0) {
+				#ifdef DEBUG_LEVEL
+				APP_LOG(APP_LOG_LEVEL_INFO, "Setting Delta Only");
+				#endif
+				display_message = false;
 				layer_set_hidden((Layer *)message_layer, true);
 				layer_set_hidden((Layer *)delta_layer, false);
 			} else {
+				#ifdef DEBUG_LEVEL
+				APP_LOG(APP_LOG_LEVEL_INFO, "Setting Message");
+				#endif
+				display_message = true;
 				layer_set_hidden((Layer *)message_layer, false);
-				layer_set_hidden((Layer *)message_layer, true);
+				layer_set_hidden((Layer *)delta_layer, true);
 			}
 			break;
 							
@@ -1915,14 +1927,25 @@ void handle_second_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
 	size_t tick_return_cgm = 0;
 	
 	// CODE START
-	if (units_changed_cgm & SECOND_UNIT && tick_time_cgm->tm_sec && 0x02) {
+	if (units_changed_cgm & SECOND_UNIT && (tick_time_cgm->tm_sec & 0x02)==2) {
 		
-		if(strcmp(text_layer_get_text(message_layer), "") ==0 ){
-			if(!layer_get_hidden((Layer *)message_layer)) layer_set_hidden((Layer *)message_layer, true);
-			if(layer_get_hidden((Layer *)delta_layer)) layer_set_hidden((Layer *)delta_layer, false);
+		#if DEBUG_LEVEL > 1
+		APP_LOG(APP_LOG_LEVEL_INFO, "Handling 2 second tick, display_message is %i", display_message);
+		#endif
+		if(display_message){
+			#if DEBUG_LEVEL > 1
+			APP_LOG(APP_LOG_LEVEL_DEBUG, "message_layer toggling %i", (tick_time_cgm->tm_sec & 0x02)==2);
+			#endif
+			
+			layer_set_hidden((Layer *)delta_layer, !(layer_get_hidden((Layer *)delta_layer)));
+			layer_set_hidden((Layer *)message_layer, !(layer_get_hidden((Layer *)message_layer)));
 		} else {
-			layer_set_hidden((Layer *)delta_layer,!(tick_time_cgm->tm_sec && 0x02));
-			layer_set_hidden((Layer *)message_layer, (tick_time_cgm->tm_sec && 0x02));
+			if(!layer_get_hidden((Layer *)message_layer)) {
+				layer_set_hidden((Layer *)message_layer, true);
+			}
+			if(layer_get_hidden((Layer *)delta_layer)) {
+				layer_set_hidden((Layer *)delta_layer, false);
+			}
 		}
 	}
 	if (units_changed_cgm & MINUTE_UNIT) {
