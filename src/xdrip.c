@@ -1786,7 +1786,8 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context) {
 			APP_LOG(APP_LOG_LEVEL_DEBUG, "TREND_BEGIN: trend_buffer is %lx, trend_buffer_length is %i", (uint32_t)trend_buffer, trend_buffer_length);
 			#ifdef PBL_PLATFORM_BASALT
 			bg_trend_bitmap = gbitmap_create_from_png_data(trend_buffer, trend_buffer_length);
-			#else
+			#endif
+			#ifdef PBL_PLATFORM_APLITE
 			bg_trend_bitmap = gbitmap_create_with_png_data(trend_buffer, trend_buffer_length);
 			#endif
 			//graphics_context_set_antialiased(bg_trend_bitmap, false);
@@ -1989,9 +1990,9 @@ void window_load_cgm(Window *window_cgm) {
 	#ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating Upper and Lower face panels");
 	#endif
-	upper_face_layer = bitmap_layer_create(GRect(0,0,143,82));
+	upper_face_layer = bitmap_layer_create(GRect(0,0,144,83));
 	bitmap_layer_set_background_color(upper_face_layer, GColorWhite);
-	lower_face_layer = bitmap_layer_create(GRect(0,83,143,165));
+	lower_face_layer = bitmap_layer_create(GRect(0,84,144,165));
 	#ifdef PBL_COLOR
 	bitmap_layer_set_background_color(lower_face_layer, GColorDukeBlue);
 	#else
@@ -2052,10 +2053,14 @@ void window_load_cgm(Window *window_cgm) {
 	#endif
 	#ifdef PBL_PLATFORM_BASALT
 	bg_trend_layer = bitmap_layer_create(GRect(0,0,144,84));
-	bitmap_layer_set_background_color(bg_trend_layer, GColorClear);
 	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
-	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(bg_trend_layer));
 	#endif
+	#ifdef PBL_PLATFORM_APLITE
+	bg_trend_layer = bitmap_layer_create(GRect(0,0,144,84));
+	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpAnd);
+	#endif
+	bitmap_layer_set_background_color(bg_trend_layer, GColorClear);
+	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(bg_trend_layer));
 	#endif
 
 	// DELTA BG
