@@ -92,9 +92,6 @@ static bool specvalue_alert = false;
 
 // global overwrite variables for vibrating when hit a specific BG if already in a snooze
 static bool specvalue_overwrite = false;
-static bool hypolow_overwrite = false;
-static bool biglow_overwrite = false;
-static bool bighigh_overwrite = false;
 
 // global variables for vibrating in special conditions
 static bool DoubleDownAlert = false;
@@ -1100,16 +1097,6 @@ static void load_bg() {
 	// set special value alert to false no matter what
 	specvalue_alert = false;
 
-	// see if we're doing MGDL or MMOL; get currentBG_isMMOL value in myBGAtoi
-	// convert BG value from string to int
-/*	#ifdef DEBUG_LEVEL
-	APP_LOG(APP_LOG_LEVEL_DEBUG, "LOAD BG, BGATOI IN, CURRENT_BG: %d LAST_BG: %s ", current_bg, last_bg);
-	#endif
-	current_bg = myBGAtoi(last_bg);
-	#ifdef DEBUG_LEVEL
-	APP_LOG(APP_LOG_LEVEL_DEBUG, "LOAD BG, BG ATOI OUT, CURRENT_BG: %d LAST_BG: %s ", current_bg, last_bg);
-	#endif
-*/		
 	#if DEBUG_LEVEL > 1
 	APP_LOG(APP_LOG_LEVEL_DEBUG, "LAST BG: %s", last_bg);
 	//APP_LOG(APP_LOG_LEVEL_DEBUG, "CURRENT BG: %i", current_bg);
@@ -1198,7 +1185,7 @@ static void load_bg() {
 		// check BG and vibrate if needed
 		
 		// check for SPECIAL VALUE
-		else {
+/*		else {
 			//APP_LOG(APP_LOG_LEVEL_INFO, "LOAD BG, SPECIAL VALUE BG ALERT");
 			//APP_LOG(APP_LOG_LEVEL_DEBUG, "lastAlertTime SPEC VALUE SNOOZE VALUE IN: %i", lastAlertTime);
 			//APP_LOG(APP_LOG_LEVEL_DEBUG, "specvalue_overwrite IN: %i", specvalue_overwrite);
@@ -1217,15 +1204,12 @@ static void load_bg() {
 			if (lastAlertTime == SPECVALUE_SNZ_MIN) { 
 				lastAlertTime = 0;
 				specvalue_overwrite = false;
-				hypolow_overwrite = false;
-				biglow_overwrite = false;
-				bighigh_overwrite = false;
 			}
 			
 			//APP_LOG(APP_LOG_LEVEL_DEBUG, "lastAlertTime SPEC VALUE SNOOZE VALUE OUT: %i", lastAlertTime);
 			//APP_LOG(APP_LOG_LEVEL_DEBUG, "specvalue_overwrite OUT: %i", specvalue_overwrite);
 		} 
-			
+*/			
 		
 	} // else if current bg <= 0
 			
@@ -1319,7 +1303,7 @@ static void load_cgmtime() {
 			strcat(formatted_cgm_timeago, cgm_label_buffer);
 		}
 		else {
-			strncpy (formatted_cgm_timeago, "ERR", TIMEAGO_BUFFER_SIZE);
+			strncpy (formatted_cgm_timeago, "---", TIMEAGO_BUFFER_SIZE);
 			//create_update_bitmap(&cgmicon_bitmap,cgmicon_layer,TIMEAGO_ICONS[NONE_TIMEAGO_ICON_INDX]);				
 		}
 			
@@ -1830,6 +1814,15 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context) {
 				display_message = true;
 				layer_set_hidden((Layer *)message_layer, false);
 				layer_set_hidden((Layer *)delta_layer, true);
+			}
+			break;
+			
+		case CGM_VIBE_KEY:
+			#ifdef DEBUG_LEVEL
+			APP_LOG(APP_LOG_LEVEL_INFO, "Got Vibe Key, message is \"%u\"", data->value->uint8);
+			#endif
+			if(data->value->uint8 > 0 || data->value->uint8 <4) {
+				alert_handler_cgm(data->value->uint8);
 			}
 			break;
 							
