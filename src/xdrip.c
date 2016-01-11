@@ -199,11 +199,12 @@ static uint8_t minutes_cgm = 0;
 #define	CGM_DLTA_KEY 	4		// TUPLE_CSTRING, MAX 5 BYTES (BG DELTA, -100 or -10.0)
 #define	CGM_UBAT_KEY 	5		// TUPLE_CSTRING, MAX 3 BYTES (UPLOADER BATTERY, 100)
 #define	CGM_NAME_KEY 	6		// TUPLE_CSTRING, MAX 9 BYTES (Christine)
-#define	CGM_TREND_BEGIN_KEY 	7		// TUPLE_BYTE[], No Maximum
-#define	CGM_TREND_DATA_KEY 	8
-#define	CGM_TREND_END_KEY 	9
+#define	CGM_TREND_BEGIN_KEY 	7		// TUPLE_INT, 4 BYTES (length of CGM_TREND_DATA_KEY
+#define	CGM_TREND_DATA_KEY 	8		// TUPLE_BYTE[], No Maximum, based on value found in CGM_TREND_DATA_KEY
+#define	CGM_TREND_END_KEY 	9		// TUPLE_INT, always 0.
 #define CGM_MESSAGE_KEY		10
 #define CGM_VIBE_KEY		11
+#define CGM_SYNC_KEY		0xd1abada5	// key pebble will use to request and update.
  
 // TOTAL MESSAGE DATA 4x3+2+5+3+9 = 31 BYTES
 // TOTAL KEY HEADER DATA (STRINGS) 4x6+2 = 26 BYTES
@@ -1840,12 +1841,17 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context) {
 static void send_cmd_cgm(void) {
 	
 	DictionaryIterator *iter = NULL;
+	const uint32_t size = dict_calc_buffer_size(1,4);
+	const uint32_t value = CGM_SYNC_KEY;
+	uint8_t buffer[size];
 	#ifdef DEBUG_LEVEL
 		APP_LOG(APP_LOG_LEVEL_INFO, "send_cmd_cgm called.");
 	#endif
 	AppMessageResult sendcmd_openerr = APP_MSG_OK;
 	AppMessageResult sendcmd_senderr = APP_MSG_OK;
-	
+
+	dict_write_begin(iter, buffer, sizeof(buffer));
+	dict_write_int(iter, CGM_SYNC_KEY, &value ,4 ,false);	
 	//APP_LOG(APP_LOG_LEVEL_INFO, "SEND CMD IN, ABOUT TO OPEN APP MSG OUTBOX");
 
 	sendcmd_openerr = app_message_outbox_begin(&iter);
@@ -1921,14 +1927,14 @@ void handle_second_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
 	size_t tick_return_cgm = 0;
 	
 	// CODE START
-	if (units_changed_cgm & SECOND_UNIT && (tick_time_cgm->tm_sec & 0x02)==2) {
+	if ((units_changed_cgm & SECOND_UNIT) && ((tick_time_cgm->tm_sec & 0x01)==1)) {
 		
 		#if DEBUG_LEVEL > 1
 		APP_LOG(APP_LOG_LEVEL_INFO, "Handling 2 second tick, display_message is %i", display_message);
 		#endif
 		if(display_message){
 			#if DEBUG_LEVEL > 1
-			APP_LOG(APP_LOG_LEVEL_DEBUG, "message_layer toggling %i", (tick_time_cgm->tm_sec & 0x02)==2);
+			APP_LOG(APP_LOG_LEVEL_DEBUG, "message_layer toggling %i", (tick_time_cgm->tm_sec & 0x01)==1);
 			#endif
 			
 			layer_set_hidden((Layer *)delta_layer, !(layer_get_hidden((Layer *)delta_layer)));
@@ -2060,7 +2066,7 @@ void window_load_cgm(Window *window_cgm) {
 	#ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating Delta BG Text layer");
 	#endif
-	delta_layer = text_layer_create(GRect(0, 38, 143, 50));
+	delta_layer = text_layer_create(GRect(0, 36, 143, 50));
 	#ifdef PBL_COLOR
 	text_layer_set_text_color(delta_layer, GColorDukeBlue);
 	text_layer_set_background_color(delta_layer, GColorClear);
@@ -2068,9 +2074,10 @@ void window_load_cgm(Window *window_cgm) {
 	//delta_layer = text_layer_create(GRect(0, 33, 143, 55));
 	text_layer_set_text_color(delta_layer, GColorBlack);
 	text_layer_set_background_color(delta_layer, GColorClear);
-	//text_layer_set_font(delta_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
+	//
 	#endif
-	text_layer_set_font(delta_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+	//text_layer_set_font(delta_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
+	text_layer_set_font(delta_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28));
 	text_layer_set_text_alignment(delta_layer, GTextAlignmentCenter);
 	layer_add_child(window_layer_cgm, text_layer_get_layer(delta_layer));
 
@@ -2078,7 +2085,8 @@ void window_load_cgm(Window *window_cgm) {
 	#ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating Message Text layer");
 	#endif
-	message_layer = text_layer_create(GRect(0, 38, 143, 50));
+	//message_layer = text_layer_create(GRect(0, 38, 143, 50));
+	message_layer = text_layer_create(GRect(0, 36, 143, 50));
 	#ifdef PBL_COLOR
 	text_layer_set_text_color(message_layer, GColorDukeBlue);
 	text_layer_set_background_color(message_layer, GColorClear);
@@ -2088,7 +2096,8 @@ void window_load_cgm(Window *window_cgm) {
 	text_layer_set_background_color(message_layer, GColorClear);
 	//text_layer_set_font(message_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
 	#endif
-	text_layer_set_font(message_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+	//text_layer_set_font(message_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+	text_layer_set_font(message_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28));
 	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
 	text_layer_set_text(message_layer, "");
 	layer_set_hidden((Layer *)message_layer, true);
