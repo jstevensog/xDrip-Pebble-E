@@ -6,7 +6,7 @@
   "versionCode": 1,
   "versionLabel": "1.4",
   "watchapp": {
-    "watchface": true
+    "watchface": false
   },
   "targetPlatforms": [
     "aplite",
