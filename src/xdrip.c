@@ -19,13 +19,13 @@ TextLayer *message_layer = NULL;	// MESSAGE LAYER
 TextLayer *battlevel_layer = NULL;
 TextLayer *watch_battlevel_layer = NULL;
 TextLayer *time_watch_layer = NULL;
-TextLayer *time_app_layer = NULL;
+//TextLayer *time_app_layer = NULL;
 TextLayer *date_app_layer = NULL;
 
 
 
 BitmapLayer *icon_layer = NULL;
-BitmapLayer *appicon_layer = NULL;
+//BitmapLayer *appicon_layer = NULL;
 BitmapLayer *bg_trend_layer = NULL;
 BitmapLayer *upper_face_layer = NULL;
 BitmapLayer *lower_face_layer = NULL;
@@ -228,6 +228,7 @@ static const uint8_t QUESTION_MARKS_ICON_INDX = 5;
 static const uint8_t LOGO_SPECVALUE_ICON_INDX = 6;
 static const uint8_t ERR_SPECVALUE_ICON_INDX = 7;
 
+/*
 // ARRAY OF TIMEAGO ICONS
 static const uint8_t TIMEAGO_ICONS[] = {
 	RESOURCE_ID_IMAGE_NONE,			//0
@@ -239,7 +240,7 @@ static const uint8_t TIMEAGO_ICONS[] = {
 static const uint8_t NONE_TIMEAGO_ICON_INDX = 0;
 static const uint8_t PHONEON_ICON_INDX = 1;
 static const uint8_t PHONEOFF_ICON_INDX = 2;
-
+*/
 #ifdef DEBUG_LEVEL
 static char *translate_app_error(AppMessageResult result) {
 	switch (result) {
@@ -581,12 +582,12 @@ void handle_bluetooth_cgm(bool bt_connected) {
 		
 		// erase cgm and app ago times
 		text_layer_set_text(cgmtime_layer, "");
-		text_layer_set_text(time_app_layer, "");
+		//text_layer_set_text(time_app_layer, "");
 		
 		// erase cgm icon
 		//create_update_bitmap(&cgmicon_bitmap,cgmicon_layer,TIMEAGO_ICONS[NONE_TIMEAGO_ICON_INDX]);
 		// turn phone icon off
-		create_update_bitmap(&appicon_bitmap,appicon_layer,TIMEAGO_ICONS[PHONEOFF_ICON_INDX]);
+		//create_update_bitmap(&appicon_bitmap,appicon_layer,TIMEAGO_ICONS[PHONEOFF_ICON_INDX]);
 	}
 		
 	else {
@@ -716,13 +717,13 @@ void sync_error_callback_cgm(DictionaryResult appsync_dict_error, AppMessageResu
 		
 	// erase cgm and app ago times
 	text_layer_set_text(cgmtime_layer, "");
-	text_layer_set_text(time_app_layer, "");
+	//text_layer_set_text(time_app_layer, "");
 		
 	// erase cgm icon
 	//create_update_bitmap(&cgmicon_bitmap,cgmicon_layer,TIMEAGO_ICONS[NONE_TIMEAGO_ICON_INDX]);
 		
 	// turn phone icon off
-	create_update_bitmap(&appicon_bitmap,appicon_layer,TIMEAGO_ICONS[PHONEOFF_ICON_INDX]);
+	//create_update_bitmap(&appicon_bitmap,appicon_layer,TIMEAGO_ICONS[PHONEOFF_ICON_INDX]);
 
 	// check if need to vibrate
 	if (!AppSyncErrAlert) {
@@ -793,13 +794,13 @@ void inbox_dropped_handler_cgm(AppMessageResult appmsg_indrop_error, void *conte
 		
 	// erase cgm and app ago times
 	text_layer_set_text(cgmtime_layer, "");
-	text_layer_set_text(time_app_layer, "");
+	//text_layer_set_text(time_app_layer, "");
 		
 	// erase cgm icon
 	//create_update_bitmap(&cgmicon_bitmap,cgmicon_layer,TIMEAGO_ICONS[NONE_TIMEAGO_ICON_INDX]);
 		
 	// turn phone icon off
-	create_update_bitmap(&appicon_bitmap,appicon_layer,TIMEAGO_ICONS[PHONEOFF_ICON_INDX]);
+	//create_update_bitmap(&appicon_bitmap,appicon_layer,TIMEAGO_ICONS[PHONEOFF_ICON_INDX]);
 
 	// check if need to vibrate
 	if (!AppMsgInDropAlert) {
@@ -876,13 +877,13 @@ void outbox_failed_handler_cgm(DictionaryIterator *failed, AppMessageResult appm
 		
 	// erase cgm and app ago times
 	text_layer_set_text(cgmtime_layer, "");
-	text_layer_set_text(time_app_layer, "");
+	//text_layer_set_text(time_app_layer, "");
 		
 	// erase cgm icon
 	//create_update_bitmap(&cgmicon_bitmap,cgmicon_layer,TIMEAGO_ICONS[NONE_TIMEAGO_ICON_INDX]);
 		
 	// turn phone icon off
-	create_update_bitmap(&appicon_bitmap,appicon_layer,TIMEAGO_ICONS[PHONEOFF_ICON_INDX]);
+	//create_update_bitmap(&appicon_bitmap,appicon_layer,TIMEAGO_ICONS[PHONEOFF_ICON_INDX]);
 
 	// check if need to vibrate
 	if (!AppMsgOutFailAlert) {
@@ -1307,12 +1308,12 @@ static void load_cgmtime() {
 		text_layer_set_text(cgmtime_layer, formatted_cgm_timeago);	
 	} // else init code
 		
-	#ifdef DEBUG_LEVEL
-	APP_LOG(APP_LOG_LEVEL_INFO, "LOAD_CGMTIME: time_app_layer is \"%s\"", text_layer_get_text(cgmtime_layer));
-	#endif
+	//#ifdef DEBUG_LEVEL
+	//APP_LOG(APP_LOG_LEVEL_INFO, "LOAD_CGMTIME: time_app_layer is \"%s\"", text_layer_get_text(cgmtime_layer));
+	//#endif
 	//APP_LOG(APP_LOG_LEVEL_DEBUG, "LOAD CGMTIME, CGM TIMEAGO LABEL OUT: %s", cgm_label_buffer);
 } // end load_cgmtime
-
+/*
 static void load_apptime(){
 	//APP_LOG(APP_LOG_LEVEL_INFO, "LOAD APPTIME, READ APP TIME FUNCTION START");
 	
@@ -1389,6 +1390,7 @@ static void load_apptime(){
 			
 		//APP_LOG(APP_LOG_LEVEL_INFO, "LOAD APPTIME, CHECK FOR PHONE OFF ICON");
 		// check to see if we need to set phone off icon
+		
 		//APP_LOG(APP_LOG_LEVEL_DEBUG, "LOAD APPTIME, app_timeago_diff: %d, PHONEOUT_WAIT_MIN: %d, app_label_buffer: %s", app_timeago_diff, PHONEOUT_WAIT_MIN, app_label_buffer);
 		if ( (app_timeago_diff >= PHONEOUT_WAIT_MIN) || ( (strcmp(app_label_buffer, "") != 0) && (strcmp(app_label_buffer, "m") != 0) ) ) {
 			// set phone off icon
@@ -1411,7 +1413,9 @@ static void load_apptime(){
 		else {
 			// reset PhoneOffAlert
 			PhoneOffAlert = false;
-		}		
+		}
+		*/
+		/*
 	} // else init code 
 	#ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "LOAD_APPTIME: time_app_layer is \"%s\"", text_layer_get_text(time_app_layer));
@@ -1419,7 +1423,7 @@ static void load_apptime(){
 	
 	//APP_LOG(APP_LOG_LEVEL_INFO, "LOAD APPTIME, FUNCTION OUT");
 } // end load_apptime
-
+*/
 static void load_bg_delta() {
 	#ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "BG DELTA FUNCTION START");
@@ -1666,14 +1670,14 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context) {
 			}
 			break; // break for CGM_TCGM_KEY
 
-		case CGM_TAPP_KEY:;
+/*		case CGM_TAPP_KEY:;
 			#ifdef DEBUG_LEVEL
 			APP_LOG(APP_LOG_LEVEL_INFO, "SYNC TUPLE: READ APP TIME NOW");
 			#endif
 			current_app_time = data->value->uint32;
 			load_apptime();		
 			break; // break for CGM_TAPP_KEY
-	
+*/	
 		case CGM_DLTA_KEY:;
 			strncpy(current_bg_delta, data->value->cstring, BGDELTA_MSGSTR_SIZE);
 			#ifdef DEBUG_LEVEL
@@ -2011,7 +2015,7 @@ void window_load_cgm(Window *window_cgm) {
 	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(icon_layer));
 
 	// APP TIME AGO ICON
-	#ifdef DEBUG_LEVEL
+/*	#ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating App Time Ago Bitmap layer");
 	#endif
 	#ifdef PBL_COLOR
@@ -2040,7 +2044,7 @@ void window_load_cgm(Window *window_cgm) {
 	text_layer_set_font(time_app_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
 	text_layer_set_text_alignment(time_app_layer, GTextAlignmentRight);
 	layer_add_child(window_layer_cgm, text_layer_get_layer(time_app_layer));
-	
+*/	
 	//create the bg_trend_layer
 	#ifdef TRENDING
 	#ifdef DEBUG_LEVEL
@@ -2238,7 +2242,7 @@ void window_load_cgm(Window *window_cgm) {
 	current_cgm_time = 0;
 	load_cgmtime();
 	current_app_time = 0;
-	load_apptime();		
+	//load_apptime();		
 	snprintf(current_bg_delta, BGDELTA_MSGSTR_SIZE, "LOAD");
 	load_bg_delta();
 	snprintf(last_battlevel, BATTLEVEL_MSGSTR_SIZE, " ");
@@ -2275,7 +2279,7 @@ void window_unload_cgm(Window *window_cgm) {
 	//APP_LOG(APP_LOG_LEVEL_INFO, "WINDOW UNLOAD, DESTROY BITMAPS IF EXIST");	
 	destroy_null_BitmapLayer(&icon_layer);
 	//destroy_null_BitmapLayer(&cgmicon_layer);
-	destroy_null_BitmapLayer(&appicon_layer);
+	//destroy_null_BitmapLayer(&appicon_layer);
 	//destroy_null_BitmapLayer(&batticon_layer);
 
 	//APP_LOG(APP_LOG_LEVEL_INFO, "WINDOW UNLOAD, DESTROY TEXT LAYERS IF EXIST");	
@@ -2287,7 +2291,7 @@ void window_unload_cgm(Window *window_cgm) {
 	destroy_null_TextLayer(&watch_battlevel_layer);
 	//destroy_null_TextLayer(&t1dname_layer);
 	destroy_null_TextLayer(&time_watch_layer);
-	destroy_null_TextLayer(&time_app_layer);
+	//destroy_null_TextLayer(&time_app_layer);
 	destroy_null_TextLayer(&date_app_layer);
 
 	//destroy the face background layers.
