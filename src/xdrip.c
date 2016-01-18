@@ -2,10 +2,6 @@
 
 #define TRENDING 0
 
-#ifdef PBL_PLATFORM_APLITE
-#include "png.h"
-#endif
-
 /* The line below will set the debug message level.  
 Make sure you set this to 0 before building a release. */
 
@@ -1769,12 +1765,12 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context) {
 			#endif
 			
 			APP_LOG(APP_LOG_LEVEL_DEBUG, "TREND_BEGIN: trend_buffer is %lx, trend_buffer_length is %i", (uint32_t)trend_buffer, trend_buffer_length);
-			#ifdef PBL_PLATFORM_BASALT
+//			#ifdef PBL_PLATFORM_BASALT
 			bg_trend_bitmap = gbitmap_create_from_png_data(trend_buffer, trend_buffer_length);
-			#endif
-			#ifdef PBL_PLATFORM_APLITE
-			bg_trend_bitmap = gbitmap_create_with_png_data(trend_buffer, trend_buffer_length);
-			#endif
+//			#endif
+//			#ifdef PBL_PLATFORM_APLITE
+//			bg_trend_bitmap = gbitmap_create_with_png_data(trend_buffer, trend_buffer_length);
+//			#endif
 			//graphics_context_set_antialiased(bg_trend_bitmap, false);
 
 			if(bg_trend_bitmap != NULL) {				
