@@ -2125,17 +2125,18 @@ void window_load_cgm(Window *window_cgm) {
 	#ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating CGM Time Ago Bitmap layer");
 	#endif
+	//cgmtime_layer = text_layer_create(GRect(5, 58, 40, 24));
+	cgmtime_layer = text_layer_create(GRect(52, 58, 40, 24));
 	#ifdef PBL_COLOR
-	cgmtime_layer = text_layer_create(GRect(5, 58, 40, 24));
 	text_layer_set_text_color(cgmtime_layer, GColorDukeBlue);
 	text_layer_set_background_color(cgmtime_layer, GColorClear);
 	#else
-	cgmtime_layer = text_layer_create(GRect(5, 58, 40, 24));
 	text_layer_set_text_color(cgmtime_layer, GColorBlack);
 	text_layer_set_background_color(cgmtime_layer, GColorClear);
 	#endif
 	text_layer_set_font(cgmtime_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
-	text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentLeft);
+	//text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentLeft);
+	text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentCenter);
 	layer_add_child(window_layer_cgm, text_layer_get_layer(cgmtime_layer));
 
 
