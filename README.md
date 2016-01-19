@@ -1,4 +1,4 @@
-# cgm-pebble-offline
+# xDrip-Pebble
 Offline pebble watchface based on the Nightscout community version
 Note:  This current version is a modifcation of Kevin Lee's original cgm-pebble-offline.  It is intended for use with xDrip, not Nightscout.
 
