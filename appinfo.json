@@ -33,93 +33,93 @@
       {
         "file": "images/up.png",
         "name": "IMAGE_UP",
-        "type": "png"
+        "type": "bitmap"
       },
       {
         "file": "images/upup.png",
         "name": "IMAGE_UPUP",
-        "type": "png"
+        "type": "bitmap"
       },
       {
         "file": "images/up45.png",
         "name": "IMAGE_UP45",
-        "type": "png"
+        "type": "bitmap"
       },
       {
         "file": "images/flat.png",
         "name": "IMAGE_FLAT",
-        "type": "png"
+        "type": "bitmap"
       },
       {
         "file": "images/down.png",
         "name": "IMAGE_DOWN",
-        "type": "png"
+        "type": "bitmap"
       },
       {
         "file": "images/downdown.png",
         "name": "IMAGE_DOWNDOWN",
-        "type": "png"
+        "type": "bitmap"
       },
       {
         "file": "images/down45.png",
         "name": "IMAGE_DOWN45",
-        "type": "png"
+        "type": "bitmap"
       },
       {
         "file": "images/none.png",
         "name": "IMAGE_NONE",
-        "type": "png"
+        "type": "bitmap"
       },
       {
         "file": "images/logo.png",
         "name": "IMAGE_LOGO",
-        "type": "png"
+        "type": "bitmap"
       },
       {
         "file": "images/menuicon.png",
         "menuIcon": true,
         "name": "IMAGE_MENU_ICON",
-        "type": "png"
+        "type": "bitmap"
       },
       {
         "file": "images/brokenantenna.png",
         "name": "IMAGE_BROKEN_ANTENNA",
-        "type": "png"
+        "type": "bitmap"
       },
       {
         "file": "images/blooddrop.png",
         "name": "IMAGE_BLOOD_DROP",
-        "type": "png"
+        "type": "bitmap"
       },
       {
         "file": "images/stoplight.png",
         "name": "IMAGE_STOP_LIGHT",
-        "type": "png"
+        "type": "bitmap"
       },
       {
         "file": "images/hourglass.png",
         "name": "IMAGE_HOURGLASS",
-        "type": "png"
+        "type": "bitmap"
       },
       {
         "file": "images/questionmarks.png",
         "name": "IMAGE_QUESTION_MARKS",
-        "type": "png"
+        "type": "bitmap"
       },
       {
         "file": "images/phoneon.png",
         "name": "IMAGE_PHONEON",
-        "type": "png"
+        "type": "bitmap"
       },
       {
         "file": "images/phoneoff.png",
         "name": "IMAGE_PHONEOFF",
-        "type": "png"
+        "type": "bitmap"
       },
       {
         "file": "images/err.png",
         "name": "IMAGE_ERR",
-        "type": "png"
+        "type": "bitmap"
       }
     ]
   }
