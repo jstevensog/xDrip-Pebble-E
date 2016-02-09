@@ -23,7 +23,10 @@
     "name": 6,
     "t_beg": 7,
     "t_dat": 8,
-    "t_end": 9
+    "t_end": 9,
+    "sync": 1000,
+    "platform": 1001,
+    "version" : 1002
   },
   "capabilities": [
   ],

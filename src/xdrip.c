@@ -9,6 +9,13 @@ Make sure you set this to 0 before building a release. */
 // global window variables
 // ANYTHING THAT IS CALLED BY PEBBLE API HAS TO BE NOT STATIC
 
+const char FACE_VERSION[] = "xDrip-Pebble2";
+#ifdef PBL_PLATFORM_APLITE
+const uint8_t PLATFORM = 0;
+#else
+const uint8_t PLATFORM = 1;
+#endif
+
 Window *window_cgm = NULL;
 
 TextLayer *bg_layer = NULL;
@@ -18,13 +25,11 @@ TextLayer *message_layer = NULL;	// MESSAGE LAYER
 TextLayer *battlevel_layer = NULL;
 TextLayer *watch_battlevel_layer = NULL;
 TextLayer *time_watch_layer = NULL;
-//TextLayer *time_app_layer = NULL;
 TextLayer *date_app_layer = NULL;
 
 
 
 BitmapLayer *icon_layer = NULL;
-//BitmapLayer *appicon_layer = NULL;
 BitmapLayer *bg_trend_layer = NULL;
 BitmapLayer *upper_face_layer = NULL;
 BitmapLayer *lower_face_layer = NULL;
@@ -49,11 +54,11 @@ AppSync sync_cgm;
 //static uint8_t trend_buffer[4096];
 bool doing_trend = false;
 uint8_t trend_chunk[CHUNK_SIZE];
-#ifdef PBL_PLATFORM_BASALT
+//#ifdef PBL_PLATFORM_BASALT
 uint8_t *trend_buffer = NULL;
 static uint16_t trend_buffer_length = 0;
 static uint16_t expected_trend_buffer_length = 0;
-#endif
+//#endif
 bool display_message = false;
 
 // variables for timers and time
@@ -199,7 +204,9 @@ static uint8_t minutes_cgm = 0;
 #define	CGM_TREND_END_KEY 	9		// TUPLE_INT, always 0.
 #define CGM_MESSAGE_KEY		10
 #define CGM_VIBE_KEY		11
-#define CGM_SYNC_KEY		0xd1abada5	// key pebble will use to request and update.
+#define CGM_SYNC_KEY		1000	// key pebble will use to request an update.
+#define PBL_PLATFORM		1001	// key pebble will use to send it's platform
+#define PBL_APP_VER		1002	// key pebble will use to send the face/app version.
  
 // TOTAL MESSAGE DATA 4x3+2+5+3+9 = 31 BYTES
 // TOTAL KEY HEADER DATA (STRINGS) 4x6+2 = 26 BYTES
@@ -1436,6 +1443,48 @@ static void load_battlevel() {
 	//APP_LOG(APP_LOG_LEVEL_INFO, "LOAD BATTLEVEL, END FUNCTION");
 } // end load_battlevel
 
+static void send_cmd_cgm(void) {
+	
+	DictionaryIterator *iter = NULL;
+	#ifdef DEBUG_LEVEL
+		APP_LOG(APP_LOG_LEVEL_INFO, "send_cmd_cgm called.");
+	#endif
+	AppMessageResult sendcmd_openerr = APP_MSG_OK;
+	AppMessageResult sendcmd_senderr = APP_MSG_OK;
+
+	sendcmd_openerr = app_message_outbox_begin(&iter);
+	if (sendcmd_openerr != APP_MSG_OK) {
+		#ifdef DEBUG_LEVEL
+		APP_LOG(APP_LOG_LEVEL_INFO, "WATCH SENDCMD OPEN ERROR");
+		APP_LOG(APP_LOG_LEVEL_DEBUG, "WATCH SENDCMD OPEN ERR CODE: %i RES: %s", sendcmd_openerr, translate_app_error(sendcmd_openerr));
+		#endif
+		return;
+	}
+
+	#ifdef DEBUG_LEVEL
+	APP_LOG(APP_LOG_LEVEL_INFO, "SEND CMD, MSG OUTBOX OPEN, NO ERROR, Creating Dictionary.");
+	#endif
+
+	dict_write_uint32(iter, CGM_SYNC_KEY, CGM_SYNC_KEY);
+	dict_write_uint8(iter, PBL_PLATFORM, (uint8_t) PLATFORM);
+	dict_write_cstring(iter, PBL_APP_VER, FACE_VERSION); 
+	dict_write_end(iter);
+	//APP_LOG(APP_LOG_LEVEL_INFO, "SEND CMD IN, ABOUT TO OPEN APP MSG OUTBOX");
+
+	
+	sendcmd_senderr = app_message_outbox_send();
+	
+	#ifdef DEBUG_LEVEL
+	if (sendcmd_senderr != APP_MSG_OK && sendcmd_senderr != APP_MSG_BUSY && sendcmd_senderr != APP_MSG_SEND_REJECTED) {
+		 APP_LOG(APP_LOG_LEVEL_INFO, "WATCH SENDCMD SEND ERROR");
+		 APP_LOG(APP_LOG_LEVEL_DEBUG, "WATCH SENDCMD SEND ERR CODE: %i RES: %s", sendcmd_senderr, translate_app_error(sendcmd_senderr));
+	}
+	#endif
+	//free(iter);
+	//APP_LOG(APP_LOG_LEVEL_INFO, "SEND CMD OUT, SENT MSG TO APP");
+	
+} // end send_cmd_cgm
+
 void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context) {
 	Tuple *data = dict_read_first(iterator);
 	#ifdef DEBUG_LEVEL
@@ -1507,7 +1556,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context) {
 			break; // break for CGM_UBAT_KEY
 
 		
-		#ifdef PBL_PLATFORM_BASALT
+//		#ifdef PBL_PLATFORM_BASALT
 		case CGM_TREND_BEGIN_KEY:
 			expected_trend_buffer_length = data->value->uint16;
 			#ifdef DEBUG_LEVEL
@@ -1588,7 +1637,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context) {
 			}
 			#endif
 			break;
-		#endif
+//		#endif
 		case CGM_MESSAGE_KEY:
 			#ifdef DEBUG_LEVEL
 			APP_LOG(APP_LOG_LEVEL_INFO, "Got Message Key, message is \"%s\"", data->value->cstring);
@@ -1620,6 +1669,13 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context) {
 			}
 			break;
 							
+		case CGM_SYNC_KEY:
+			#ifdef DEBUG_LEVEL
+			APP_LOG(APP_LOG_LEVEL_INFO, "Got Sync Key, message is \"%u\"", data->value->uint8);
+			#endif
+			send_cmd_cgm();
+			break;
+
 		default:
 			#ifdef DEBUG_LEVEL 
 			APP_LOG(APP_LOG_LEVEL_INFO, "sync_tuple_cgm_callback: Dictionary Key not recognised");
@@ -1630,49 +1686,6 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context) {
 		data = dict_read_next(iterator);
 	}
 } // end sync_tuple_changed_callback_cgm()
-
-static void send_cmd_cgm(void) {
-	
-	DictionaryIterator *iter = NULL;
-	const uint32_t size = dict_calc_buffer_size(1,4);
-	const uint32_t value = CGM_SYNC_KEY;
-	uint8_t buffer[size];
-	#ifdef DEBUG_LEVEL
-		APP_LOG(APP_LOG_LEVEL_INFO, "send_cmd_cgm called.");
-	#endif
-	AppMessageResult sendcmd_openerr = APP_MSG_OK;
-	AppMessageResult sendcmd_senderr = APP_MSG_OK;
-
-	dict_write_begin(iter, buffer, sizeof(buffer));
-	dict_write_int(iter, CGM_SYNC_KEY, &value ,4 ,false);	
-	//APP_LOG(APP_LOG_LEVEL_INFO, "SEND CMD IN, ABOUT TO OPEN APP MSG OUTBOX");
-
-	sendcmd_openerr = app_message_outbox_begin(&iter);
-	
-	//APP_LOG(APP_LOG_LEVEL_INFO, "SEND CMD, MSG OUTBOX OPEN, CHECK FOR ERROR");
-	if (sendcmd_openerr != APP_MSG_OK) {
-		#ifdef DEBUG_LEVEL
-		APP_LOG(APP_LOG_LEVEL_INFO, "WATCH SENDCMD OPEN ERROR");
-		APP_LOG(APP_LOG_LEVEL_DEBUG, "WATCH SENDCMD OPEN ERR CODE: %i RES: %s", sendcmd_openerr, translate_app_error(sendcmd_openerr));
-		#endif
-		return;
-	}
-
-	#ifdef DEBUG_LEVEL
-	APP_LOG(APP_LOG_LEVEL_INFO, "SEND CMD, MSG OUTBOX OPEN, NO ERROR, ABOUT TO SEND MSG TO APP");
-	#endif
-	sendcmd_senderr = app_message_outbox_send();
-	
-	#ifdef DEBUG_LEVEL
-	if (sendcmd_senderr != APP_MSG_OK && sendcmd_senderr != APP_MSG_BUSY && sendcmd_senderr != APP_MSG_SEND_REJECTED) {
-		 APP_LOG(APP_LOG_LEVEL_INFO, "WATCH SENDCMD SEND ERROR");
-		 APP_LOG(APP_LOG_LEVEL_DEBUG, "WATCH SENDCMD SEND ERR CODE: %i RES: %s", sendcmd_senderr, translate_app_error(sendcmd_senderr));
-	}
-	 #endif
-
-	//APP_LOG(APP_LOG_LEVEL_INFO, "SEND CMD OUT, SENT MSG TO APP");
-	
-} // end send_cmd_cgm
 
 void timer_callback_cgm(void *data) {
 
@@ -1742,7 +1755,9 @@ void handle_second_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
 		}
 	}
 	if (units_changed_cgm & MINUTE_UNIT) {
-		//APP_LOG(APP_LOG_LEVEL_INFO, "TICK TIME MINUTE CODE");
+		#if DEBUG_LEVEL >0
+		APP_LOG(APP_LOG_LEVEL_INFO, "TICK TIME MINUTE CODE");
+		#endif
 		if(clock_is_24h_style() == true) {
 			tick_return_cgm = strftime(time_watch_text, TIME_TEXTBUFF_SIZE, "%H:%M", tick_time_cgm);	
 		} else {
@@ -1753,8 +1768,10 @@ void handle_second_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
 		}
 		++lastAlertTime;
 	} 
-	else if (units_changed_cgm & DAY_UNIT) {
-		//APP_LOG(APP_LOG_LEVEL_INFO, "TICK TIME DAY CODE");
+	if (units_changed_cgm & DAY_UNIT) {
+		#if DEBUG_LEVEL >1
+		APP_LOG(APP_LOG_LEVEL_INFO, "TICK TIME DAY CODE");
+		#endif
 		tick_return_cgm = strftime(date_app_text, DATE_TEXTBUFF_SIZE, "%a %d", tick_time_cgm);
 		if (tick_return_cgm != 0) {
 			text_layer_set_text(date_app_layer, date_app_text);
