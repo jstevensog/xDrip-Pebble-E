@@ -24,11 +24,15 @@
     "t_beg": 7,
     "t_dat": 8,
     "t_end": 9,
+    "dispsecs": 100,
+    "foreground":101,
+    "background":102,
     "sync": 1000,
     "platform": 1001,
     "version" : 1002
   },
   "capabilities": [
+          "configurable"
   ],
   "projectType": "native",
   "resources": {
