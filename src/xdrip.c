@@ -2300,7 +2300,7 @@ void window_load_cgm(Window *window_cgm)
 	text_layer_set_text_color(time_watch_layer, GColorWhite);
 	text_layer_set_background_color(time_watch_layer, GColorClear);
 #else
-	time_watch_layer = text_layer_create(GRect(0, 82, 143, 44));
+	time_watch_layer = text_layer_create(GRect(0, 84, 143, 44));
 	text_layer_set_text_color(time_watch_layer, GColorWhite);
 	text_layer_set_background_color(time_watch_layer, GColorClear);
 #endif
@@ -2317,7 +2317,7 @@ void window_load_cgm(Window *window_cgm)
 	text_layer_set_text_color(date_app_layer, GColorWhite);
 	text_layer_set_background_color(date_app_layer, GColorClear);
 #else
-	date_app_layer = text_layer_create(GRect(0, 120, 143, 29));
+	date_app_layer = text_layer_create(GRect(0, 122, 143, 29));
 	text_layer_set_text_color(date_app_layer, GColorWhite);
 	text_layer_set_background_color(date_app_layer, GColorClear);
 #endif
