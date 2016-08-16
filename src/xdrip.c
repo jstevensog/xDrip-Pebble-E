@@ -2167,9 +2167,21 @@ void window_load_cgm(Window *window_cgm)
 #ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating Upper and Lower face panels");
 #endif
+
+#ifdef PBL_PLATFORM_APLITE
+	upper_face_layer = bitmap_layer_create(GRect(0,0,144,88));
+#else
 	upper_face_layer = bitmap_layer_create(GRect(0,0,144,83));
+#endif
+
 	bitmap_layer_set_background_color(upper_face_layer, GColorWhite);
+
+#ifdef PBL_PLATFORM_APLITE
+	lower_face_layer = bitmap_layer_create(GRect(0,89,144,165));
+#else
 	lower_face_layer = bitmap_layer_create(GRect(0,84,144,165));
+#endif
+
 #ifdef PBL_COLOR
 	bitmap_layer_set_background_color(lower_face_layer, GColorDukeBlue);
 #else
@@ -2300,7 +2312,13 @@ void window_load_cgm(Window *window_cgm)
 	text_layer_set_text_color(time_watch_layer, GColorWhite);
 	text_layer_set_background_color(time_watch_layer, GColorClear);
 #else
-	time_watch_layer = text_layer_create(GRect(0, 82, 143, 44));
+
+	#ifdef PBL_PLATFORM_APLITE
+		time_watch_layer = text_layer_create(GRect(0, 84, 143, 44));
+	#else
+		time_watch_layer = text_layer_create(GRect(0, 82, 143, 44));
+	#endif
+
 	text_layer_set_text_color(time_watch_layer, GColorWhite);
 	text_layer_set_background_color(time_watch_layer, GColorClear);
 #endif
@@ -2317,7 +2335,13 @@ void window_load_cgm(Window *window_cgm)
 	text_layer_set_text_color(date_app_layer, GColorWhite);
 	text_layer_set_background_color(date_app_layer, GColorClear);
 #else
-	date_app_layer = text_layer_create(GRect(0, 120, 143, 29));
+	
+	#ifdef PBL_PLATFORM_APLITE
+		date_app_layer = text_layer_create(GRect(0, 122, 143, 29));
+	#else
+		date_app_layer = text_layer_create(GRect(0, 120, 143, 29));
+	#endif
+	
 	text_layer_set_text_color(date_app_layer, GColorWhite);
 	text_layer_set_background_color(date_app_layer, GColorClear);
 #endif
