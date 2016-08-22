@@ -662,7 +662,7 @@ void handle_bluetooth_cgm(bool bt_connected)
 			BluetoothAlert = true;
 
 			// Reset timer pop
-			BT_timer_pop = false;
+			//BT_timer_pop = false;
 
 			//APP_LOG(APP_LOG_LEVEL_INFO, "NO BLUETOOTH");
 			if (!TurnOff_NOBLUETOOTH_Msg)
@@ -1892,7 +1892,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 #ifdef DEBUG_LEVEL
 					APP_LOG(APP_LOG_LEVEL_INFO, "Got Vibe Key, message is \"%u\"", data->value->uint8);
 #endif
-					if(data->value->uint8 > 0 || data->value->uint8 <4)
+					if((data->value->uint8 > 0 || data->value->uint8 <4) && ! BluetoothAlert)
 						{
 							alert_handler_cgm(data->value->uint8);
 						}
