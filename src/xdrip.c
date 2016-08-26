@@ -40,9 +40,26 @@ GBitmap *appicon_bitmap = NULL;
 GBitmap *specialvalue_bitmap = NULL;
 GBitmap *bg_trend_bitmap = NULL;
 
+static GFont time_font;
+#ifdef PBL_COLOR
+static GColor8 fg_colour;
+static GColor8 bg_colour;
+#else
+static GColor fg_colour;
+static GColor bg_colour;
+#endif
+
+// Defines to do with Time display
+#define TIME_24H_FORMAT "%H:%M"
+#define TIME_12H_FORMAT "%l:%M"
+#define TIME_24HS_FORMAT "%H:%M:%S"
+#define TIME_12HS_FORMAT "%l:%M:%S"
+static char time_watch_format[9] = TIME_24H_FORMAT;
 static char time_watch_text[] = "00:00";
 static char date_app_text[] = "Wed 13 Jan";
 
+// Boolean to allow/prevent re-raise of NO BLUETOOTH vibration
+static bool vibe_repeat = false;
 // variables for AppSync
 AppSync sync_cgm;
 #ifdef PBL_PLATFORM_APLITE
@@ -212,7 +229,8 @@ static uint8_t minutes_cgm = 0;
 #define CGM_VIBE_KEY		11
 #define SET_DISP_SECS		100	// Setting key - Display Seconds
 #define SET_FG_COLOUR		101	// Setting key - Foreground Colour
-#define SET_BG_COLOR		102	// Setting key - Background Colour 
+#define SET_BG_COLOUR		102	// Setting key - Background Colour 
+#define SET_VIBE_REPEAT		103	// Setting key - Vibration Repeat
 #define CGM_SYNC_KEY		1000	// key pebble will use to request an update.
 #define PBL_PLATFORM		1001	// key pebble will use to send it's platform
 #define PBL_APP_VER		1002	// key pebble will use to send the face/app version.
@@ -662,7 +680,10 @@ void handle_bluetooth_cgm(bool bt_connected)
 			BluetoothAlert = true;
 
 			// Reset timer pop
-			//BT_timer_pop = false;
+			if(vibe_repeat) 
+				{
+					BT_timer_pop = false;
+				}
 
 			//APP_LOG(APP_LOG_LEVEL_INFO, "NO BLUETOOTH");
 			if (!TurnOff_NOBLUETOOTH_Msg)
@@ -1661,6 +1682,23 @@ static void send_cmd_cgm(void)
 
 } // end send_cmd_cgm
 
+// updateColours - called when fg_colour or bg_colour is changed.
+#ifdef PBL_COLOR
+void updateColours()
+{
+	bitmap_layer_set_background_color(upper_face_layer, fg_colour);
+	bitmap_layer_set_background_color(lower_face_layer, bg_colour);
+	text_layer_set_text_color(delta_layer, bg_colour);
+	text_layer_set_text_color(time_watch_layer, fg_colour);
+	text_layer_set_text_color(date_app_layer, fg_colour);
+	text_layer_set_text_color(message_layer, bg_colour);
+	text_layer_set_text_color(bg_layer, bg_colour);
+	text_layer_set_text_color(cgmtime_layer, bg_colour);
+}
+// end updateColours
+#endif
+
+
 void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 {
 	Tuple *data = dict_read_first(iterator);
@@ -1905,6 +1943,26 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 					send_cmd_cgm();
 					break;
 
+				case SET_FG_COLOUR:
+#ifdef DEBUG_LEVEL
+					APP_LOG(APP_LOG_LEVEL_INFO, "Got foreground Key, message is \"%lx\"", data->value->uint32);
+#endif
+#ifdef PBL_COLOR
+					fg_colour = GColorFromHEX(data->value->uint32);
+					updateColours();
+#endif
+					break;
+
+				case SET_BG_COLOUR:
+#ifdef DEBUG_LEVEL
+					APP_LOG(APP_LOG_LEVEL_INFO, "Got background Key, message is \"%lx\"", data->value->uint32);
+#endif
+#ifdef PBL_COLOR
+					bg_colour = GColorFromHEX(data->value->uint32);
+					updateColours();
+#endif
+					break;
+
 				case SET_DISP_SECS:
 #ifdef DEBUG_LEVEL
 					APP_LOG(APP_LOG_LEVEL_INFO, "Got dispsecs Key, message is \"%u\"", data->value->uint8);
@@ -1912,10 +1970,28 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 					if(data->value->uint8 > 0)
 						{
 							display_seconds = true;
+							fonts_unload_custom_font(time_font);
+							time_font = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_32));
 						}
 					else
 						{
 							display_seconds = false;
+							fonts_unload_custom_font(time_font);
+							time_font = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_40));
+						}
+					break;
+
+				case SET_VIBE_REPEAT:
+#ifdef DEBUG_LEVEL
+					APP_LOG(APP_LOG_LEVEL_INFO, "Got background Key, message is \"%lx\"", data->value->uint32);
+#endif
+					if(data->value->uint8 > 0)
+						{
+							vibe_repeat = true;
+						}
+					else
+						{
+							vibe_repeat = false;
 						}
 					break;
 
@@ -1980,25 +2056,40 @@ void handle_second_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
 
 	// VARIABLES
 	size_t tick_return_cgm = 0;
-
-	// CODE START
-	if (SECOND_UNIT && display_seconds)
+	if(clock_is_24h_style() == true)
 		{
-			if(clock_is_24h_style() == true)
+			if(display_seconds)
 				{
-					tick_return_cgm = strftime(time_watch_text, TIME_TEXTBUFF_SIZE, "%H:%M:%S", tick_time_cgm);
+					snprintf(time_watch_format, 16, "%s", TIME_24HS_FORMAT);
 				}
 			else
 				{
-					tick_return_cgm = strftime(time_watch_text, TIME_TEXTBUFF_SIZE, "%l:%M:%S", tick_time_cgm);
+					snprintf(time_watch_format, 10, "%s", TIME_24H_FORMAT);
 				}
+		}
+	else
+		{
+			if(display_seconds)
+				{
+					snprintf(time_watch_format, 16, "%s", TIME_12HS_FORMAT);
+				}
+			else
+				{
+					snprintf(time_watch_format, 10, "%s", TIME_12H_FORMAT);
+				}
+		}
+
+	// CODE START
+	if (SECOND_UNIT)
+		{
+			tick_return_cgm = strftime(time_watch_text, TIME_TEXTBUFF_SIZE, time_watch_format, tick_time_cgm);
 			if (tick_return_cgm != 0)
 				{
 					text_layer_set_text(time_watch_layer, time_watch_text);
 				}
 #if DEBUG_LEVEL >0
 
-			APP_LOG(APP_LOG_LEVEL_INFO, "Seconds Tick: display_seconds = %i, time_watch_text = %s", display_seconds, time_watch_text);
+			APP_LOG(APP_LOG_LEVEL_INFO, "Seconds Tick: display_seconds = %i, time_watch_text = %s, time_watch_format = %s", display_seconds, time_watch_text, time_watch_format);
 #endif
 		}
 	if ((units_changed_cgm & SECOND_UNIT) && ((tick_time_cgm->tm_sec & 0x01)==1))
@@ -2033,7 +2124,7 @@ void handle_second_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
 #if DEBUG_LEVEL >0
 			APP_LOG(APP_LOG_LEVEL_INFO, "TICK TIME MINUTE CODE");
 #endif
-			if(!display_seconds)
+/*			if(!display_seconds)
 				{
 				if(clock_is_24h_style() == true)
 					{
@@ -2050,7 +2141,7 @@ void handle_second_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
 				}
 #if DEBUG_LEVEL >0
 			APP_LOG(APP_LOG_LEVEL_INFO, "Minute Tick: display_seconds = %i, time_watch_text = %s", display_seconds, time_watch_text);
-#endif
+#endif */
 			++lastAlertTime;
 		}
 	if (units_changed_cgm & DAY_UNIT)
@@ -2066,7 +2157,6 @@ void handle_second_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
 		}
 
 } // end handle_minute_tick_cgm
-
 
 #ifdef PBL_PLATFORM_APLITE
 
@@ -2174,7 +2264,8 @@ void window_load_cgm(Window *window_cgm)
 	upper_face_layer = bitmap_layer_create(GRect(0,0,144,83));
 #endif
 
-	bitmap_layer_set_background_color(upper_face_layer, GColorWhite);
+//	bitmap_layer_set_background_color(upper_face_layer, GColorWhite);
+	bitmap_layer_set_background_color(upper_face_layer, fg_colour);
 
 #ifdef PBL_PLATFORM_APLITE
 	lower_face_layer = bitmap_layer_create(GRect(0,89,144,165));
@@ -2182,11 +2273,13 @@ void window_load_cgm(Window *window_cgm)
 	lower_face_layer = bitmap_layer_create(GRect(0,84,144,165));
 #endif
 
-#ifdef PBL_COLOR
+/*#ifdef PBL_COLOR
 	bitmap_layer_set_background_color(lower_face_layer, GColorDukeBlue);
 #else
 	bitmap_layer_set_background_color(lower_face_layer, GColorBlack);
 #endif
+*/
+	bitmap_layer_set_background_color(lower_face_layer, bg_colour);
 	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(upper_face_layer));
 	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(lower_face_layer));
 
@@ -2223,11 +2316,12 @@ void window_load_cgm(Window *window_cgm)
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating Delta BG Text layer");
 #endif
 	delta_layer = text_layer_create(GRect(0, 36, 143, 50));
-#ifdef PBL_COLOR
+/*#ifdef PBL_COLOR
 	text_layer_set_text_color(delta_layer, GColorDukeBlue);
 #else
 	text_layer_set_text_color(delta_layer, GColorBlack);
-#endif
+#endif */
+	text_layer_set_text_color(delta_layer, bg_colour);
 	text_layer_set_background_color(delta_layer, GColorClear);
 	text_layer_set_font(delta_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28));
 
@@ -2244,12 +2338,13 @@ void window_load_cgm(Window *window_cgm)
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating Message Text layer");
 #endif
 	message_layer = text_layer_create(GRect(0, 36, 143, 50));
-#ifdef PBL_COLOR
+/*#ifdef PBL_COLOR
 	text_layer_set_text_color(message_layer, GColorDukeBlue);
 #else
 	//message_layer = text_layer_create(GRect(0, 33, 143, 55));
 	text_layer_set_text_color(message_layer, GColorBlack);
-#endif
+#endif */
+	text_layer_set_text_color(message_layer, bg_colour);
 	text_layer_set_background_color(message_layer, GColorClear);
 	text_layer_set_font(message_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28));
 	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
@@ -2263,13 +2358,11 @@ void window_load_cgm(Window *window_cgm)
 #endif
 #ifdef PBL_COLOR
 	bg_layer = text_layer_create(GRect(0, -5, 95, 42));
-	text_layer_set_text_color(bg_layer, GColorDukeBlue);
-	text_layer_set_background_color(bg_layer, GColorClear);
 #else
 	bg_layer = text_layer_create(GRect(0, -5, 95, 47));
-	text_layer_set_text_color(bg_layer, GColorBlack);
-	text_layer_set_background_color(bg_layer, GColorClear);
 #endif
+	text_layer_set_text_color(bg_layer, bg_colour);
+	text_layer_set_background_color(bg_layer, GColorClear);
 	text_layer_set_font(bg_layer, fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD));
 	text_layer_set_text_alignment(bg_layer, GTextAlignmentCenter);
 	layer_add_child(window_layer_cgm, text_layer_get_layer(bg_layer));
@@ -2286,13 +2379,15 @@ void window_load_cgm(Window *window_cgm)
 	cgmtime_layer = text_layer_create(GRect(52, 58, 40, 24));
 #endif
 
-#ifdef PBL_COLOR
+/*#ifdef PBL_COLOR
 	text_layer_set_text_color(cgmtime_layer, GColorDukeBlue);
 	text_layer_set_background_color(cgmtime_layer, GColorClear);
 #else
 	text_layer_set_text_color(cgmtime_layer, GColorBlack);
 	text_layer_set_background_color(cgmtime_layer, GColorClear);
-#endif
+#endif */
+	text_layer_set_text_color(cgmtime_layer, bg_colour);
+	text_layer_set_background_color(cgmtime_layer, GColorClear);
 	text_layer_set_font(cgmtime_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
 	//text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentLeft);
 	text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentCenter);
@@ -2309,8 +2404,8 @@ void window_load_cgm(Window *window_cgm)
 #endif
 #ifdef PBL_COLOR
 	time_watch_layer = text_layer_create(GRect(0, 82, 143, 44));
-	text_layer_set_text_color(time_watch_layer, GColorWhite);
-	text_layer_set_background_color(time_watch_layer, GColorClear);
+//	text_layer_set_text_color(time_watch_layer, GColorWhite);
+//	text_layer_set_background_color(time_watch_layer, GColorClear);
 #else
 
 	#ifdef PBL_PLATFORM_APLITE
@@ -2319,10 +2414,13 @@ void window_load_cgm(Window *window_cgm)
 		time_watch_layer = text_layer_create(GRect(0, 82, 143, 44));
 	#endif
 
-	text_layer_set_text_color(time_watch_layer, GColorWhite);
-	text_layer_set_background_color(time_watch_layer, GColorClear);
+//	text_layer_set_text_color(time_watch_layer, GColorWhite);
+//	text_layer_set_background_color(time_watch_layer, GColorClear);
 #endif
-	text_layer_set_font(time_watch_layer, fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD));
+	text_layer_set_text_color(time_watch_layer, fg_colour);
+	text_layer_set_background_color(time_watch_layer, GColorClear);
+//	text_layer_set_font(time_watch_layer, fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD));
+	text_layer_set_font(time_watch_layer,time_font);
 	text_layer_set_text_alignment(time_watch_layer, GTextAlignmentCenter);
 	layer_add_child(window_layer_cgm, text_layer_get_layer(time_watch_layer));
 
@@ -2332,8 +2430,8 @@ void window_load_cgm(Window *window_cgm)
 #endif
 #ifdef PBL_COLOR
 	date_app_layer = text_layer_create(GRect(0, 124, 143, 26));
-	text_layer_set_text_color(date_app_layer, GColorWhite);
-	text_layer_set_background_color(date_app_layer, GColorClear);
+//	text_layer_set_text_color(date_app_layer, fg_colour);
+//	text_layer_set_background_color(date_app_layer, GColorClear);
 #else
 	
 	#ifdef PBL_PLATFORM_APLITE
@@ -2342,9 +2440,11 @@ void window_load_cgm(Window *window_cgm)
 		date_app_layer = text_layer_create(GRect(0, 120, 143, 29));
 	#endif
 	
-	text_layer_set_text_color(date_app_layer, GColorWhite);
-	text_layer_set_background_color(date_app_layer, GColorClear);
+//	text_layer_set_text_color(date_app_layer, GColorWhite);
+//	text_layer_set_background_color(date_app_layer, GColorClear);
 #endif
+	text_layer_set_text_color(date_app_layer, fg_colour);
+	text_layer_set_background_color(date_app_layer, GColorClear);
 	text_layer_set_font(date_app_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
 	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
 	draw_date_from_app();
@@ -2356,13 +2456,15 @@ void window_load_cgm(Window *window_cgm)
 #endif
 #ifdef PBL_COLOR
 	battlevel_layer = text_layer_create(GRect(0, 150, 72, 18));
-	text_layer_set_text_color(battlevel_layer, GColorGreen);
-	text_layer_set_background_color(battlevel_layer, GColorClear);
+//	text_layer_set_text_color(battlevel_layer, GColorGreen);
+//	text_layer_set_background_color(battlevel_layer, GColorClear);
 #else
 	battlevel_layer = text_layer_create(GRect(0, 148, 59, 18));
-	text_layer_set_text_color(battlevel_layer, GColorWhite);
-	text_layer_set_background_color(battlevel_layer, GColorClear);
+//	text_layer_set_text_color(battlevel_layer, GColorWhite);
+//	text_layer_set_background_color(battlevel_layer, GColorClear);
 #endif
+	text_layer_set_text_color(battlevel_layer, GColorGreen);
+	text_layer_set_background_color(battlevel_layer, GColorClear);
 	text_layer_set_font(battlevel_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
 	text_layer_set_text_alignment(battlevel_layer, GTextAlignmentLeft);
 	layer_add_child(window_layer_cgm, text_layer_get_layer(battlevel_layer));
@@ -2395,7 +2497,7 @@ void window_load_cgm(Window *window_cgm)
 	else
 		{
 			text_layer_set_text_color(watch_battlevel_layer, GColorGreen);
-			text_layer_set_background_color(watch_battlevel_layer, GColorDukeBlue);
+			text_layer_set_background_color(watch_battlevel_layer, GColorClear);
 		}
 #else
 	if(charge_state.is_charging)
@@ -2405,8 +2507,8 @@ void window_load_cgm(Window *window_cgm)
 		}
 	else
 		{
-			text_layer_set_text_color(watch_battlevel_layer, GColorBlack);
-			text_layer_set_background_color(watch_battlevel_layer, GColorWhite);
+			text_layer_set_text_color(watch_battlevel_layer, GColorWhite);
+			text_layer_set_background_color(watch_battlevel_layer, GColorBlack);
 		}
 #endif
 	layer_add_child(window_layer_cgm, text_layer_get_layer(watch_battlevel_layer));
@@ -2479,6 +2581,12 @@ void window_unload_cgm(Window *window_cgm)
 
 static void init_cgm(void)
 {
+	// set the default colours to use.
+	fg_colour = COLOR_FALLBACK(GColorWhite,GColorWhite);
+	bg_colour = COLOR_FALLBACK(GColorDukeBlue,GColorBlack);
+	//initialise the Time Font
+	time_font = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_40));
+
 	//APP_LOG(APP_LOG_LEVEL_INFO, "INIT CODE IN");
 
 	// subscribe to the tick timer service
