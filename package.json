@@ -106,7 +106,7 @@
         {
           "characterRegex": "[0-9:APM ]",
           "type": "font",
-          "name": "GOTHAM_BOLD_32",
+          "name": "GOTHAM_BOLD_30",
           "file": "GothamBold.ttf"
         },
         {

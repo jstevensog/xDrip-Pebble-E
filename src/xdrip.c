@@ -40,7 +40,6 @@ GBitmap *appicon_bitmap = NULL;
 GBitmap *specialvalue_bitmap = NULL;
 GBitmap *bg_trend_bitmap = NULL;
 
-static GFont time_font;
 #ifdef PBL_COLOR
 static GColor8 fg_colour;
 static GColor8 bg_colour;
@@ -55,8 +54,11 @@ static GColor bg_colour;
 #define TIME_24HS_FORMAT "%H:%M:%S"
 #define TIME_12HS_FORMAT "%l:%M:%S"
 static char time_watch_format[9] = TIME_24H_FORMAT;
-static char time_watch_text[] = "00:00";
+static char time_watch_text[] = "00:00:00";
 static char date_app_text[] = "Wed 13 Jan";
+static GFont time_font;
+static GFont time_font_small;
+static GFont time_font_normal;
 
 // Boolean to allow/prevent re-raise of NO BLUETOOTH vibration
 static bool vibe_repeat = false;
@@ -74,7 +76,8 @@ static void bitmapLayerUpdate(struct Layer *layer, GContext *ctx);
 //static uint8_t *sync_buffer_cgm;
 //static uint8_t sync_buffer_cgm[CHUNK_SIZE];
 //static uint8_t trend_buffer[4096];
-bool doing_trend = false;
+static bool handling_second = false;
+static bool doing_trend = false;
 static bool global_lock = false;
 //#ifdef PBL_PLATFORM_BASALT
 uint8_t *trend_buffer = NULL;
@@ -527,7 +530,7 @@ static void battery_handler(BatteryChargeState charge_state)
 					//APP_LOG(APP_LOG_LEVEL_INFO, "BATTERY <= 20");
 					text_layer_set_text_color(watch_battlevel_layer, GColorRed);
 				}
-			text_layer_set_background_color(watch_battlevel_layer, GColorDukeBlue);
+			text_layer_set_background_color(watch_battlevel_layer, GColorClear);
 #else
 			//APP_LOG(APP_LOG_LEVEL_INFO, "BW DETECTED");
 			text_layer_set_text_color(watch_battlevel_layer, GColorWhite);
@@ -745,21 +748,14 @@ static void draw_date_from_app()
 	// CODE START
 
 	// format current date from app
-	if (strcmp(time_watch_text, "00:00") == 0)
-		{
-			if(clock_is_24h_style() == true)
-				{
-					draw_return = strftime(time_watch_text, TIME_TEXTBUFF_SIZE, "%H:%M", current_d_app);
-				}
-			else
-				{
-					draw_return = strftime(time_watch_text, TIME_TEXTBUFF_SIZE, "%l:%M", current_d_app);
-				}
+	//if (strcmp(time_watch_text, "00:00") == 0)
+	//	{
+			draw_return = strftime(time_watch_text, TIME_TEXTBUFF_SIZE, time_watch_format , current_d_app);
 			if (draw_return != 0)
 				{
 					text_layer_set_text(time_watch_layer, time_watch_text);
 				}
-		}
+	//	}
 
 	draw_return = strftime(date_app_text, DATE_TEXTBUFF_SIZE, "%a %d %b", current_d_app);
 	if (draw_return != 0)
@@ -1949,6 +1945,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 #endif
 #ifdef PBL_COLOR
 					fg_colour = GColorFromHEX(data->value->uint32);
+					persist_write_int(SET_FG_COLOUR, data->value->uint32);
 					updateColours();
 #endif
 					break;
@@ -1959,6 +1956,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 #endif
 #ifdef PBL_COLOR
 					bg_colour = GColorFromHEX(data->value->uint32);
+					persist_write_int(SET_BG_COLOUR, data->value->uint32);
 					updateColours();
 #endif
 					break;
@@ -1970,15 +1968,38 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 					if(data->value->uint8 > 0)
 						{
 							display_seconds = true;
-							fonts_unload_custom_font(time_font);
-							time_font = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_32));
+							time_font = time_font_small;
 						}
 					else
 						{
 							display_seconds = false;
-							fonts_unload_custom_font(time_font);
-							time_font = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_40));
+							time_font = time_font_normal;
 						}
+					persist_write_bool(SET_DISP_SECS, display_seconds);
+					text_layer_set_font(time_watch_layer,time_font);
+					if(clock_is_24h_style() == true)
+						{
+							if(display_seconds)
+								{
+									snprintf(time_watch_format, 10, "%s", TIME_24HS_FORMAT);
+								}
+							else
+								{
+									snprintf(time_watch_format, 6, "%s", TIME_24H_FORMAT);
+								}
+						}
+					else
+						{
+							if(display_seconds)
+								{
+									snprintf(time_watch_format, 10, "%s", TIME_12HS_FORMAT);
+								}
+							else
+								{
+									snprintf(time_watch_format, 6, "%s", TIME_12H_FORMAT);
+								}
+						}
+					draw_date_from_app();
 					break;
 
 				case SET_VIBE_REPEAT:
@@ -1993,6 +2014,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 						{
 							vibe_repeat = false;
 						}
+					persist_write_bool(SET_VIBE_REPEAT, vibe_repeat);
 					break;
 
 				default:
@@ -2056,31 +2078,9 @@ void handle_second_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
 
 	// VARIABLES
 	size_t tick_return_cgm = 0;
-	if(clock_is_24h_style() == true)
-		{
-			if(display_seconds)
-				{
-					snprintf(time_watch_format, 16, "%s", TIME_24HS_FORMAT);
-				}
-			else
-				{
-					snprintf(time_watch_format, 10, "%s", TIME_24H_FORMAT);
-				}
-		}
-	else
-		{
-			if(display_seconds)
-				{
-					snprintf(time_watch_format, 16, "%s", TIME_12HS_FORMAT);
-				}
-			else
-				{
-					snprintf(time_watch_format, 10, "%s", TIME_12H_FORMAT);
-				}
-		}
-
 	// CODE START
-	if (SECOND_UNIT)
+	handling_second = true;
+	if (SECOND_UNIT && display_seconds)
 		{
 			tick_return_cgm = strftime(time_watch_text, TIME_TEXTBUFF_SIZE, time_watch_format, tick_time_cgm);
 			if (tick_return_cgm != 0)
@@ -2124,24 +2124,18 @@ void handle_second_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
 #if DEBUG_LEVEL >0
 			APP_LOG(APP_LOG_LEVEL_INFO, "TICK TIME MINUTE CODE");
 #endif
-/*			if(!display_seconds)
+			if(!display_seconds)
 				{
-				if(clock_is_24h_style() == true)
-					{
-						tick_return_cgm = strftime(time_watch_text, TIME_TEXTBUFF_SIZE, "%H:%M", tick_time_cgm);
-					}
-				else
-					{
-						tick_return_cgm = strftime(time_watch_text, TIME_TEXTBUFF_SIZE, "%l:%M", tick_time_cgm);
-					}
-				if (tick_return_cgm != 0)
-					{
-						text_layer_set_text(time_watch_layer, time_watch_text);
-					}
+					tick_return_cgm = strftime(time_watch_text, TIME_TEXTBUFF_SIZE, time_watch_format, tick_time_cgm);
+					if (tick_return_cgm != 0)
+						{
+							text_layer_set_text(time_watch_layer, time_watch_text);
+						}
 				}
+
 #if DEBUG_LEVEL >0
 			APP_LOG(APP_LOG_LEVEL_INFO, "Minute Tick: display_seconds = %i, time_watch_text = %s", display_seconds, time_watch_text);
-#endif */
+#endif 
 			++lastAlertTime;
 		}
 	if (units_changed_cgm & DAY_UNIT)
@@ -2155,6 +2149,7 @@ void handle_second_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
 					text_layer_set_text(date_app_layer, date_app_text);
 				}
 		}
+	handling_second = false;
 
 } // end handle_minute_tick_cgm
 
@@ -2447,8 +2442,8 @@ void window_load_cgm(Window *window_cgm)
 	text_layer_set_background_color(date_app_layer, GColorClear);
 	text_layer_set_font(date_app_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
 	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
-	draw_date_from_app();
 	layer_add_child(window_layer_cgm, text_layer_get_layer(date_app_layer));
+	draw_date_from_app();
 
 	// PHONE BATTERY LEVEL
 #ifdef DEBUG_LEVEL
@@ -2552,40 +2547,80 @@ void window_unload_cgm(Window *window_cgm)
 	app_sync_deinit(&sync_cgm);
 
 	//destroy the trend bitmap and layer
-	destroy_null_GBitmap(&bg_trend_bitmap);
-	destroy_null_BitmapLayer(&bg_trend_layer);
+	if(bg_trend_bitmap != NULL) destroy_null_GBitmap(&bg_trend_bitmap);
+	if(bg_trend_layer != NULL) destroy_null_BitmapLayer(&bg_trend_layer);
 	//APP_LOG(APP_LOG_LEVEL_INFO, "WINDOW UNLOAD, DESTROY GBITMAPS IF EXIST");
-	destroy_null_GBitmap(&icon_bitmap);
-	destroy_null_GBitmap(&appicon_bitmap);
-	destroy_null_GBitmap(&specialvalue_bitmap);
+	if(icon_bitmap != NULL) destroy_null_GBitmap(&icon_bitmap);
+	if(appicon_bitmap != NULL) destroy_null_GBitmap(&appicon_bitmap);
+	if(specialvalue_bitmap != NULL) destroy_null_GBitmap(&specialvalue_bitmap);
 
 	//APP_LOG(APP_LOG_LEVEL_INFO, "WINDOW UNLOAD, DESTROY BITMAPS IF EXIST");
-	destroy_null_BitmapLayer(&icon_layer);
+	if(icon_layer != NULL) destroy_null_BitmapLayer(&icon_layer);
 
 	//APP_LOG(APP_LOG_LEVEL_INFO, "WINDOW UNLOAD, DESTROY TEXT LAYERS IF EXIST");
-	destroy_null_TextLayer(&bg_layer);
-	destroy_null_TextLayer(&cgmtime_layer);
-	destroy_null_TextLayer(&delta_layer);
-	destroy_null_TextLayer(&message_layer);
-	destroy_null_TextLayer(&battlevel_layer);
-	destroy_null_TextLayer(&watch_battlevel_layer);
-	destroy_null_TextLayer(&time_watch_layer);
-	destroy_null_TextLayer(&date_app_layer);
+	if(bg_layer != NULL) destroy_null_TextLayer(&bg_layer);
+	if(cgmtime_layer != NULL) destroy_null_TextLayer(&cgmtime_layer);
+	if(delta_layer != NULL) destroy_null_TextLayer(&delta_layer);
+	if(message_layer != NULL) destroy_null_TextLayer(&message_layer);
+	if(battlevel_layer != NULL) destroy_null_TextLayer(&battlevel_layer);
+	if(watch_battlevel_layer != NULL) destroy_null_TextLayer(&watch_battlevel_layer);
+	if(time_watch_layer != NULL) destroy_null_TextLayer(&time_watch_layer);
+	if(date_app_layer != NULL) destroy_null_TextLayer(&date_app_layer);
 
 	//destroy the face background layers.
-	destroy_null_BitmapLayer(&lower_face_layer);
-	destroy_null_BitmapLayer(&upper_face_layer);
+	if(lower_face_layer != NULL) destroy_null_BitmapLayer(&lower_face_layer);
+	if(upper_face_layer != NULL) destroy_null_BitmapLayer(&upper_face_layer);
 
 	//APP_LOG(APP_LOG_LEVEL_INFO, "WINDOW UNLOAD OUT");
 } // end window_unload_cgm
 
 static void init_cgm(void)
 {
+#ifdef DEBUG_LEVEL
+	APP_LOG(APP_LOG_LEVEL_INFO, "init_cgm");
+#endif
+	//Load persistent settings
+	display_seconds = persist_exists(SET_DISP_SECS)? persist_read_bool(SET_DISP_SECS) : false;
+	vibe_repeat = persist_exists(SET_VIBE_REPEAT)? persist_read_bool(SET_VIBE_REPEAT) : true;
+#ifdef DEBUG_LEVEL
+	APP_LOG(APP_LOG_LEVEL_INFO, "display_seconds: %i", display_seconds);
+#endif
+	//initialise the Time Fonts
+	time_font_normal = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_40));
+	time_font_small = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_30));
+	//Initialise the time format string.  No seconds here.
+	if(clock_is_24h_style() == true)
+		{
+			if(display_seconds) 
+				{
+					snprintf(time_watch_format, 9, "%s", TIME_24HS_FORMAT);
+					time_font = time_font_small;
+				}
+			else
+				{
+					snprintf(time_watch_format, 6, "%s", TIME_24H_FORMAT);
+					time_font = time_font_normal;
+				}
+		}
+	else
+		{
+			if(display_seconds)
+				{
+					snprintf(time_watch_format, 9, "%s", TIME_12HS_FORMAT);
+					time_font = time_font_small;
+				}
+			else
+				{
+					snprintf(time_watch_format, 6, "%s", TIME_12H_FORMAT);
+					time_font = time_font_normal;
+				}
+		}
+#ifdef DEBUG_LEVEL
+	APP_LOG(APP_LOG_LEVEL_INFO, "time_watch_format: %s", time_watch_format);
+#endif
 	// set the default colours to use.
 	fg_colour = COLOR_FALLBACK(GColorWhite,GColorWhite);
 	bg_colour = COLOR_FALLBACK(GColorDukeBlue,GColorBlack);
-	//initialise the Time Font
-	time_font = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_40));
 
 	//APP_LOG(APP_LOG_LEVEL_INFO, "INIT CODE IN");
 
@@ -2610,7 +2645,7 @@ static void init_cgm(void)
 	window_set_window_handlers(window_cgm, (WindowHandlers)
 	{
 		.load = window_load_cgm,
-		 .unload = window_unload_cgm
+		.unload = window_unload_cgm
 	});
 
 	//APP_LOG(APP_LOG_LEVEL_INFO, "INIT CODE, REGISTER APP MESSAGE ERROR HANDLERS");
@@ -2629,12 +2664,16 @@ static void init_cgm(void)
 	const bool animated_cgm = true;
 	window_stack_push(window_cgm, animated_cgm);
 
-	//APP_LOG(APP_LOG_LEVEL_INFO, "INIT CODE OUT");
+#ifdef DEBUG_LEVEL
+	APP_LOG(APP_LOG_LEVEL_INFO, "init_cgm done.");
+#endif
 }	// end init_cgm
 
 static void deinit_cgm(void)
 {
-	//APP_LOG(APP_LOG_LEVEL_INFO, "DEINIT CODE IN");
+	APP_LOG(APP_LOG_LEVEL_INFO, "DEINIT CODE IN");
+	// Make sure we are not handling a second tick.
+	while (handling_second) {};
 
 	// unsubscribe to the tick timer service
 	//APP_LOG(APP_LOG_LEVEL_INFO, "DEINIT, UNSUBSCRIBE TICK TIMER");
@@ -2663,24 +2702,27 @@ static void deinit_cgm(void)
 
 	// destroy the window if it exists
 	//APP_LOG(APP_LOG_LEVEL_INFO, "DEINIT, CHECK WINDOW POINTER FOR DESTROY");
-	if (window_cgm != NULL)
+/*	if (window_cgm != NULL)
 		{
 			//APP_LOG(APP_LOG_LEVEL_INFO, "DEINIT, WINDOW POINTER NOT NULL, DESTROY");
 			window_destroy(window_cgm);
-		}
+		}*/
 	//APP_LOG(APP_LOG_LEVEL_INFO, "DEINIT, CHECK WINDOW POINTER FOR NULL");
 	if (window_cgm != NULL)
 		{
 			//APP_LOG(APP_LOG_LEVEL_INFO, "DEINIT, WINDOW POINTER NOT NULL, SET TO NULL");
 			window_cgm = NULL;
 		}
+	//unload the custom time font.
+	fonts_unload_custom_font(time_font_normal);
+	fonts_unload_custom_font(time_font_small);
+
 
 	//APP_LOG(APP_LOG_LEVEL_INFO, "DEINIT CODE OUT");
 } // end deinit_cgm
 
 int main(void)
 {
-
 	init_cgm();
 	app_event_loop();
 	deinit_cgm();
