@@ -2582,6 +2582,8 @@ static void init_cgm(void)
 	//Load persistent settings
 	display_seconds = persist_exists(SET_DISP_SECS)? persist_read_bool(SET_DISP_SECS) : false;
 	vibe_repeat = persist_exists(SET_VIBE_REPEAT)? persist_read_bool(SET_VIBE_REPEAT) : true;
+	fg_colour = persist_exists(SET_FG_COLOUR)? GColorFromHEX(persist_read_int(SET_FG_COLOUR)) : COLOR_FALLBACK(GColorWhite,GColorWhite);
+	bg_colour = persist_exists(SET_BG_COLOUR)? GColorFromHEX(persist_read_int(SET_BG_COLOUR)) : COLOR_FALLBACK(GColorDukeBlue,GColorBlack);
 #ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "display_seconds: %i", display_seconds);
 #endif
@@ -2619,8 +2621,8 @@ static void init_cgm(void)
 	APP_LOG(APP_LOG_LEVEL_INFO, "time_watch_format: %s", time_watch_format);
 #endif
 	// set the default colours to use.
-	fg_colour = COLOR_FALLBACK(GColorWhite,GColorWhite);
-	bg_colour = COLOR_FALLBACK(GColorDukeBlue,GColorBlack);
+	//fg_colour = COLOR_FALLBACK(GColorWhite,GColorWhite);
+	//bg_colour = COLOR_FALLBACK(GColorDukeBlue,GColorBlack);
 
 	//APP_LOG(APP_LOG_LEVEL_INFO, "INIT CODE IN");
 

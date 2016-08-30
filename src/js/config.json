@@ -24,6 +24,7 @@
     "messageKey": "foreground",
     "defaultValue": "ffffff",
     "label": "Foreground Color",
+    "capabilities": "COLOR",
     "sunlight": false
   },
   {
@@ -31,6 +32,7 @@
     "messageKey": "background",
     "defaultValue": "0000aa",
     "label": "Background Color",
+    "capabilities": "COLOR",
     "sunlight": false
   },
   {
