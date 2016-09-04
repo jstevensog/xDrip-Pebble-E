@@ -199,7 +199,7 @@ static const bool TurnOff_CHECKPHONE_Msg = false;
 
 // Control Vibrations
 // IF YOU WANT NO VIBRATIONS, SET TO true
-static const bool TurnOffAllVibrations = false;
+static bool TurnOffAllVibrations = false;
 // IF YOU WANT LESS INTENSE VIBRATIONS, SET TO true
 static const bool TurnOffStrongVibrations = false;
 
@@ -234,9 +234,13 @@ static uint8_t minutes_cgm = 0;
 #define SET_FG_COLOUR		101	// Setting key - Foreground Colour
 #define SET_BG_COLOUR		102	// Setting key - Background Colour 
 #define SET_VIBE_REPEAT		103	// Setting key - Vibration Repeat
+#define SET_NO_VIBE		104	// Setting key - No Vibrations
 #define CGM_SYNC_KEY		1000	// key pebble will use to request an update.
 #define PBL_PLATFORM		1001	// key pebble will use to send it's platform
 #define PBL_APP_VER		1002	// key pebble will use to send the face/app version.
+#define PBL_TREND_SIZE		1003	// key pebble will use to send trend image size.
+#define PBL_TREND_LINES		1004	// key pebble will use to send trend line options.
+#define PBL_DISP_OPTS		1005	// key pebble will use to send display options (delta/arrows).
 
 // TOTAL MESSAGE DATA 4x3+2+5+3+9 = 31 BYTES
 // TOTAL KEY HEADER DATA (STRINGS) 4x6+2 = 26 BYTES
@@ -1694,7 +1698,6 @@ void updateColours()
 // end updateColours
 #endif
 
-
 void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 {
 	Tuple *data = dict_read_first(iterator);
@@ -2015,6 +2018,21 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 							vibe_repeat = false;
 						}
 					persist_write_bool(SET_VIBE_REPEAT, vibe_repeat);
+					break;
+
+				case SET_NO_VIBE:
+#ifdef DEBUG_LEVEL
+					APP_LOG(APP_LOG_LEVEL_INFO, "Got No Vibe Key, message is \"%lx\"", data->value->uint32);
+#endif
+					if(data->value->uint8 > 0)
+						{
+							TurnOffAllVibrations = true;
+						}
+					else
+						{
+							TurnOffAllVibrations = false;
+						}
+					persist_write_bool(SET_NO_VIBE, TurnOffAllVibrations);
 					break;
 
 				default:
@@ -2582,8 +2600,11 @@ static void init_cgm(void)
 	//Load persistent settings
 	display_seconds = persist_exists(SET_DISP_SECS)? persist_read_bool(SET_DISP_SECS) : false;
 	vibe_repeat = persist_exists(SET_VIBE_REPEAT)? persist_read_bool(SET_VIBE_REPEAT) : true;
+#ifdef PBL_COLOR
 	fg_colour = persist_exists(SET_FG_COLOUR)? GColorFromHEX(persist_read_int(SET_FG_COLOUR)) : COLOR_FALLBACK(GColorWhite,GColorWhite);
 	bg_colour = persist_exists(SET_BG_COLOUR)? GColorFromHEX(persist_read_int(SET_BG_COLOUR)) : COLOR_FALLBACK(GColorDukeBlue,GColorBlack);
+#endif
+	TurnOffAllVibrations = persist_exists(SET_NO_VIBE)? persist_read_bool(SET_NO_VIBE) : true;
 #ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "display_seconds: %i", display_seconds);
 #endif

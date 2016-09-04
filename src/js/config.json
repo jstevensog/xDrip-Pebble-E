@@ -20,6 +20,12 @@
     "defaultValue": true
   },
   {
+    "type": "toggle",
+    "messageKey": "novibe",
+    "label": "Watch will not make any vibrations",
+    "defaultValue": false
+  },
+  {
     "type": "color",
     "messageKey": "foreground",
     "defaultValue": "ffffff",

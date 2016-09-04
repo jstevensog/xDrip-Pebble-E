@@ -134,9 +134,13 @@
       "foreground": 101,
       "background": 102,
       "viberepeat": 103,
+      "novibe": 104,
       "sync": 1000,
       "platform": 1001,
-      "version": 1002
+      "version": 1002,
+      "trend_size": 1003,
+      "trend_lines": 1004,
+      "data_options": 1005
     },
     "enableMultiJS": true,
     "displayName": "xDrip Watch Face",
