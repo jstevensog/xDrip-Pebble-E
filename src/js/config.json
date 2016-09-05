@@ -26,6 +26,12 @@
     "defaultValue": false
   },
   {
+    "type": "toggle",
+    "messageKey": "lightoncharge",
+    "label": "Backlight on when watch is charging",
+    "defaultValue": false
+  },
+  {
     "type": "color",
     "messageKey": "foreground",
     "defaultValue": "ffffff",

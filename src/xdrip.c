@@ -203,6 +203,9 @@ static bool TurnOffAllVibrations = false;
 // IF YOU WANT LESS INTENSE VIBRATIONS, SET TO true
 static const bool TurnOffStrongVibrations = false;
 
+//Control Backlight
+static bool BacklightOnCharge = false;
+
 // Bluetooth Timer Wait Time, in Seconds
 // RANGE 0-240
 // THIS IS ONLY FOR BAD BLUETOOTH CONNECTIONS
@@ -235,6 +238,7 @@ static uint8_t minutes_cgm = 0;
 #define SET_BG_COLOUR		102	// Setting key - Background Colour 
 #define SET_VIBE_REPEAT		103	// Setting key - Vibration Repeat
 #define SET_NO_VIBE		104	// Setting key - No Vibrations
+#define SET_LIGHT_ON_CHG	105	// Setting key - Backlight on when charging
 #define CGM_SYNC_KEY		1000	// key pebble will use to request an update.
 #define PBL_PLATFORM		1001	// key pebble will use to send it's platform
 #define PBL_APP_VER		1002	// key pebble will use to send the face/app version.
@@ -503,8 +507,27 @@ static void battery_handler(BatteryChargeState charge_state)
 #else
 	snprintf(watch_battlevel_percent, BATTLEVEL_FORMATTED_SIZE, "W:%i%%", charge_state.charge_percent);
 #endif
+	if(BacklightOnCharge)
+		{
+			if(charge_state.is_plugged)
+				{
+					light_enable(true);
+				}
+			else
+				{
+					light_enable(false);
+				}	
+		}
+	else
+		{
+			light_enable(false);
+		}
+			
 	if(charge_state.is_charging)
 		{
+#ifdef DEBUG_LEVEL
+			APP_LOG(APP_LOG_LEVEL_DEBUG, "Charging.  BacklightOnCharge:%u", BacklightOnCharge);
+#endif
 #ifdef PBL_COLOR
 			//APP_LOG(APP_LOG_LEVEL_INFO, "COLOR DETECTED");
 			text_layer_set_text_color(watch_battlevel_layer, GColorDukeBlue);
@@ -517,6 +540,9 @@ static void battery_handler(BatteryChargeState charge_state)
 		}
 	else
 		{
+#ifdef DEBUG_LEVEL
+			APP_LOG(APP_LOG_LEVEL_DEBUG, "Not Charging.  BacklightOnCharge:%u", BacklightOnCharge);
+#endif
 #ifdef PBL_COLOR
 			//APP_LOG(APP_LOG_LEVEL_INFO, "COLOR DETECTED");
 			if(charge_state.charge_percent > 40)
@@ -2035,6 +2061,21 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 					persist_write_bool(SET_NO_VIBE, TurnOffAllVibrations);
 					break;
 
+				case SET_LIGHT_ON_CHG:
+#ifdef DEBUG_LEVEL
+					APP_LOG(APP_LOG_LEVEL_INFO, "Got Backlight on Charge key, message is \"%lx\"", data->value->uint32);
+#endif
+					if(data->value->uint8 > 0)
+						{
+							BacklightOnCharge = true;
+						}
+					else
+						{
+							BacklightOnCharge = false;
+						}
+					persist_write_bool(SET_LIGHT_ON_CHG, BacklightOnCharge);
+					break;
+
 				default:
 #ifdef DEBUG_LEVEL
 					APP_LOG(APP_LOG_LEVEL_INFO, "sync_tuple_cgm_callback: Dictionary Key not recognised");
@@ -2605,6 +2646,7 @@ static void init_cgm(void)
 	bg_colour = persist_exists(SET_BG_COLOUR)? GColorFromHEX(persist_read_int(SET_BG_COLOUR)) : COLOR_FALLBACK(GColorDukeBlue,GColorBlack);
 #endif
 	TurnOffAllVibrations = persist_exists(SET_NO_VIBE)? persist_read_bool(SET_NO_VIBE) : true;
+	BacklightOnCharge = persist_exists(SET_LIGHT_ON_CHG)? persist_read_bool(SET_LIGHT_ON_CHG) : false;
 #ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "display_seconds: %i", display_seconds);
 #endif
