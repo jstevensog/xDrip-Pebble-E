@@ -4,7 +4,7 @@
 /* The line below will set the debug message level.
 Make sure you set this to 0 before building a release. */
 
-#define DEBUG_LEVEL 1
+//#define DEBUG_LEVEL 1
 
 // global window variables
 // ANYTHING THAT IS CALLED BY PEBBLE API HAS TO BE NOT STATIC
@@ -1674,6 +1674,12 @@ static void send_cmd_cgm(void)
 	AppMessageResult sendcmd_senderr = APP_MSG_OK;
 
 	sendcmd_openerr = app_message_outbox_begin(&iter);
+	if(BluetoothAlert)
+		{
+			//BT is down rignt now, so don't do anything.
+			//Note, we cannot log this, as BT must be up in order to log it.
+			return;
+		}
 	if (sendcmd_openerr != APP_MSG_OK)
 		{
 #ifdef DEBUG_LEVEL
@@ -1696,13 +1702,13 @@ static void send_cmd_cgm(void)
 
 	sendcmd_senderr = app_message_outbox_send();
 
-#ifdef DEBUG_LEVEL
 	if (sendcmd_senderr != APP_MSG_OK && sendcmd_senderr != APP_MSG_BUSY && sendcmd_senderr != APP_MSG_SEND_REJECTED)
 		{
+#ifdef DEBUG_LEVEL
 			APP_LOG(APP_LOG_LEVEL_INFO, "WATCH SENDCMD SEND ERROR");
 			APP_LOG(APP_LOG_LEVEL_DEBUG, "WATCH SENDCMD SEND ERR CODE: %i RES: %s", sendcmd_senderr, translate_app_error(sendcmd_senderr));
-		}
 #endif
+		}
 	//free(iter);
 	//APP_LOG(APP_LOG_LEVEL_INFO, "SEND CMD OUT, SENT MSG TO APP");
 
