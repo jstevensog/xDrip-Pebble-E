@@ -1896,9 +1896,9 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 
 #ifdef DEBUG_LEVEL
 					APP_LOG(APP_LOG_LEVEL_INFO, "Creating Trend Image");
-#endif
 
 					APP_LOG(APP_LOG_LEVEL_DEBUG, "TREND_END: trend_buffer is %lx, trend_buffer_length is %i", (uint32_t)trend_buffer, trend_buffer_length);
+#endif
 					if ((trend_buffer != NULL) && (trend_buffer_length > 0) && (trend_buffer_length == expected_trend_buffer_length))
 						{
 							bg_trend_bitmap = gbitmap_create_from_png_data(trend_buffer, trend_buffer_length);
@@ -2208,7 +2208,7 @@ void handle_second_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
 #if DEBUG_LEVEL >1
 			APP_LOG(APP_LOG_LEVEL_INFO, "TICK TIME DAY CODE");
 #endif
-			tick_return_cgm = strftime(date_app_text, DATE_TEXTBUFF_SIZE, "%a %d", tick_time_cgm);
+			tick_return_cgm = strftime(date_app_text, DATE_TEXTBUFF_SIZE, "%a %d %b", tick_time_cgm);
 			if (tick_return_cgm != 0)
 				{
 					text_layer_set_text(date_app_layer, date_app_text);
@@ -2489,9 +2489,7 @@ void window_load_cgm(Window *window_cgm)
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating Watch Date Text layer");
 #endif
 #ifdef PBL_COLOR
-	date_app_layer = text_layer_create(GRect(0, 124, 143, 26));
-//	text_layer_set_text_color(date_app_layer, fg_colour);
-//	text_layer_set_background_color(date_app_layer, GColorClear);
+	date_app_layer = text_layer_create(GRect(0, 124, 143, 29));
 #else
 	
 	#ifdef PBL_PLATFORM_APLITE
@@ -2499,9 +2497,6 @@ void window_load_cgm(Window *window_cgm)
 	#else
 		date_app_layer = text_layer_create(GRect(0, 120, 143, 29));
 	#endif
-	
-//	text_layer_set_text_color(date_app_layer, GColorWhite);
-//	text_layer_set_background_color(date_app_layer, GColorClear);
 #endif
 	text_layer_set_text_color(date_app_layer, fg_colour);
 	text_layer_set_background_color(date_app_layer, GColorClear);
