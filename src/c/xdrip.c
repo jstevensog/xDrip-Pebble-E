@@ -2093,12 +2093,23 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 					if(data->value->uint8 > 0)
 						{
 							MonochromeBackground = true;
+							bitmap_layer_set_background_color(upper_face_layer, fg_colour);
+							text_layer_set_text_color(delta_layer, bg_colour);
+							text_layer_set_text_color(message_layer, bg_colour);
+							text_layer_set_text_color(bg_layer, bg_colour);
+							text_layer_set_text_color(cgmtime_layer, bg_colour);
 						}
 					else
 						{
 							MonochromeBackground = false;
+							bitmap_layer_set_background_color(upper_face_layer, bg_colour);
+							text_layer_set_text_color(delta_layer, fg_colour);
+							text_layer_set_text_color(message_layer, fg_colour);
+							text_layer_set_text_color(bg_layer, fg_colour);
+							text_layer_set_text_color(cgmtime_layer, fg_colour);
 						}
 					persist_write_bool(SET_MONOCHROME, MonochromeBackground);
+
 					break;
 
 				default:
