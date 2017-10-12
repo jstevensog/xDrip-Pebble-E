@@ -32,6 +32,12 @@
     "defaultValue": false
   },
   {
+    "type": "toggle",
+    "messageKey": "monochrome",
+    "label": "Same background colour top and bottom",
+    "defaultValue": false
+  },
+  {
     "type": "color",
     "messageKey": "foreground",
     "defaultValue": "ffffff",

@@ -206,6 +206,9 @@ static const bool TurnOffStrongVibrations = false;
 //Control Backlight
 static bool BacklightOnCharge = false;
 
+//All one background colour
+static bool MonochromeBackground =false;
+
 // Bluetooth Timer Wait Time, in Seconds
 // RANGE 0-240
 // THIS IS ONLY FOR BAD BLUETOOTH CONNECTIONS
@@ -239,6 +242,7 @@ static uint8_t minutes_cgm = 0;
 #define SET_VIBE_REPEAT		103	// Setting key - Vibration Repeat
 #define SET_NO_VIBE		104	// Setting key - No Vibrations
 #define SET_LIGHT_ON_CHG	105	// Setting key - Backlight on when charging
+#define SET_MONOCHROME	106	// Setting key - Backlight on when charging
 #define CGM_SYNC_KEY		1000	// key pebble will use to request an update.
 #define PBL_PLATFORM		1001	// key pebble will use to send it's platform
 #define PBL_APP_VER		1002	// key pebble will use to send the face/app version.
@@ -2082,6 +2086,21 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 					persist_write_bool(SET_LIGHT_ON_CHG, BacklightOnCharge);
 					break;
 
+				case SET_MONOCHROME:
+#ifdef DEBUG_LEVEL
+					APP_LOG(APP_LOG_LEVEL_INFO, "Got Monochrome key, message is \"%lx\"", data->value->uint32);
+#endif
+					if(data->value->uint8 > 0)
+						{
+							MonochromeBackground = true;
+						}
+					else
+						{
+							MonochromeBackground = false;
+						}
+					persist_write_bool(SET_MONOCHROME, MonochromeBackground);
+					break;
+
 				default:
 #ifdef DEBUG_LEVEL
 					APP_LOG(APP_LOG_LEVEL_INFO, "sync_tuple_cgm_callback: Dictionary Key not recognised");
@@ -2325,8 +2344,14 @@ void window_load_cgm(Window *window_cgm)
 #endif
 
 //	bitmap_layer_set_background_color(upper_face_layer, GColorWhite);
-	bitmap_layer_set_background_color(upper_face_layer, fg_colour);
-
+  if(MonochromeBackground) 
+  {
+	  bitmap_layer_set_background_color(upper_face_layer, fg_colour);
+  }
+  else
+  {
+    bitmap_layer_set_background_color(upper_face_layer, bg_colour);
+  }
 #ifdef PBL_PLATFORM_APLITE
 	lower_face_layer = bitmap_layer_create(GRect(0,89,144,165));
 #else
@@ -2381,7 +2406,14 @@ void window_load_cgm(Window *window_cgm)
 #else
 	text_layer_set_text_color(delta_layer, GColorBlack);
 #endif */
-	text_layer_set_text_color(delta_layer, bg_colour);
+  if(MonochromeBackground)
+  {
+	  text_layer_set_text_color(delta_layer, fg_colour);
+  }
+  else
+  {
+	  text_layer_set_text_color(delta_layer, bg_colour);
+  }
 	text_layer_set_background_color(delta_layer, GColorClear);
 	text_layer_set_font(delta_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28));
 
@@ -2404,7 +2436,14 @@ void window_load_cgm(Window *window_cgm)
 	//message_layer = text_layer_create(GRect(0, 33, 143, 55));
 	text_layer_set_text_color(message_layer, GColorBlack);
 #endif */
-	text_layer_set_text_color(message_layer, bg_colour);
+  if(MonochromeBackground)
+  {
+	  text_layer_set_text_color(message_layer, fg_colour);
+  }
+  else
+  {
+	  text_layer_set_text_color(message_layer, bg_colour);
+  }
 	text_layer_set_background_color(message_layer, GColorClear);
 	text_layer_set_font(message_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28));
 	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
@@ -2421,7 +2460,14 @@ void window_load_cgm(Window *window_cgm)
 #else
 	bg_layer = text_layer_create(GRect(0, -5, 95, 47));
 #endif
-	text_layer_set_text_color(bg_layer, bg_colour);
+  if(MonochromeBackground)
+  {
+	  text_layer_set_text_color(bg_layer, fg_colour);
+  }
+  else
+  {
+	  text_layer_set_text_color(bg_layer, bg_colour);
+  }
 	text_layer_set_background_color(bg_layer, GColorClear);
 	text_layer_set_font(bg_layer, fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD));
 	text_layer_set_text_alignment(bg_layer, GTextAlignmentCenter);
@@ -2446,7 +2492,14 @@ void window_load_cgm(Window *window_cgm)
 	text_layer_set_text_color(cgmtime_layer, GColorBlack);
 	text_layer_set_background_color(cgmtime_layer, GColorClear);
 #endif */
-	text_layer_set_text_color(cgmtime_layer, bg_colour);
+  if(MonochromeBackground)
+  {
+	  text_layer_set_text_color(cgmtime_layer, fg_colour);
+  }
+  else
+  {
+	  text_layer_set_text_color(cgmtime_layer, bg_colour);
+  }
 	text_layer_set_background_color(cgmtime_layer, GColorClear);
 	text_layer_set_font(cgmtime_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
 	//text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentLeft);
