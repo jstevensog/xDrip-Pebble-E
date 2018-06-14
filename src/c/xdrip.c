@@ -48,6 +48,24 @@ static GColor fg_colour;
 static GColor bg_colour;
 #endif
 
+#if defined(PBL_HEALTH)
+void health_handler(HealthEventType event, void *context);
+static void start_data_log();
+static void stop_data_log();
+static void restart_data_log();
+static DataLoggingSessionRef s_session_heartrate;
+static DataLoggingSessionRef s_session_movement;
+static HealthValue laststeps = 0;
+static HealthValue lastbpm = 0;
+static time_t last_movement_time = 0;
+#define HEARTRATE_LOG 101
+#define MOVEMENT_LOG 103
+#endif
+
+static void health_subscribe();
+static void health_unsubscribe();
+
+
 // Defines to do with Time display
 #define TIME_24H_FORMAT "%H:%M"
 #define TIME_12H_FORMAT "%l:%M"
@@ -90,6 +108,7 @@ bool display_message = false;
 //static GColor8 background_colour = 0;
 //static GColor8 foreground_color = 0;
 static bool display_seconds = false;
+static bool old_state = false;
 // variables for timers and time
 AppTimer *timer_cgm = NULL;
 AppTimer *BT_timer = NULL;
@@ -222,6 +241,8 @@ static const uint8_t BT_ALERT_WAIT_SECS = 10;
 static const uint16_t WATCH_MSGSEND_SECS = 60;
 static const uint8_t LOADING_MSGSEND_SECS = 2;
 static uint8_t minutes_cgm = 0;
+static bool CollectHealth = false;
+static uint8_t alternator = 0;
 
 
 #define	CGM_ICON_KEY 	0		// TUPLE_CSTRING, MAX 2 BYTES (10)
@@ -236,6 +257,7 @@ static uint8_t minutes_cgm = 0;
 #define	CGM_TREND_END_KEY 	9		// TUPLE_INT, always 0.
 #define CGM_MESSAGE_KEY		10
 #define CGM_VIBE_KEY		11
+#define CGM_COLLECT_HEALTH_KEY        112    // whether to log health data
 #define SET_DISP_SECS		100	// Setting key - Display Seconds
 #define SET_FG_COLOUR		101	// Setting key - Foreground Colour
 #define SET_BG_COLOUR		102	// Setting key - Background Colour
@@ -746,7 +768,7 @@ void handle_bluetooth_cgm(bool bt_connected)
 					BT_timer_pop = false;
 				}
 #ifdef PBL_COLOR
-			text_layer_set_text_color(delta_layer, GColorBlack);
+			text_layer_set_text_color(delta_layer, fg_colour);
 #endif
 
 		}
@@ -1559,7 +1581,7 @@ static void load_bg_delta()
 
 	text_layer_set_text(delta_layer, formatted_bg_delta);
 #ifdef PBL_COLOR
-	text_layer_set_text_color(delta_layer,GColorBlack);
+	text_layer_set_text_color(delta_layer,fg_colour);
 #endif
 #ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "LOAD_BG_DELTA: delta_layer is \"%s\"", text_layer_get_text(delta_layer));
@@ -1722,14 +1744,25 @@ static void send_cmd_cgm(void)
 #ifdef PBL_COLOR
 void updateColours()
 {
-	bitmap_layer_set_background_color(upper_face_layer, fg_colour);
+	if(MonochromeBackground)
+	{
+		bitmap_layer_set_background_color(upper_face_layer, bg_colour);
+		text_layer_set_text_color(delta_layer, fg_colour);
+		text_layer_set_text_color(message_layer, fg_colour);
+		text_layer_set_text_color(bg_layer, fg_colour);
+		text_layer_set_text_color(cgmtime_layer, fg_colour);
+	}
+	else
+	{
+		bitmap_layer_set_background_color(upper_face_layer, fg_colour);
+		text_layer_set_text_color(delta_layer, bg_colour);
+		text_layer_set_text_color(message_layer, bg_colour);
+		text_layer_set_text_color(bg_layer, bg_colour);
+		text_layer_set_text_color(cgmtime_layer, bg_colour);
+	}
 	bitmap_layer_set_background_color(lower_face_layer, bg_colour);
-	text_layer_set_text_color(delta_layer, bg_colour);
 	text_layer_set_text_color(time_watch_layer, fg_colour);
 	text_layer_set_text_color(date_app_layer, fg_colour);
-	text_layer_set_text_color(message_layer, bg_colour);
-	text_layer_set_text_color(bg_layer, bg_colour);
-	text_layer_set_text_color(cgmtime_layer, bg_colour);
 }
 // end updateColours
 #endif
@@ -1781,6 +1814,9 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 #endif
 					strncpy(last_bg, data->value->cstring, BG_MSGSTR_SIZE);
 					load_bg();
+#if defined(PBL_HEALTH)
+          if (CollectHealth) restart_data_log(); // flush the data
+#endif
 					break; // break for CGM_BG_KEY
 
 				case CGM_TCGM_KEY:
@@ -1960,6 +1996,20 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 							layer_set_hidden((Layer *)delta_layer, true);
 						}
 					break;
+
+				case CGM_COLLECT_HEALTH_KEY:
+					old_state = CollectHealth;
+					CollectHealth = (data->value->uint8 > 0);
+#ifdef DEBUG_LEVEL
+					APP_LOG(APP_LOG_LEVEL_INFO, "Got COLLECT_HEALTH_KEY value: %u", data->value->uint8);
+#endif
+					if (!old_state && CollectHealth) {
+						health_subscribe(); // was just switched on
+					} else if (old_state && !CollectHealth) {
+						health_unsubscribe(); // was just switched off;
+					}
+					break;
+
 
 				case CGM_VIBE_KEY:
 #ifdef DEBUG_LEVEL
@@ -2353,11 +2403,11 @@ void window_load_cgm(Window *window_cgm)
 //	bitmap_layer_set_background_color(upper_face_layer, GColorWhite);
   if(MonochromeBackground) 
   {
-	  bitmap_layer_set_background_color(upper_face_layer, fg_colour);
+	  bitmap_layer_set_background_color(upper_face_layer, bg_colour);
   }
   else
   {
-    bitmap_layer_set_background_color(upper_face_layer, bg_colour);
+    bitmap_layer_set_background_color(upper_face_layer, fg_colour);
   }
 #ifdef PBL_PLATFORM_APLITE
 	lower_face_layer = bitmap_layer_create(GRect(0,89,144,165));
@@ -2401,7 +2451,11 @@ void window_load_cgm(Window *window_cgm)
 #ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating Delta BG Text layer");
 #endif
+#ifdef PBL_PLATFORM_APLITE
 	delta_layer = text_layer_create(GRect(0, 36, 143, 50));
+#else
+	delta_layer = text_layer_create(GRect(0, 55, 143, 50));
+#endif
   if(MonochromeBackground)
   {
 	  text_layer_set_text_color(delta_layer, fg_colour);
@@ -2416,7 +2470,7 @@ void window_load_cgm(Window *window_cgm)
 #ifdef PBL_PLATFORM_APLITE
 	text_layer_set_text_alignment(delta_layer, GTextAlignmentRight);
 #else
-	text_layer_set_text_alignment(delta_layer, GTextAlignmentCenter);
+	text_layer_set_text_alignment(delta_layer, GTextAlignmentLeft);
 #endif
 
 	layer_add_child(window_layer_cgm, text_layer_get_layer(delta_layer));
@@ -2471,7 +2525,7 @@ void window_load_cgm(Window *window_cgm)
 #ifdef PBL_PLATFORM_APLITE
 	cgmtime_layer = text_layer_create(GRect(104, 58, 40, 24));
 #else
-	cgmtime_layer = text_layer_create(GRect(52, 58, 40, 24));
+	cgmtime_layer = text_layer_create(GRect(104, 58, 40, 24));
 #endif
 
   if(MonochromeBackground)
@@ -2484,7 +2538,11 @@ void window_load_cgm(Window *window_cgm)
   }
 	text_layer_set_background_color(cgmtime_layer, GColorClear);
 	text_layer_set_font(cgmtime_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+#ifdef PBL_PLATFORM_APLITE
 	text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentCenter);
+#else
+	text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentRight);
+#endif
 	layer_add_child(window_layer_cgm, text_layer_get_layer(cgmtime_layer));
 
 #ifdef PBL_PLATFORM_APLITE
@@ -2674,7 +2732,7 @@ static void init_cgm(void)
 #endif
 	TurnOffAllVibrations = persist_exists(SET_NO_VIBE)? persist_read_bool(SET_NO_VIBE) : true;
 	BacklightOnCharge = persist_exists(SET_LIGHT_ON_CHG)? persist_read_bool(SET_LIGHT_ON_CHG) : false;
-  MonochromeBackground = persist_exists(SET_MONOCHROME)? persist_read_bool(SET_MONOCHROME) : false;
+	MonochromeBackground = persist_exists(SET_MONOCHROME)? persist_read_bool(SET_MONOCHROME) : true;
 #ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "display_seconds: %i", display_seconds);
 #endif
@@ -2754,13 +2812,50 @@ static void init_cgm(void)
 	const bool animated_cgm = true;
 	window_stack_push(window_cgm, animated_cgm);
 
+#if defined(PBL_HEALTH)
+  start_data_log();
+  if (CollectHealth) health_subscribe();
+#else
+  APP_LOG(APP_LOG_LEVEL_ERROR, "Health service not supported!");
+#endif
+
 #ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "init_cgm done.");
 #endif
 }	// end init_cgm
 
+static void health_subscribe() {
+    // Attempt to subscribe
+#if defined(PBL_HEALTH)
+    if (!health_service_events_subscribe(health_handler, NULL)) {
+        APP_LOG(APP_LOG_LEVEL_ERROR, "Health not available!");
+    } else {
+//#ifdef DEBUG_LEVEL
+        APP_LOG(APP_LOG_LEVEL_INFO, "subscribed to health");
+//#endif
+// health ok
+    }
+#endif
+}
+
+static void health_unsubscribe() {
+#if defined(PBL_HEALTH)
+    // Finish the session and sync data if appropriate
+    health_service_events_unsubscribe();
+//#ifdef DEBUG_LEVEL
+    APP_LOG(APP_LOG_LEVEL_INFO, "unsubscribed from health");
+//#endif
+
+#endif
+}
 static void deinit_cgm(void)
 {
+#if defined(PBL_HEALTH)
+  // Finish the session and sync data if appropriate
+  health_unsubscribe();
+  stop_data_log();
+#endif
+
 	//APP_LOG(APP_LOG_LEVEL_INFO, "DEINIT CODE IN");
 	// Make sure we are not handling a second tick.
 	while (handling_second) {};
@@ -2805,6 +2900,98 @@ static void deinit_cgm(void)
 
 	//APP_LOG(APP_LOG_LEVEL_INFO, "DEINIT CODE OUT");
 } // end deinit_cgm
+
+#if defined(PBL_HEALTH)
+
+static void write_log(int id, int value) {
+
+    if ((id == MOVEMENT_LOG) && ((time(NULL) - last_movement_time) < 60)) {
+        return;
+    }
+    last_movement_time = time(NULL);
+
+    uint32_t d[2] = {(uint32_t) last_movement_time, (uint32_t) value};
+
+    APP_LOG(APP_LOG_LEVEL_INFO, "Logging data");
+
+    DataLoggingResult result = data_logging_log((id == HEARTRATE_LOG) ? s_session_heartrate : s_session_movement, &d,
+                                                2);
+    if (result != DATA_LOGGING_SUCCESS) {
+        APP_LOG(APP_LOG_LEVEL_ERROR, "Error logging to queue: %d value %d data: err:%d", (int) id, (int) value,
+                (int) result);
+    }
+}
+
+void health_handler(HealthEventType event, void *context) {
+    if (!CollectHealth) return;
+    // Which type of event occurred?
+    switch (event) {
+        case HealthEventSignificantUpdate:
+            APP_LOG(APP_LOG_LEVEL_DEBUG,
+                    "New HealthService HealthEventSignificantUpdate event");
+            break;
+        case HealthEventMovementUpdate:
+            APP_LOG(APP_LOG_LEVEL_DEBUG,
+                    "New HealthService HealthEventMovementUpdate event");
+            
+            HealthValue steps = health_service_sum_today(HealthMetricStepCount);
+
+            if ((steps != laststeps) && (abs(steps - laststeps) > 20)) {
+                APP_LOG(APP_LOG_LEVEL_INFO, "New Steps daily total: %d", (int) steps);
+                laststeps = steps;
+                write_log(MOVEMENT_LOG, steps);
+            } // if new data
+            break;
+            
+        case HealthEventSleepUpdate:
+            APP_LOG(APP_LOG_LEVEL_DEBUG,
+                    "New HealthService HealthEventSleepUpdate event");
+            break;
+        case HealthEventHeartRateUpdate:
+            APP_LOG(APP_LOG_LEVEL_INFO,
+                    "New HealthService HealthEventHeartRateUpdate event");
+
+            HealthServiceAccessibilityMask hr = health_service_metric_accessible(HealthMetricHeartRateBPM, time(NULL),
+                                                                                 time(NULL));
+            if (hr & HealthServiceAccessibilityMaskAvailable) {
+                HealthValue value = health_service_peek_current_value(HealthMetricHeartRateBPM);
+
+                if ((value > 0) && (value != lastbpm)) {
+                    lastbpm = value;
+                    APP_LOG(APP_LOG_LEVEL_INFO, "New BPM: %d", (int) value);
+                    write_log(HEARTRATE_LOG, value);
+                }
+            }
+            break;
+        case HealthEventMetricAlert:
+            APP_LOG(APP_LOG_LEVEL_DEBUG,
+                    "New HealthService HealthEventMetricAlert event");
+            break;
+        default:
+            APP_LOG(APP_LOG_LEVEL_INFO, "Received other health event not handled %d", event);
+            break;
+    }
+}
+
+static void start_data_log() {
+APP_LOG(APP_LOG_LEVEL_DEBUG, "starting log");
+    alternator = alternator ^ 0x8;
+    s_session_heartrate = data_logging_create(HEARTRATE_LOG | alternator, DATA_LOGGING_UINT, sizeof(uint32_t), true);
+    s_session_movement = data_logging_create(MOVEMENT_LOG | alternator, DATA_LOGGING_UINT, sizeof(uint32_t), true);
+}
+
+static void stop_data_log() {
+   APP_LOG(APP_LOG_LEVEL_DEBUG, "Stopping log");
+    data_logging_finish(s_session_heartrate);
+    data_logging_finish(s_session_movement);
+}
+
+static void restart_data_log() {
+    stop_data_log();
+    start_data_log();
+}
+
+#endif
 
 int main(void)
 {
