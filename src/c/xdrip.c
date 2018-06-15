@@ -264,7 +264,7 @@ static uint8_t alternator = 0;
 #define SET_VIBE_REPEAT		103	// Setting key - Vibration Repeat
 #define SET_NO_VIBE		104	// Setting key - No Vibrations
 #define SET_LIGHT_ON_CHG	105	// Setting key - Backlight on when charging
-#define SET_MONOCHROME	106	// Setting key - Backlight on when charging
+#define SET_MONOCHROME	106	// Setting key - Same top and bottom colour
 #define CGM_SYNC_KEY		1000	// key pebble will use to request an update.
 #define PBL_PLATFORM		1001	// key pebble will use to send it's platform
 #define PBL_APP_VER		1002	// key pebble will use to send the face/app version.
@@ -2140,7 +2140,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 #ifdef DEBUG_LEVEL
 					APP_LOG(APP_LOG_LEVEL_INFO, "Got Monochrome key, message is \"%lx\"", data->value->uint32);
 #endif
-					if(data->value->uint8 > 0)
+					if(data->value->uint8 == 0)
 						{
 							MonochromeBackground = true;
 							bitmap_layer_set_background_color(upper_face_layer, fg_colour);
@@ -2732,7 +2732,7 @@ static void init_cgm(void)
 #endif
 	TurnOffAllVibrations = persist_exists(SET_NO_VIBE)? persist_read_bool(SET_NO_VIBE) : true;
 	BacklightOnCharge = persist_exists(SET_LIGHT_ON_CHG)? persist_read_bool(SET_LIGHT_ON_CHG) : false;
-	MonochromeBackground = persist_exists(SET_MONOCHROME)? persist_read_bool(SET_MONOCHROME) : true;
+	MonochromeBackground = persist_exists(SET_MONOCHROME)? persist_read_bool(SET_MONOCHROME) : false;
 #ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "display_seconds: %i", display_seconds);
 #endif
