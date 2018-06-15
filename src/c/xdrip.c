@@ -2138,11 +2138,14 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 
 		case SET_MONOCHROME:
 #ifdef DEBUG_LEVEL
-			APP_LOG(APP_LOG_LEVEL_INFO, "Got Monochrome key, message is \"%lx\"", data->value->uint32);
+			APP_LOG(APP_LOG_LEVEL_INFO, "Got Monochrome key, message is \"%d\"", data->value->uint8);
 #endif
 			if(data->value->uint8 == 0)
 			{
-				MonochromeBackground = true;
+#ifdef DEBUG_LEVEL
+				APP_LOG(APP_LOG_LEVEL_INFO, "Setting MonochromeBackground to true");
+#endif
+				MonochromeBackground = false;
 				bitmap_layer_set_background_color(upper_face_layer, fg_colour);
 				text_layer_set_text_color(delta_layer, bg_colour);
 				text_layer_set_text_color(message_layer, bg_colour);
@@ -2151,7 +2154,10 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 			}
 			else
 			{
-				MonochromeBackground = false;
+#ifdef DEBUG_LEVEL
+				APP_LOG(APP_LOG_LEVEL_INFO, "Setting MonochromeBackground to false");
+#endif
+				MonochromeBackground = true;
 				bitmap_layer_set_background_color(upper_face_layer, bg_colour);
 				text_layer_set_text_color(delta_layer, fg_colour);
 				text_layer_set_text_color(message_layer, fg_colour);
@@ -2732,7 +2738,22 @@ static void init_cgm(void)
 #endif
 	TurnOffAllVibrations = persist_exists(SET_NO_VIBE)? persist_read_bool(SET_NO_VIBE) : true;
 	BacklightOnCharge = persist_exists(SET_LIGHT_ON_CHG)? persist_read_bool(SET_LIGHT_ON_CHG) : false;
-	MonochromeBackground = persist_exists(SET_MONOCHROME)? persist_read_bool(SET_MONOCHROME) : false;
+	if (persist_exists(SET_MONOCHROME))
+	{
+		MonochromeBackground = persist_read_bool(SET_MONOCHROME);
+#ifdef DEBUG_LEVEL
+		APP_LOG(APP_LOG_LEVEL_INFO, "SET_MONOCHROME exists.  MonochromeBackground is \"%s\"", persist_read_bool(SET_MONOCHROME) ? "true" : "false");
+#endif
+	}
+	else
+	{
+		MonochromeBackground = false;
+		persist_write_bool(SET_MONOCHROME, false);
+#ifdef DEBUG_LEVEL
+		APP_LOG(APP_LOG_LEVEL_INFO, "SET_MONOCHROME doesn't exist.  MonochromeBackground is \"%d\"", MonochromeBackground);
+#endif
+	}
+	//MonochromeBackground = persist_exists(SET_MONOCHROME)? persist_read_bool(SET_MONOCHROME) : false;
 #ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "display_seconds: %i", display_seconds);
 #endif
