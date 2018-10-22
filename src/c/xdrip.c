@@ -4,7 +4,7 @@
 /* The line below will set the debug message level.
 Make sure you set this to 0 before building a release. */
 
-#define DEBUG_LEVEL 1
+#define DEBUG_LEVEL 2
 
 // global window variables
 // ANYTHING THAT IS CALLED BY PEBBLE API HAS TO BE NOT STATIC
@@ -97,6 +97,9 @@ static void bitmapLayerUpdate(struct Layer *layer, GContext *ctx);
 static bool handling_second = false;
 static bool doing_trend = false;
 static bool global_lock = false;
+#ifdef PBL_HEALTH
+static bool health_subscribed = false;
+#endif
 //#ifdef PBL_PLATFORM_BASALT
 uint8_t *trend_buffer = NULL;
 static uint16_t trend_buffer_length = 0;
@@ -130,6 +133,7 @@ static char last_battlevel[4];
 static uint32_t current_cgm_time = 0;
 static uint32_t current_app_time = 0;
 static char current_bg_delta[14];
+static char current_message[14];
 //static int converted_bgDelta = 0;
 
 // global BG snooze timer
@@ -248,7 +252,7 @@ static uint8_t alternator = 0;
 #define	CGM_ICON_KEY 	0		// TUPLE_CSTRING, MAX 2 BYTES (10)
 #define	CGM_BG_KEY 	1		// TUPLE_CSTRING, MAX 4 BYTES (253 OR 22.2)
 #define	CGM_TCGM_KEY	2		// TUPLE_INT, 4 BYTES (CGM TIME)
-#define	CGM_TAPP_KEY 	3		// TUPLE_INT, 4 BYTES (APP / PHONE TIME)
+//#define	CGM_TAPP_KEY 	3		// TUPLE_INT, 4 BYTES (APP / PHONE TIME)
 #define	CGM_DLTA_KEY 	4		// TUPLE_CSTRING, MAX 5 BYTES (BG DELTA, -100 or -10.0)
 #define	CGM_UBAT_KEY 	5		// TUPLE_CSTRING, MAX 3 BYTES (UPLOADER BATTERY, 100)
 #define	CGM_NAME_KEY 	6		// TUPLE_CSTRING, MAX 9 BYTES (Christine)
@@ -1976,11 +1980,12 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 #ifdef DEBUG_LEVEL
 			APP_LOG(APP_LOG_LEVEL_INFO, "Got Message Key, message is \"%s\"", data->value->cstring);
 #endif
-			text_layer_set_text(message_layer,data->value->cstring);
+			strncpy(current_message, data->value->cstring, BGDELTA_MSGSTR_SIZE);
+			text_layer_set_text(message_layer, current_message);
 			if(strcmp(data->value->cstring, "")==0)
 			{
 #ifdef DEBUG_LEVEL
-				APP_LOG(APP_LOG_LEVEL_INFO, "Setting Delta Only");
+				APP_LOG(APP_LOG_LEVEL_INFO, "Hiding Message");
 #endif
 				display_message = false;
 				layer_set_hidden((Layer *)message_layer, true);
@@ -2227,19 +2232,19 @@ void handle_second_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
 	size_t tick_return_cgm = 0;
 	// CODE START
 	handling_second = true;
-	if (SECOND_UNIT && display_seconds)
+	if ((units_changed_cgm & SECOND_UNIT) && display_seconds)
 	{
 		tick_return_cgm = strftime(time_watch_text, TIME_TEXTBUFF_SIZE, time_watch_format, tick_time_cgm);
 		if (tick_return_cgm != 0)
 		{
 			text_layer_set_text(time_watch_layer, time_watch_text);
 		}
-#if DEBUG_LEVEL >0
+#if DEBUG_LEVEL > 1
 
-		APP_LOG(APP_LOG_LEVEL_INFO, "Seconds Tick: display_seconds = %i, time_watch_text = %s, time_watch_format = %s", display_seconds, time_watch_text, time_watch_format);
+	APP_LOG(APP_LOG_LEVEL_INFO, "Seconds Tick: display_seconds = %i, time_watch_text = %s, time_watch_format = %s", display_seconds, time_watch_text, time_watch_format);
 #endif
 	}
-	if ((units_changed_cgm & SECOND_UNIT) && ((tick_time_cgm->tm_sec & 0x01)==1))
+	if ((units_changed_cgm & SECOND_UNIT) && (tick_time_cgm->tm_sec & 0x01))
 	{
 
 #if DEBUG_LEVEL > 1
@@ -2248,7 +2253,7 @@ void handle_second_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
 		if(display_message)
 		{
 #if DEBUG_LEVEL > 1
-			APP_LOG(APP_LOG_LEVEL_DEBUG, "message_layer toggling %i", (tick_time_cgm->tm_sec & 0x01)==1);
+			APP_LOG(APP_LOG_LEVEL_DEBUG, "message_layer toggling %i, message_layer_hidden %i", (tick_time_cgm->tm_sec & 0x01), !(layer_get_hidden((Layer *)message_layer)));
 #endif
 
 			layer_set_hidden((Layer *)delta_layer, !(layer_get_hidden((Layer *)delta_layer)));
@@ -2260,10 +2265,14 @@ void handle_second_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
 			{
 				layer_set_hidden((Layer *)message_layer, true);
 			}
+
+
 			if(layer_get_hidden((Layer *)delta_layer))
 			{
 				layer_set_hidden((Layer *)delta_layer, false);
 			}
+
+
 		}
 	}
 	if (units_changed_cgm & MINUTE_UNIT)
@@ -2813,7 +2822,7 @@ static void init_cgm(void)
 	window_set_background_color(window_cgm, GColorBlack);
 	window_set_window_handlers(window_cgm, (WindowHandlers) 
 			{
-		.load = window_load_cgm,
+				.load = window_load_cgm,
 				.unload = window_unload_cgm
 			});
 
@@ -2848,12 +2857,17 @@ static void init_cgm(void)
 static void health_subscribe() {
 	// Attempt to subscribe
 #if defined(PBL_HEALTH)
-	if (!health_service_events_subscribe(health_handler, NULL)) {
+	if(health_subscribed){
+		APP_LOG(APP_LOG_LEVEL_INFO, "Already subscribed to Health!");
+		return;
+	}
+	if(!health_service_events_subscribe(health_handler, NULL)) {
 		APP_LOG(APP_LOG_LEVEL_ERROR, "Health not available!");
 	} else {
-		//#ifdef DEBUG_LEVEL
+		#ifdef DEBUG_LEVEL
 		APP_LOG(APP_LOG_LEVEL_INFO, "subscribed to health");
-		//#endif
+		health_subscribed = 1;
+		#endif
 		// health ok
 	}
 #endif
@@ -2862,20 +2876,18 @@ static void health_subscribe() {
 static void health_unsubscribe() {
 #if defined(PBL_HEALTH)
 	// Finish the session and sync data if appropriate
-	health_service_events_unsubscribe();
-	//#ifdef DEBUG_LEVEL
-	APP_LOG(APP_LOG_LEVEL_INFO, "unsubscribed from health");
-	//#endif
+	if(health_subscribed) {
+		health_subscribed = 0;
+		health_service_events_unsubscribe();
+		APP_LOG(APP_LOG_LEVEL_INFO, "unsubscribed from health");
+	}
+	#ifdef DEBUG_LEVEL
+	#endif
 
 #endif
 }
 static void deinit_cgm(void)
 {
-#if defined(PBL_HEALTH)
-	// Finish the session and sync data if appropriate
-	health_unsubscribe();
-	stop_data_log();
-#endif
 
 	//APP_LOG(APP_LOG_LEVEL_INFO, "DEINIT CODE IN");
 	// Make sure we are not handling a second tick.
@@ -2885,6 +2897,11 @@ static void deinit_cgm(void)
 	//APP_LOG(APP_LOG_LEVEL_INFO, "DEINIT, UNSUBSCRIBE TICK TIMER");
 	tick_timer_service_unsubscribe();
 
+#if defined(PBL_HEALTH)
+	// Finish the session and sync data if appropriate
+	health_unsubscribe();
+	//stop_data_log();
+#endif
 	// unsubscribe to the bluetooth connection service
 	//APP_LOG(APP_LOG_LEVEL_INFO, "DEINIT, UNSUBSCRIBE BLUETOOTH");
 	bluetooth_connection_service_unsubscribe();
