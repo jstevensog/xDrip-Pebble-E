@@ -2256,7 +2256,7 @@ void handle_second_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
 			APP_LOG(APP_LOG_LEVEL_DEBUG, "message_layer toggling %i, message_layer_hidden %i", (tick_time_cgm->tm_sec & 0x01), !(layer_get_hidden((Layer *)message_layer)));
 #endif
 
-			layer_set_hidden((Layer *)delta_layer, !(layer_get_hidden((Layer *)delta_layer)));
+			//layer_set_hidden((Layer *)delta_layer, !(layer_get_hidden((Layer *)delta_layer)));
 			layer_set_hidden((Layer *)message_layer, !(layer_get_hidden((Layer *)message_layer)));
 		}
 		else
@@ -2267,10 +2267,12 @@ void handle_second_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
 			}
 
 
+/*
 			if(layer_get_hidden((Layer *)delta_layer))
 			{
 				layer_set_hidden((Layer *)delta_layer, false);
 			}
+*/
 
 
 		}
