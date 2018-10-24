@@ -1989,7 +1989,9 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 #endif
 				display_message = false;
 				layer_set_hidden((Layer *)message_layer, true);
+#ifdef PBL_COLOR
 				layer_set_hidden((Layer *)delta_layer, false);
+#endif
 			}
 			else
 			{
@@ -1998,7 +2000,9 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 #endif
 				display_message = true;
 				layer_set_hidden((Layer *)message_layer, false);
+#ifdef PBL_COLOR
 				layer_set_hidden((Layer *)delta_layer, true);
+#endif
 			}
 			break;
 
@@ -2256,7 +2260,9 @@ void handle_second_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
 			APP_LOG(APP_LOG_LEVEL_DEBUG, "message_layer toggling %i, message_layer_hidden %i", (tick_time_cgm->tm_sec & 0x01), !(layer_get_hidden((Layer *)message_layer)));
 #endif
 
-			//layer_set_hidden((Layer *)delta_layer, !(layer_get_hidden((Layer *)delta_layer)));
+#ifdef PBL_COLOR
+			layer_set_hidden((Layer *)delta_layer, !(layer_get_hidden((Layer *)delta_layer)));
+#endif
 			layer_set_hidden((Layer *)message_layer, !(layer_get_hidden((Layer *)message_layer)));
 		}
 		else
@@ -2266,14 +2272,12 @@ void handle_second_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
 				layer_set_hidden((Layer *)message_layer, true);
 			}
 
-
-/*
+#ifdef PBL_COLOR
 			if(layer_get_hidden((Layer *)delta_layer))
 			{
 				layer_set_hidden((Layer *)delta_layer, false);
 			}
-*/
-
+#endif
 
 		}
 	}
