@@ -11,9 +11,9 @@ Make sure you set this to 0 before building a release. */
 
 const char FACE_VERSION[] = "xDrip-Pebble2";
 #ifdef PBL_PLATFORM_APLITE
-const uint8_t PLATFORM = 0;
+const uint8_t PLATFORM = 4;
 #else
-const uint8_t PLATFORM = 1;
+const uint8_t PLATFORM = 5;
 #endif
 
 Window *window_cgm = NULL;
@@ -246,8 +246,9 @@ static const uint16_t WATCH_MSGSEND_SECS = 60;
 static const uint8_t LOADING_MSGSEND_SECS = 2;
 static uint8_t minutes_cgm = 0;
 static bool CollectHealth = false;
+#ifdef PBL_PLATFORM_BASALT
 static uint8_t alternator = 0;
-
+#endif
 
 #define	CGM_ICON_KEY 	0		// TUPLE_CSTRING, MAX 2 BYTES (10)
 #define	CGM_BG_KEY 	1		// TUPLE_CSTRING, MAX 4 BYTES (253 OR 22.2)
