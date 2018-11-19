@@ -773,7 +773,14 @@ void handle_bluetooth_cgm(bool bt_connected)
 			BT_timer_pop = false;
 		}
 #ifdef PBL_COLOR
-		text_layer_set_text_color(delta_layer, fg_colour);
+		if(MonochromeBackground)
+		{
+			text_layer_set_text_color(delta_layer, fg_colour);
+		}
+		else
+		{
+			text_layer_set_text_color(delta_layer, bg_colour);
+		}
 #endif
 
 	}
@@ -1586,7 +1593,14 @@ static void load_bg_delta()
 
 	text_layer_set_text(delta_layer, formatted_bg_delta);
 #ifdef PBL_COLOR
-	text_layer_set_text_color(delta_layer,fg_colour);
+	if(MonochromeBackground)
+	{
+		text_layer_set_text_color(delta_layer, fg_colour);
+	}
+	else
+	{
+		text_layer_set_text_color(delta_layer, bg_colour);
+	}
 #endif
 #ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "LOAD_BG_DELTA: delta_layer is \"%s\"", text_layer_get_text(delta_layer));
