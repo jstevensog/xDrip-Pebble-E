@@ -11,7 +11,7 @@ Make sure you set this to 0 before building a release. */
 
 const char FACE_VERSION[] = "xDrip-Pebble2";
 #ifdef PBL_PLATFORM_APLITE
-const uint8_t PLATFORM = 4;
+const uint8_t PLATFORM = 6;
 #else
 const uint8_t PLATFORM = 5;
 #endif
@@ -773,7 +773,12 @@ void handle_bluetooth_cgm(bool bt_connected)
 			BT_timer_pop = false;
 		}
 #ifdef PBL_COLOR
-		text_layer_set_text_color(delta_layer, fg_colour);
+		if(MonochromeBackground) {
+			text_layer_set_text_color(delta_layer, fg_colour);
+		}
+		else {
+			text_layer_set_text_color(delta_layer, bg_colour);
+		}
 #endif
 
 	}
@@ -1586,7 +1591,12 @@ static void load_bg_delta()
 
 	text_layer_set_text(delta_layer, formatted_bg_delta);
 #ifdef PBL_COLOR
-	text_layer_set_text_color(delta_layer,fg_colour);
+	if(MonochromeBackground) {
+		text_layer_set_text_color(delta_layer, fg_colour);
+	}
+	else {
+		text_layer_set_text_color(delta_layer, bg_colour);
+	}
 #endif
 #ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "LOAD_BG_DELTA: delta_layer is \"%s\"", text_layer_get_text(delta_layer));
@@ -2465,7 +2475,7 @@ void window_load_cgm(Window *window_cgm)
 	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(bg_trend_layer));
 #endif
 #ifdef PBL_PLATFORM_APLITE
-	bg_trend_layer = bitmap_layer_create(GRect(0,24,144,64));
+	bg_trend_layer = bitmap_layer_create(GRect(0,24,100,40));
 	layer_set_update_proc(bitmap_layer_get_layer(bg_trend_layer),bitmapLayerUpdate);
 #endif
 
