@@ -10,6 +10,7 @@
   ],
   "pebble": {
     "sdkVersion": "3",
+    "enableMultiJS": "true",
     "resources": {
       "media": [
         {
@@ -136,6 +137,8 @@
       "viberepeat": 103,
       "novibe": 104,
       "lightoncharge": 105,
+      "monochrome": 106,
+      "health": 112,
       "sync": 1000,
       "platform": 1001,
       "version": 1002,
@@ -143,7 +146,6 @@
       "trend_lines": 1004,
       "data_options": 1005
     },
-    "enableMultiJS": true,
     "displayName": "xDrip Watch Face",
     "watchapp": {
       "onlyShownOnCommunication": false,
@@ -155,7 +157,8 @@
       "basalt"
     ],
     "capabilities": [
-      "configurable"
+      "configurable",
+      "health"
     ]
   },
   "name": "xDrip-Trend"

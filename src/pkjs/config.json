@@ -32,11 +32,17 @@
     "defaultValue": false
   },
   {
+    "type": "toggle",
+    "messageKey": "monochrome",
+    "label": "Same background colour top and bottom",
+    "defaultValue": false
+  },
+  {
     "type": "color",
     "messageKey": "foreground",
     "defaultValue": "ffffff",
     "label": "Foreground Color",
-    "capabilities": "COLOR",
+    "capabilities": ["COLOR"],
     "sunlight": false
   },
   {
@@ -44,7 +50,7 @@
     "messageKey": "background",
     "defaultValue": "0000aa",
     "label": "Background Color",
-    "capabilities": "COLOR",
+    "capabilities": ["COLOR"],
     "sunlight": false
   },
   {
