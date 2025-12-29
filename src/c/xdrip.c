@@ -246,7 +246,7 @@ static const uint16_t WATCH_MSGSEND_SECS = 60;
 static const uint8_t LOADING_MSGSEND_SECS = 2;
 static uint8_t minutes_cgm = 0;
 static bool CollectHealth = false;
-#ifdef PBL_PLATFORM_BASALT
+#ifndef PBL_PLATFORM_APLITE
 static uint8_t alternator = 0;
 #endif
 
@@ -2326,7 +2326,8 @@ void handle_second_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
 
 } // end handle_minute_tick_cgm
 
-#ifdef PBL_PLATFORM_APLITE
+//#ifdef PBL_PLATFORM_APLITE
+#ifndef PBL_COLOR
 
 static uint8_t breverse(uint8_t b);
 static uint8_t breverse(uint8_t b)
@@ -2426,10 +2427,13 @@ void window_load_cgm(Window *window_cgm)
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating Upper and Lower face panels");
 #endif
 
-#ifdef PBL_PLATFORM_APLITE
+//#ifdef PBL_PLATFORM_APLITE
+#ifndef PBL_COLOR
 	upper_face_layer = bitmap_layer_create(GRect(0,0,144,88));
+	lower_face_layer = bitmap_layer_create(GRect(0,89,144,165));
 #else
 	upper_face_layer = bitmap_layer_create(GRect(0,0,144,83));
+	lower_face_layer = bitmap_layer_create(GRect(0,84,144,165));
 #endif
 
 	//	bitmap_layer_set_background_color(upper_face_layer, GColorWhite);
@@ -2441,11 +2445,6 @@ void window_load_cgm(Window *window_cgm)
 	{
 		bitmap_layer_set_background_color(upper_face_layer, fg_colour);
 	}
-#ifdef PBL_PLATFORM_APLITE
-	lower_face_layer = bitmap_layer_create(GRect(0,89,144,165));
-#else
-	lower_face_layer = bitmap_layer_create(GRect(0,84,144,165));
-#endif
 
 	bitmap_layer_set_background_color(lower_face_layer, bg_colour);
 	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(upper_face_layer));
@@ -2469,12 +2468,12 @@ void window_load_cgm(Window *window_cgm)
 #ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating BG Trend Bitmap layer");
 #endif
-#ifdef PBL_PLATFORM_BASALT
+//#ifdef PBL_PLATFORM_BASALT
+#ifdef PBL_COLOR
 	bg_trend_layer = bitmap_layer_create(GRect(0,0,144,84));
 	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
 	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(bg_trend_layer));
-#endif
-#ifdef PBL_PLATFORM_APLITE
+#else
 	bg_trend_layer = bitmap_layer_create(GRect(0,24,100,40));
 	layer_set_update_proc(bitmap_layer_get_layer(bg_trend_layer),bitmapLayerUpdate);
 #endif
@@ -2483,10 +2482,13 @@ void window_load_cgm(Window *window_cgm)
 #ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating Delta BG Text layer");
 #endif
-#ifdef PBL_PLATFORM_APLITE
+//#ifdef PBL_PLATFORM_APLITE
+#ifndef PBL_COLOR
 	delta_layer = text_layer_create(GRect(0, 36, 143, 50));
+	text_layer_set_text_alignment(delta_layer, GTextAlignmentRight);
 #else
 	delta_layer = text_layer_create(GRect(0, 55, 143, 50));
+	text_layer_set_text_alignment(delta_layer, GTextAlignmentLeft);
 #endif
 	if(MonochromeBackground)
 	{
@@ -2498,12 +2500,6 @@ void window_load_cgm(Window *window_cgm)
 	}
 	text_layer_set_background_color(delta_layer, GColorClear);
 	text_layer_set_font(delta_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28));
-
-#ifdef PBL_PLATFORM_APLITE
-	text_layer_set_text_alignment(delta_layer, GTextAlignmentRight);
-#else
-	text_layer_set_text_alignment(delta_layer, GTextAlignmentLeft);
-#endif
 
 	layer_add_child(window_layer_cgm, text_layer_get_layer(delta_layer));
 
@@ -2554,7 +2550,8 @@ void window_load_cgm(Window *window_cgm)
 #ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating CGM Time Ago Bitmap layer");
 #endif
-#ifdef PBL_PLATFORM_APLITE
+//#ifdef PBL_PLATFORM_APLITE
+#ifndef PBL_COLOR
 	cgmtime_layer = text_layer_create(GRect(104, 58, 40, 24));
 #else
 	cgmtime_layer = text_layer_create(GRect(104, 58, 40, 24));
@@ -2570,14 +2567,16 @@ void window_load_cgm(Window *window_cgm)
 	}
 	text_layer_set_background_color(cgmtime_layer, GColorClear);
 	text_layer_set_font(cgmtime_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
-#ifdef PBL_PLATFORM_APLITE
+//#ifdef PBL_PLATFORM_APLITE
+#ifndef PBL_COLOR
 	text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentCenter);
 #else
 	text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentRight);
 #endif
 	layer_add_child(window_layer_cgm, text_layer_get_layer(cgmtime_layer));
 
-#ifdef PBL_PLATFORM_APLITE
+//#ifdef PBL_PLATFORM_APLITE
+#ifndef PBL_COLOR
 	// top layer on pebble classic
 	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(bg_trend_layer));
 #endif
@@ -2849,7 +2848,8 @@ static void init_cgm(void)
 	app_message_register_inbox_received(inbox_received_handler_cgm);
 
 	//APP_LOG(APP_LOG_LEVEL_INFO, "INIT CODE, ABOUT TO CALL APP MSG OPEN");
-#ifdef PBL_PLATFORM_APLITE
+//#ifdef PBL_PLATFORM_APLITE
+#ifdef PBL_COLOR
 	app_message_open(512, 1024);
 #else
 	app_message_open(app_message_inbox_size_maximum(), app_message_outbox_size_maximum());
@@ -3028,6 +3028,7 @@ void health_handler(HealthEventType event, void *context) {
 	}
 }
 
+#ifndef PBL_PLATFORM_APLITE
 static void start_data_log() {
 	APP_LOG(APP_LOG_LEVEL_DEBUG, "starting log");
 	alternator = alternator ^ 0x8;
@@ -3040,7 +3041,7 @@ static void stop_data_log() {
 	data_logging_finish(s_session_heartrate);
 	data_logging_finish(s_session_movement);
 }
-
+#endif
 static void restart_data_log() {
 	stop_data_log();
 	start_data_log();
