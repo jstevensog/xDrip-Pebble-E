@@ -10,7 +10,8 @@ Make sure you set this to 0 before building a release. */
 // ANYTHING THAT IS CALLED BY PEBBLE API HAS TO BE NOT STATIC
 
 const char FACE_VERSION[] = "xDrip-Pebble2";
-#ifdef PBL_PLATFORM_APLITE
+//#ifdef PBL_PLATFORM_APLITE
+#ifndef PBL_COLOR
 const uint8_t PLATFORM = 0;
 #else
 const uint8_t PLATFORM = 1;
@@ -64,7 +65,8 @@ static GFont time_font_normal;
 static bool vibe_repeat = false;
 // variables for AppSync
 AppSync sync_cgm;
-#ifdef PBL_PLATFORM_APLITE
+//#ifdef PBL_PLATFORM_APLITE
+#ifndef PBL_COLOR
 #define CHUNK_SIZE 256
 static void bitmapLayerUpdate(struct Layer *layer, GContext *ctx);
 #else
@@ -2218,7 +2220,8 @@ void handle_second_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
 
 } // end handle_minute_tick_cgm
 
-#ifdef PBL_PLATFORM_APLITE
+//#ifdef PBL_PLATFORM_APLITE
+#ifndef PBL_COLOR
 
 static uint8_t breverse(uint8_t b);
 static uint8_t breverse(uint8_t b)
@@ -2318,20 +2321,17 @@ void window_load_cgm(Window *window_cgm)
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating Upper and Lower face panels");
 #endif
 
-#ifdef PBL_PLATFORM_APLITE
+//#ifdef PBL_PLATFORM_APLITE
+#ifndef PBL_COLOR
 	upper_face_layer = bitmap_layer_create(GRect(0,0,144,88));
+	lower_face_layer = bitmap_layer_create(GRect(0,89,144,165));
 #else
 	upper_face_layer = bitmap_layer_create(GRect(0,0,144,83));
+	lower_face_layer = bitmap_layer_create(GRect(0,84,144,165));
 #endif
 
 //	bitmap_layer_set_background_color(upper_face_layer, GColorWhite);
 	bitmap_layer_set_background_color(upper_face_layer, fg_colour);
-
-#ifdef PBL_PLATFORM_APLITE
-	lower_face_layer = bitmap_layer_create(GRect(0,89,144,165));
-#else
-	lower_face_layer = bitmap_layer_create(GRect(0,84,144,165));
-#endif
 
 /*#ifdef PBL_COLOR
 	bitmap_layer_set_background_color(lower_face_layer, GColorDukeBlue);
@@ -2361,12 +2361,11 @@ void window_load_cgm(Window *window_cgm)
 #ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating BG Trend Bitmap layer");
 #endif
-#ifdef PBL_PLATFORM_BASALT
+#ifdef PBL_COLOR
 	bg_trend_layer = bitmap_layer_create(GRect(0,0,144,84));
 	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
 	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(bg_trend_layer));
-#endif
-#ifdef PBL_PLATFORM_APLITE
+#else
 	bg_trend_layer = bitmap_layer_create(GRect(0,24,144,64));
 	layer_set_update_proc(bitmap_layer_get_layer(bg_trend_layer),bitmapLayerUpdate);
 #endif
@@ -2385,7 +2384,8 @@ void window_load_cgm(Window *window_cgm)
 	text_layer_set_background_color(delta_layer, GColorClear);
 	text_layer_set_font(delta_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28));
 
-#ifdef PBL_PLATFORM_APLITE
+//#ifdef PBL_PLATFORM_APLITE
+#ifndef PBL_COLOR
 	text_layer_set_text_alignment(delta_layer, GTextAlignmentRight);
 #else
 	text_layer_set_text_alignment(delta_layer, GTextAlignmentCenter);
@@ -2433,7 +2433,8 @@ void window_load_cgm(Window *window_cgm)
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating CGM Time Ago Bitmap layer");
 #endif
 	//cgmtime_layer = text_layer_create(GRect(5, 58, 40, 24));
-#ifdef PBL_PLATFORM_APLITE
+//#ifdef PBL_PLATFORM_APLITE
+#ifndef PBL_COLOR
 	cgmtime_layer = text_layer_create(GRect(104, 58, 40, 24));
 #else
 	cgmtime_layer = text_layer_create(GRect(52, 58, 40, 24));
@@ -2453,7 +2454,8 @@ void window_load_cgm(Window *window_cgm)
 	text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentCenter);
 	layer_add_child(window_layer_cgm, text_layer_get_layer(cgmtime_layer));
 
-#ifdef PBL_PLATFORM_APLITE
+//#ifdef PBL_PLATFORM_APLITE
+#ifndef PBL_COLOR
 	// top layer on pebble classic
 	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(bg_trend_layer));
 #endif
@@ -2720,7 +2722,8 @@ static void init_cgm(void)
 	app_message_register_inbox_received(inbox_received_handler_cgm);
 
 	//APP_LOG(APP_LOG_LEVEL_INFO, "INIT CODE, ABOUT TO CALL APP MSG OPEN");
-#ifdef PBL_PLATFORM_APLITE
+//#ifdef PBL_PLATFORM_APLITE
+#ifndef PBL_COLOR
 	app_message_open(512, 1024);
 #else
 	app_message_open(app_message_inbox_size_maximum(), app_message_outbox_size_maximum());

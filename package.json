@@ -152,7 +152,9 @@
     },
     "targetPlatforms": [
       "aplite",
-      "basalt"
+      "basalt",
+      "diorite",
+      "emery"
     ],
     "capabilities": [
       "configurable"
