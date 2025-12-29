@@ -58,12 +58,6 @@
           "file": "images/logo.png"
         },
         {
-          "menuIcon": true,
-          "type": "bitmap",
-          "name": "IMAGE_MENU_ICON",
-          "file": "images/menuicon.png"
-        },
-        {
           "type": "bitmap",
           "name": "IMAGE_BROKEN_ANTENNA",
           "file": "images/brokenantenna.png"
