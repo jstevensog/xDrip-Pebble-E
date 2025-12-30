@@ -1,0 +1,60 @@
+[
+  { 
+    "type": "heading", 
+    "defaultValue": "xDrip Pebble Watchface" 
+  }, 
+  { 
+    "type": "text", 
+    "defaultValue": "Configure your watch face here" 
+  },
+  {
+    "type": "toggle",
+    "messageKey": "dispsecs",
+    "label": "Display Seconds in Time",
+    "defaultValue": false
+  },
+  {
+    "type": "toggle",
+    "messageKey": "viberepeat",
+    "label": "Repeat Alert vibrations every 15 minutes",
+    "defaultValue": true
+  },
+  {
+    "type": "toggle",
+    "messageKey": "novibe",
+    "label": "Watch will not make any vibrations",
+    "defaultValue": false
+  },
+  {
+    "type": "toggle",
+    "messageKey": "lightoncharge",
+    "label": "Backlight on when watch is charging",
+    "defaultValue": false
+  },
+  {
+    "type": "toggle",
+    "messageKey": "monochrome",
+    "label": "Same background colour top and bottom",
+    "defaultValue": false
+  },
+  {
+    "type": "color",
+    "messageKey": "foreground",
+    "defaultValue": "ffffff",
+    "label": "Foreground Color",
+    "capabilities": ["COLOR"],
+    "sunlight": false
+  },
+  {
+    "type": "color",
+    "messageKey": "background",
+    "defaultValue": "0000aa",
+    "label": "Background Color",
+    "capabilities": ["COLOR"],
+    "sunlight": false
+  },
+  {
+    "type": "submit",
+    "defaultValue": "Save Settings"
+  }
+]
