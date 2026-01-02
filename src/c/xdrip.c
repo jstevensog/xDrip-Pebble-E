@@ -4,7 +4,7 @@
 /* The line below will set the debug message level.
 Make sure you set this to 0 before building a release. */
 
-//#define DEBUG_LEVEL 1
+#define DEBUG_LEVEL 1
 
 // global window variables
 // ANYTHING THAT IS CALLED BY PEBBLE API HAS TO BE NOT STATIC
@@ -22,7 +22,8 @@ Window *window_cgm = NULL;
 TextLayer *bg_layer = NULL;
 TextLayer *cgmtime_layer = NULL;
 TextLayer *delta_layer = NULL;		// BG DELTA LAYER
-TextLayer *message_layer = NULL;	// MESSAGE LAYER
+TextLayer *message_layer = NULL;
+
 TextLayer *battlevel_layer = NULL;
 TextLayer *watch_battlevel_layer = NULL;
 TextLayer *time_watch_layer = NULL;
@@ -120,6 +121,8 @@ static uint8_t lastAlertTime = 0;
 
 // global special value alert
 static bool specvalue_alert = false;
+// global flag to set the top and bottom colours the same
+static bool SameColourTopAndBottom = true;
 
 // global variables for vibrating in special conditions
 static bool DoubleDownAlert = false;
@@ -241,6 +244,7 @@ static uint8_t minutes_cgm = 0;
 #define SET_VIBE_REPEAT		103	// Setting key - Vibration Repeat
 #define SET_NO_VIBE		104	// Setting key - No Vibrations
 #define SET_LIGHT_ON_CHG	105	// Setting key - Backlight on when charging
+#define SET_SAMECOLOUR		106	// Setting key - Same Colours top and bottom
 #define CGM_SYNC_KEY		1000	// key pebble will use to request an update.
 #define PBL_PLATFORM		1001	// key pebble will use to send it's platform
 #define PBL_APP_VER		1002	// key pebble will use to send the face/app version.
@@ -532,12 +536,12 @@ static void battery_handler(BatteryChargeState charge_state)
 #endif
 #ifdef PBL_COLOR
 			//APP_LOG(APP_LOG_LEVEL_INFO, "COLOR DETECTED");
-			text_layer_set_text_color(watch_battlevel_layer, GColorDukeBlue);
-			text_layer_set_background_color(watch_battlevel_layer, GColorGreen);
+			text_layer_set_text_color(watch_battlevel_layer, bg_colour);
+			text_layer_set_background_color(watch_battlevel_layer, fg_colour);
 #else
 			//APP_LOG(APP_LOG_LEVEL_INFO, "BW DETECTED");
-			text_layer_set_text_color(watch_battlevel_layer, GColorBlack);
-			text_layer_set_background_color(watch_battlevel_layer, GColorWhite);
+			text_layer_set_text_color(watch_battlevel_layer, bg_colour);
+			text_layer_set_background_color(watch_battlevel_layer, fg_colour);
 #endif
 		}
 	else
@@ -744,7 +748,11 @@ void handle_bluetooth_cgm(bool bt_connected)
 					BT_timer_pop = false;
 				}
 #ifdef PBL_COLOR
-			text_layer_set_text_color(delta_layer, GColorBlack);
+			if(SameColourTopAndBottom) {
+				text_layer_set_text_color(delta_layer, fg_colour);
+			} else {
+				text_layer_set_text_color(delta_layer, bg_colour);
+			}
 #endif
 
 		}
@@ -1557,7 +1565,11 @@ static void load_bg_delta()
 
 	text_layer_set_text(delta_layer, formatted_bg_delta);
 #ifdef PBL_COLOR
-	text_layer_set_text_color(delta_layer,GColorBlack);
+	if(SameColourTopAndBottom) {
+		text_layer_set_text_color(delta_layer,fg_colour);
+	} else {
+		text_layer_set_text_color(delta_layer,bg_colour);
+	}
 #endif
 #ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "LOAD_BG_DELTA: delta_layer is \"%s\"", text_layer_get_text(delta_layer));
@@ -1720,14 +1732,24 @@ static void send_cmd_cgm(void)
 #ifdef PBL_COLOR
 void updateColours()
 {
-	bitmap_layer_set_background_color(upper_face_layer, fg_colour);
+	if(SameColourTopAndBottom) {
+		bitmap_layer_set_background_color(upper_face_layer, bg_colour);
+		text_layer_set_text_color(delta_layer, fg_colour);
+		text_layer_set_text_color(message_layer, fg_colour);
+		text_layer_set_text_color(bg_layer, fg_colour);
+		text_layer_set_text_color(cgmtime_layer, fg_colour);
+	} else {
+		bitmap_layer_set_background_color(upper_face_layer, fg_colour);
+		text_layer_set_text_color(delta_layer, bg_colour);
+		text_layer_set_text_color(message_layer, bg_colour);
+		text_layer_set_text_color(bg_layer, bg_colour);
+		text_layer_set_text_color(cgmtime_layer, bg_colour);
+	}
 	bitmap_layer_set_background_color(lower_face_layer, bg_colour);
-	text_layer_set_text_color(delta_layer, bg_colour);
 	text_layer_set_text_color(time_watch_layer, fg_colour);
 	text_layer_set_text_color(date_app_layer, fg_colour);
-	text_layer_set_text_color(message_layer, bg_colour);
-	text_layer_set_text_color(bg_layer, bg_colour);
-	text_layer_set_text_color(cgmtime_layer, bg_colour);
+	text_layer_set_text_color(watch_battlevel_layer, bg_colour);
+	text_layer_set_background_color(watch_battlevel_layer, fg_colour);
 }
 // end updateColours
 #endif
@@ -2330,15 +2352,11 @@ void window_load_cgm(Window *window_cgm)
 	lower_face_layer = bitmap_layer_create(GRect(0,84,144,165));
 #endif
 
-//	bitmap_layer_set_background_color(upper_face_layer, GColorWhite);
-	bitmap_layer_set_background_color(upper_face_layer, fg_colour);
-
-/*#ifdef PBL_COLOR
-	bitmap_layer_set_background_color(lower_face_layer, GColorDukeBlue);
-#else
-	bitmap_layer_set_background_color(lower_face_layer, GColorBlack);
-#endif
-*/
+	if(SameColourTopAndBottom) {
+		bitmap_layer_set_background_color(upper_face_layer, bg_colour);
+	} else {
+		bitmap_layer_set_background_color(upper_face_layer, fg_colour);
+	}
 	bitmap_layer_set_background_color(lower_face_layer, bg_colour);
 	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(upper_face_layer));
 	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(lower_face_layer));
@@ -2374,21 +2392,21 @@ void window_load_cgm(Window *window_cgm)
 #ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating Delta BG Text layer");
 #endif
-	delta_layer = text_layer_create(GRect(0, 36, 143, 50));
-/*#ifdef PBL_COLOR
-	text_layer_set_text_color(delta_layer, GColorDukeBlue);
-#else
-	text_layer_set_text_color(delta_layer, GColorBlack);
-#endif */
-	text_layer_set_text_color(delta_layer, bg_colour);
+	//delta_layer = text_layer_create(GRect(0, 36, 143, 50));
+	delta_layer = text_layer_create(GRect(0, 58, 143, 50));
+	if(SameColourTopAndBottom){
+		text_layer_set_text_color(delta_layer, fg_colour);
+	} else {
+		text_layer_set_text_color(delta_layer, bg_colour);
+	}
 	text_layer_set_background_color(delta_layer, GColorClear);
 	text_layer_set_font(delta_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28));
 
-//#ifdef PBL_PLATFORM_APLITE
 #ifndef PBL_COLOR
 	text_layer_set_text_alignment(delta_layer, GTextAlignmentRight);
 #else
-	text_layer_set_text_alignment(delta_layer, GTextAlignmentCenter);
+	//text_layer_set_text_alignment(delta_layer, GTextAlignmentCenter);
+	text_layer_set_text_alignment(delta_layer, GTextAlignmentLeft);
 #endif
 
 	layer_add_child(window_layer_cgm, text_layer_get_layer(delta_layer));
@@ -2398,13 +2416,11 @@ void window_load_cgm(Window *window_cgm)
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating Message Text layer");
 #endif
 	message_layer = text_layer_create(GRect(0, 36, 143, 50));
-/*#ifdef PBL_COLOR
-	text_layer_set_text_color(message_layer, GColorDukeBlue);
-#else
-	//message_layer = text_layer_create(GRect(0, 33, 143, 55));
-	text_layer_set_text_color(message_layer, GColorBlack);
-#endif */
-	text_layer_set_text_color(message_layer, bg_colour);
+	if(SameColourTopAndBottom){
+		text_layer_set_text_color(message_layer, fg_colour);
+	} else {
+		text_layer_set_text_color(message_layer, bg_colour);
+	}
 	text_layer_set_background_color(message_layer, GColorClear);
 	text_layer_set_font(message_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28));
 	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
@@ -2421,7 +2437,11 @@ void window_load_cgm(Window *window_cgm)
 #else
 	bg_layer = text_layer_create(GRect(0, -5, 95, 47));
 #endif
-	text_layer_set_text_color(bg_layer, bg_colour);
+	if(SameColourTopAndBottom){
+		text_layer_set_text_color(bg_layer, fg_colour);
+	} else {
+		text_layer_set_text_color(bg_layer, bg_colour);
+	}
 	text_layer_set_background_color(bg_layer, GColorClear);
 	text_layer_set_font(bg_layer, fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD));
 	text_layer_set_text_alignment(bg_layer, GTextAlignmentCenter);
@@ -2432,29 +2452,23 @@ void window_load_cgm(Window *window_cgm)
 #ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating CGM Time Ago Bitmap layer");
 #endif
-	//cgmtime_layer = text_layer_create(GRect(5, 58, 40, 24));
-//#ifdef PBL_PLATFORM_APLITE
 #ifndef PBL_COLOR
 	cgmtime_layer = text_layer_create(GRect(104, 58, 40, 24));
 #else
-	cgmtime_layer = text_layer_create(GRect(52, 58, 40, 24));
+	//cgmtime_layer = text_layer_create(GRect(52, 58, 40, 24));
+	cgmtime_layer = text_layer_create(GRect(104, 58, 40, 24));
 #endif
-
-/*#ifdef PBL_COLOR
-	text_layer_set_text_color(cgmtime_layer, GColorDukeBlue);
-	text_layer_set_background_color(cgmtime_layer, GColorClear);
-#else
-	text_layer_set_text_color(cgmtime_layer, GColorBlack);
-	text_layer_set_background_color(cgmtime_layer, GColorClear);
-#endif */
-	text_layer_set_text_color(cgmtime_layer, bg_colour);
+	if(SameColourTopAndBottom){
+		text_layer_set_text_color(cgmtime_layer, fg_colour);
+	} else {
+		text_layer_set_text_color(cgmtime_layer, bg_colour);
+	}
 	text_layer_set_background_color(cgmtime_layer, GColorClear);
 	text_layer_set_font(cgmtime_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
-	//text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentLeft);
-	text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentCenter);
+	text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentRight);
+	//text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentCenter);
 	layer_add_child(window_layer_cgm, text_layer_get_layer(cgmtime_layer));
 
-//#ifdef PBL_PLATFORM_APLITE
 #ifndef PBL_COLOR
 	// top layer on pebble classic
 	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(bg_trend_layer));
@@ -2466,8 +2480,6 @@ void window_load_cgm(Window *window_cgm)
 #endif
 #ifdef PBL_COLOR
 	time_watch_layer = text_layer_create(GRect(0, 82, 143, 44));
-//	text_layer_set_text_color(time_watch_layer, GColorWhite);
-//	text_layer_set_background_color(time_watch_layer, GColorClear);
 #else
 
 	#ifdef PBL_PLATFORM_APLITE
@@ -2476,8 +2488,6 @@ void window_load_cgm(Window *window_cgm)
 		time_watch_layer = text_layer_create(GRect(0, 82, 143, 44));
 	#endif
 
-//	text_layer_set_text_color(time_watch_layer, GColorWhite);
-//	text_layer_set_background_color(time_watch_layer, GColorClear);
 #endif
 	text_layer_set_text_color(time_watch_layer, fg_colour);
 	text_layer_set_background_color(time_watch_layer, GColorClear);
@@ -2513,12 +2523,8 @@ void window_load_cgm(Window *window_cgm)
 #endif
 #ifdef PBL_COLOR
 	battlevel_layer = text_layer_create(GRect(0, 150, 72, 18));
-//	text_layer_set_text_color(battlevel_layer, GColorGreen);
-//	text_layer_set_background_color(battlevel_layer, GColorClear);
 #else
 	battlevel_layer = text_layer_create(GRect(0, 148, 59, 18));
-//	text_layer_set_text_color(battlevel_layer, GColorWhite);
-//	text_layer_set_background_color(battlevel_layer, GColorClear);
 #endif
 	text_layer_set_text_color(battlevel_layer, GColorGreen);
 	text_layer_set_background_color(battlevel_layer, GColorClear);
@@ -2644,6 +2650,7 @@ static void init_cgm(void)
 	//Load persistent settings
 	display_seconds = persist_exists(SET_DISP_SECS)? persist_read_bool(SET_DISP_SECS) : false;
 	vibe_repeat = persist_exists(SET_VIBE_REPEAT)? persist_read_bool(SET_VIBE_REPEAT) : true;
+	SameColourTopAndBottom = persist_exists(SET_SAMECOLOUR)? persist_read_bool(SET_SAMECOLOUR) : true;
 #ifdef PBL_COLOR
 	fg_colour = persist_exists(SET_FG_COLOUR)? GColorFromHEX(persist_read_int(SET_FG_COLOUR)) : COLOR_FALLBACK(GColorWhite,GColorWhite);
 	bg_colour = persist_exists(SET_BG_COLOUR)? GColorFromHEX(persist_read_int(SET_BG_COLOUR)) : COLOR_FALLBACK(GColorDukeBlue,GColorBlack);
