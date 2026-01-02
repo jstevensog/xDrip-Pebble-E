@@ -537,7 +537,8 @@ static void battery_handler(BatteryChargeState charge_state)
 #ifdef PBL_COLOR
 			//APP_LOG(APP_LOG_LEVEL_INFO, "COLOR DETECTED");
 			text_layer_set_text_color(watch_battlevel_layer, bg_colour);
-			text_layer_set_background_color(watch_battlevel_layer, fg_colour);
+			text_layer_set_background_color(watch_battlevel_layer, GColorGreen);
+			//text_layer_set_background_color(watch_battlevel_layer, fg_colour);
 #else
 			//APP_LOG(APP_LOG_LEVEL_INFO, "BW DETECTED");
 			text_layer_set_text_color(watch_battlevel_layer, bg_colour);
