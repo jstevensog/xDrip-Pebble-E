@@ -1965,20 +1965,20 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 					if(strcmp(data->value->cstring, "")==0)
 						{
 #ifdef DEBUG_LEVEL
-							APP_LOG(APP_LOG_LEVEL_INFO, "Setting Delta Only");
+							APP_LOG(APP_LOG_LEVEL_INFO, "Setting message_layer hidden");
 #endif
 							display_message = false;
 							layer_set_hidden((Layer *)message_layer, true);
-							layer_set_hidden((Layer *)delta_layer, false);
+							//layer_set_hidden((Layer *)delta_layer, false);
 						}
 					else
 						{
 #ifdef DEBUG_LEVEL
-							APP_LOG(APP_LOG_LEVEL_INFO, "Setting Message");
+							APP_LOG(APP_LOG_LEVEL_INFO, "Setting message_layer visible");
 #endif
 							display_message = true;
 							layer_set_hidden((Layer *)message_layer, false);
-							layer_set_hidden((Layer *)delta_layer, true);
+							//layer_set_hidden((Layer *)delta_layer, true);
 						}
 					break;
 
