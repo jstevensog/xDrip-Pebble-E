@@ -42,14 +42,14 @@ The content of the heartbeat will be:
    16. Bit 15 - Not yet allocated.
 8. 32 bit integer describing the dimensions of the PNG image required by the watch.  This allows variations and more easily integrates with the Round watches.  This will only be sent IF Time Series Data is false.
 
-## Data sent to watch
+## Data sent from xDrip to the watch face/app
 The data sent to the watch will consist of a series of messages, depending on what the watch has requested.
 ### Basic Data
 The first message sent to the watch will always be the current BGL, Delta, and Timestamp of the reading.  The watch will at the very least display these values.
 The dictionary will be the following:
 |Key Name| Index | Description|
 |---|---|---|
-|CGM_ICON_KEY |0	| TUPLE_CSTRING, MAX 2 BYTES.  Displays an icon showing states from xDrip. (Note, this may change as it is a hangover from the legacy work.  Still useful, but may not be relevant these days)|
+|CGM_ICON_KEY |0	| TUPLE_CSTRING, MAX 2 BYTES.  Displays an icon showing states from xDrip, such as Sensor Stopped or other error icons/states. (Note, this may change as it is a hangover from the legacy Nightscout work.  Still useful, but may not be relevant these days)|
 |CGM_BG_KEY |1	| TUPLE_CSTRING, MAX 4 BYTES.  The current BGL value formatted in mg/dl or mmol/l depending on the xDrip settings.|
 |CGM_TCGM_KEY |2 | TUPLE_INT, 4 BYTES (CGM TIME).  Indicates ?|
 |CGM_TAPP_KEY |3 | TUPLE_INT, 4 BYTES (APP / PHONE TIME).  Current time from the phone from xDrip.  Not sure this is required anymore.|
@@ -67,8 +67,17 @@ The dictionary will be the following:
 |PBL_TREND_LINES |1004 |key pebble will use to send trend line options.|
 |PBL_DISP_OPTS |1005 | key pebble will use to send display options (delta/arrows).  Not sure this will be required, it has been too many years since I formulated the dictionary and this could already be covered in the above.|
 
+Note, just because there is an dictionary index described, it does not mean the index has to be added to a dictionary for sending.  These are simply Key/Value pairs in the dicitonary, so if a key is missing, it is not missed by xDrip or the watch face/app.
+
 ### Battery Data
 ### Trend Image (optional)
 The watch, if it has requested a PNG trend image, will then receive chunks of the image to reconstitute and display.  This will be the size requested and with the various options requested, and for the time period requested.
 ### Trend Series (optional)
 The trend series will be sent to the watch only when requested, say initially to fill up the watch trend buffer.  This watch trend buffer will be a FIFO, so every new individual reading will cause the watch to add it to the trend buffer and regenerate the trend.
+
+## Data semt from the watch face/app to xDrip.
+The watch face/app will obviously send the heartbeat message described above to xDrip.  However, there are other pieces of information that could be of use for xDrip to get from the watch face/app.
+1. Carbohydrate intake
+2. Insuling dose.  (could this tell the pump to do this?  I'm not a pumper so don't know)
+3. Temporary Basal adjustment?  (I'm not a pumper, so not sure)
+
