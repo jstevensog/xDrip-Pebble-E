@@ -31,11 +31,11 @@ The content of the heartbeat will be:
 		5. 4 - 24 hour
 	6. Bit 5 - Graph High/Low limit lines - True adds the limit lines to graph, otherwise no lines added.  Only relevant and used if the Time Series Data flag is false.
 	7. Bit 6 - Small dots - True will create the image with small dots rather than the larger ones.  Only relevant and used if the Time Series Data flag is false.
- 	8. Bit 7 - Send IOB data - True will cause xDrip to send IOB value.
+ 	8. Bit 7 - Send IOB data - True will cause xDrip to send IOB value.  Expects formatted text string from xDrip in 
   	9. Bit 8 - Send Pump State - True will have xDrip send the pump status.
    10. Bit 9 - Send Phone Battery - True will send the Phone battery level.
    11. Bit 10 - Send Pump Battery - True will send the Pump battery level.  Note, while it could be more efficient to have one bit to select the phone OR the pump, some people may want both sent.
-   12. Bit 11 - Not yet allocated.
+   12. Bit 11 - Send Delta.  Expects a formatted text string to be sent by xDrip in CGM_DLTA_KEY.
    13. Bit 12 - Not yet allocated.
    14. Bit 13 - Not yet allocated.
    15. Bit 14 - Not yet allocated.
@@ -63,6 +63,7 @@ The dictionary will be the following:
 |CGM_VIBE_KEY |11 | The vibration pattern to use when an alert situation exists with xDrip.  May now be redundant and could be repurposed.|
 |CGM_LOW_ALERT_VALUE |12 | The value of the Low display alert.  Only sent if the watch is requesting time series data to be sent and allows the graph to display this line.|
 |CGM_HI_ALERT_VALUE |13 | The value of the HIgh display alert.  Only sent if the watch is requesting time series data to be sent and allows the graph to display this line.|
+|CGM_IOB_KEY|14 | The IoB value from pump or xDrip calculation.  Formatted text string of the value.
 |PBL_TREND_SIZE	|1003 | key pebble will use to send trend image size to xDrip to get the size it wants to display.|
 |PBL_TREND_LINES |1004 |key pebble will use to send trend line options.|
 |PBL_DISP_OPTS |1005 | key pebble will use to send display options (delta/arrows).  Not sure this will be required, it has been too many years since I formulated the dictionary and this could already be covered in the above.|
