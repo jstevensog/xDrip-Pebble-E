@@ -2,9 +2,6 @@
   "version": "1.0.0",
   "author": "Nightscout Foundation",
   "private": true,
-  "dependencies": {
-    "pebble-clay": "^1.0.2"
-  },
   "keywords": [
     "pebble-app"
   ],
@@ -157,5 +154,8 @@
       "health"
     ]
   },
-  "name": "xDrip-Trend"
+  "name": "xDrip-Trend",
+  "dependencies": {
+    "@rebble/clay": "^1.0.6"
+  }
 }
