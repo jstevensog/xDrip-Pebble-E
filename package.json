@@ -7,7 +7,7 @@
   ],
   "pebble": {
     "sdkVersion": "3",
-    "enableMultiJS": "true",
+    "enableMultiJS": "false",
     "resources": {
       "media": [
         {
