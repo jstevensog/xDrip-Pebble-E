@@ -4,8 +4,12 @@
 /* The line below will set the debug message level.
 Make sure you set this to 0 before building a release. */
 
-#define DEBUG_LEVEL 2
-
+//#define DEBUG_LEVEL 2
+/* The line below, if defined, will only indicate test values on the display.
+this is for testing purposes only until I can get the PebbleKit.JS code operating with the emulator.
+Make sure you udefine this before building a release.
+*/
+//#define TEST_MODE
 // global window variables
 // ANYTHING THAT IS CALLED BY PEBBLE API HAS TO BE NOT STATIC
 
@@ -22,11 +26,10 @@ Window *window_cgm = NULL;
 TextLayer *bg_layer = NULL;
 TextLayer *cgmtime_layer = NULL;
 TextLayer *delta_layer = NULL;		// BG DELTA LAYER
-TextLayer *message_layer = NULL;
-
+TextLayer *message_layer = NULL;	// MESSAGE LAYER
 TextLayer *battlevel_layer = NULL;
 TextLayer *watch_battlevel_layer = NULL;
-TextLayer *time_watch_layer = NULL;
+static TextLayer *time_watch_layer = NULL;
 TextLayer *date_app_layer = NULL;
 
 
@@ -71,6 +74,23 @@ AppSync sync_cgm;
 #define CHUNK_SIZE 256
 static void bitmapLayerUpdate(struct Layer *layer, GContext *ctx);
 #else
+// From jamorhams version.  Enables Health stuff.
+/* #if defined(PBL_HEALTH)
+void health_handler(HealthEventType event, void *context);
+static void start_data_log();
+static void stop_data_log();
+static void restart_data_log();
+static DataLoggingSessionRef s_session_heartrate;
+static DataLoggingSessionRef s_session_movement;
+static HealthValue laststeps = 0;
+static HealthValue lastbpm = 0;
+static time_t last_movement_time = 0;
+#define HEARTRATE_LOG 101
+#define MOVEMENT_LOG 103
+#endif
+static void health_subscribe();
+static void health_unsubscribe();
+*/
 #define CHUNK_SIZE 1024
 #endif
 // CGM message is 57 bytes
@@ -206,7 +226,7 @@ static const bool TurnOff_CHECKPHONE_Msg = false;
 // IF YOU WANT NO VIBRATIONS, SET TO true
 static bool TurnOffAllVibrations = false;
 // IF YOU WANT LESS INTENSE VIBRATIONS, SET TO true
-static const bool TurnOffStrongVibrations = false;
+static bool TurnOffStrongVibrations = false;
 
 //Control Backlight
 static bool BacklightOnCharge = false;
@@ -226,31 +246,31 @@ static const uint8_t LOADING_MSGSEND_SECS = 2;
 static uint8_t minutes_cgm = 0;
 
 
-#define	CGM_ICON_KEY 	0		// TUPLE_CSTRING, MAX 2 BYTES (10)
-#define	CGM_BG_KEY 	1		// TUPLE_CSTRING, MAX 4 BYTES (253 OR 22.2)
-#define	CGM_TCGM_KEY	2		// TUPLE_INT, 4 BYTES (CGM TIME)
-#define	CGM_TAPP_KEY 	3		// TUPLE_INT, 4 BYTES (APP / PHONE TIME)
-#define	CGM_DLTA_KEY 	4		// TUPLE_CSTRING, MAX 5 BYTES (BG DELTA, -100 or -10.0)
-#define	CGM_UBAT_KEY 	5		// TUPLE_CSTRING, MAX 3 BYTES (UPLOADER BATTERY, 100)
-#define	CGM_NAME_KEY 	6		// TUPLE_CSTRING, MAX 9 BYTES (Christine)
+#define	CGM_ICON_KEY			0		// TUPLE_CSTRING, MAX 2 BYTES (10)
+#define	CGM_BG_KEY				1		// TUPLE_CSTRING, MAX 4 BYTES (253 OR 22.2)
+#define	CGM_TCGM_KEY			2		// TUPLE_INT, 4 BYTES (CGM TIME)
+#define	CGM_TAPP_KEY			3		// TUPLE_INT, 4 BYTES (APP / PHONE TIME)
+#define	CGM_DLTA_KEY			4		// TUPLE_CSTRING, MAX 5 BYTES (BG DELTA, -100 or -10.0)
+#define	CGM_UBAT_KEY			5		// TUPLE_CSTRING, MAX 3 BYTES (UPLOADER BATTERY, 100)
+#define	CGM_NAME_KEY			6		// TUPLE_CSTRING, MAX 9 BYTES (Christine)
 #define	CGM_TREND_BEGIN_KEY 	7		// TUPLE_INT, 4 BYTES (length of CGM_TREND_DATA_KEY
-#define	CGM_TREND_DATA_KEY 	8		// TUPLE_BYTE[], No Maximum, based on value found in CGM_TREND_DATA_KEY
-#define	CGM_TREND_END_KEY 	9		// TUPLE_INT, always 0.
-#define CGM_MESSAGE_KEY		10
-#define CGM_VIBE_KEY		11
-#define SET_DISP_SECS		100	// Setting key - Display Seconds
-#define SET_FG_COLOUR		101	// Setting key - Foreground Colour
-#define SET_BG_COLOUR		102	// Setting key - Background Colour 
-#define SET_VIBE_REPEAT		103	// Setting key - Vibration Repeat
-#define SET_NO_VIBE		104	// Setting key - No Vibrations
-#define SET_LIGHT_ON_CHG	105	// Setting key - Backlight on when charging
-#define SET_SAMECOLOUR		106	// Setting key - Same Colours top and bottom
-#define CGM_SYNC_KEY		1000	// key pebble will use to request an update.
-#define PBL_PLATFORM		1001	// key pebble will use to send it's platform
-#define PBL_APP_VER		1002	// key pebble will use to send the face/app version.
-#define PBL_TREND_SIZE		1003	// key pebble will use to send trend image size.
-#define PBL_TREND_LINES		1004	// key pebble will use to send trend line options.
-#define PBL_DISP_OPTS		1005	// key pebble will use to send display options (delta/arrows).
+#define	CGM_TREND_DATA_KEY		8		// TUPLE_BYTE[], No Maximum, based on value found in CGM_TREND_DATA_KEY
+#define	CGM_TREND_END_KEY 		9		// TUPLE_INT, always 0.
+#define CGM_MESSAGE_KEY			10
+#define CGM_VIBE_KEY			11
+#define SET_DISP_SECS			100		// Setting key - Display Seconds
+#define SET_FG_COLOUR			101		// Setting key - Foreground Colour
+#define SET_BG_COLOUR			102		// Setting key - Background Colour 
+#define SET_VIBE_REPEAT			103		// Setting key - Vibration Repeat
+#define SET_NO_VIBE				104		// Setting key - No Vibrations
+#define SET_LIGHT_ON_CHG		105		// Setting key - Backlight on when charging
+#define SET_SAMECOLOUR			106		// Setting key - Same Colours top and bottom#define CGM_SYNC_KEY			1000	// key pebble will use to request an update.
+#define CGM_SYNC_KEY			1000	// key pebble will use to request an update.#define PBL_PLATFORM			1001	// key pebble will use to send it's platform
+#define PBL_PLATFORM			1001	// key pebble will use to send it's platform#define PBL_APP_VER				1002	// key pebble will use to send the face/app version.
+#define PBL_APP_VER				1002	// key pebble will use to send the face/app version.
+#define PBL_TREND_SIZE			1003	// key pebble will use to send trend image size.
+#define PBL_TREND_LINES			1004	// key pebble will use to send trend line options.
+#define PBL_DISP_OPTS			1005	// key pebble will use to send display options (delta/arrows).
 
 // TOTAL MESSAGE DATA 4x3+2+5+3+9 = 31 BYTES
 // TOTAL KEY HEADER DATA (STRINGS) 4x6+2 = 26 BYTES
@@ -259,14 +279,14 @@ static uint8_t minutes_cgm = 0;
 // ARRAY OF SPECIAL VALUE ICONS
 static const uint8_t SPECIAL_VALUE_ICONS[] =
 {
-	RESOURCE_ID_IMAGE_NONE,			//0
+	RESOURCE_ID_IMAGE_NONE,				//0
 	RESOURCE_ID_IMAGE_BROKEN_ANTENNA,	//1
 	RESOURCE_ID_IMAGE_BLOOD_DROP,		//2
 	RESOURCE_ID_IMAGE_STOP_LIGHT,		//3
 	RESOURCE_ID_IMAGE_HOURGLASS,		//4
 	RESOURCE_ID_IMAGE_QUESTION_MARKS,	//5
-	RESOURCE_ID_IMAGE_LOGO,			//6
-	RESOURCE_ID_IMAGE_ERR			//7
+	RESOURCE_ID_IMAGE_LOGO,				//6
+	RESOURCE_ID_IMAGE_ERR				//7
 };
 
 // INDEX FOR ARRAY OF SPECIAL VALUE ICONS
@@ -508,7 +528,7 @@ static void battery_handler(BatteryChargeState charge_state)
 {
 
 	static char watch_battlevel_percent[9];
-#ifdef PBL_COLOR
+#if defined (PBL_COLOR) || (PBL_ROUND)
 	snprintf(watch_battlevel_percent, BATTLEVEL_FORMATTED_SIZE, "W:%i%% ", charge_state.charge_percent);
 #else
 	snprintf(watch_battlevel_percent, BATTLEVEL_FORMATTED_SIZE, "W:%i%%", charge_state.charge_percent);
@@ -536,9 +556,8 @@ static void battery_handler(BatteryChargeState charge_state)
 #endif
 #ifdef PBL_COLOR
 			//APP_LOG(APP_LOG_LEVEL_INFO, "COLOR DETECTED");
-			text_layer_set_text_color(watch_battlevel_layer, bg_colour);
+			text_layer_set_text_color(watch_battlevel_layer, GColorDukeBlue);
 			text_layer_set_background_color(watch_battlevel_layer, GColorGreen);
-			//text_layer_set_background_color(watch_battlevel_layer, fg_colour);
 #else
 			//APP_LOG(APP_LOG_LEVEL_INFO, "BW DETECTED");
 			text_layer_set_text_color(watch_battlevel_layer, bg_colour);
@@ -1277,16 +1296,21 @@ static void load_bg()
 	//APP_LOG(APP_LOG_LEVEL_DEBUG, "CURRENT BG: %i", current_bg);
 #endif
 
-	// BG parse, check snooze, and set text
+#ifdef TEST_MODE
+    snprintf(last_bg,sizeof(last_bg),"%s","100");
+#endif
+    // BG parse, check snooze, and set text
 
 	// check for init code or error code
 	if (last_bg[0] == '-')
 		{
 			lastAlertTime = 0;
 
-			// check bluetooth
-			bluetooth_connected_cgm = bluetooth_connection_service_peek();
-
+        // check bluetooth
+        bluetooth_connected_cgm = bluetooth_connection_service_peek();
+#ifdef TEST_MODE
+        bluetooth_connected_cgm = true;
+#endif
 			if (!bluetooth_connected_cgm)
 				{
 					// Bluetooth is out; set BT message
@@ -1400,6 +1424,9 @@ static void load_cgmtime()
 	static char cgm_label_buffer[6];
 
 	// CODE START
+#ifdef TEST_MODE
+    current_cgm_time = time(NULL);
+#endif
 
 	// initialize label buffer
 	strncpy(cgm_label_buffer, "", LABEL_BUFFER_SIZE);
@@ -1641,7 +1668,9 @@ static void load_battlevel()
 		}
 
 	// get current battery level and set battery level text with percent
-#ifdef PBL_COLOR
+#ifdef PBL_ROUND
+	snprintf(battlevel_percent, BATTLEVEL_FORMATTED_SIZE, " %i%%", current_battlevel);
+#elif PBL_COLOR
 	snprintf(battlevel_percent, BATTLEVEL_FORMATTED_SIZE, " B:%i%%", current_battlevel);
 #else
 	snprintf(battlevel_percent, BATTLEVEL_FORMATTED_SIZE, "B:%i%%", current_battlevel);
@@ -1649,7 +1678,9 @@ static void load_battlevel()
 #ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_DEBUG, "SETTING BATTLEVEL to %s", battlevel_percent);
 #endif
+#ifndef PBL_ROUND
 	text_layer_set_text(battlevel_layer, battlevel_percent);
+#endif
 #ifdef PBL_COLOR
 	if ( (current_battlevel > 0) && (current_battlevel <= 30) )
 		{
@@ -2194,7 +2225,7 @@ void handle_second_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
 					APP_LOG(APP_LOG_LEVEL_DEBUG, "message_layer toggling %i", (tick_time_cgm->tm_sec & 0x01)==1);
 #endif
 
-					//layer_set_hidden((Layer *)delta_layer, !(layer_get_hidden((Layer *)delta_layer)));
+					layer_set_hidden((Layer *)delta_layer, !(layer_get_hidden((Layer *)delta_layer)));
 					layer_set_hidden((Layer *)message_layer, !(layer_get_hidden((Layer *)message_layer)));
 				}
 			else
@@ -2203,12 +2234,10 @@ void handle_second_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
 						{
 							layer_set_hidden((Layer *)message_layer, true);
 						}
-					/*
 					if(layer_get_hidden((Layer *)delta_layer))
 						{
 							layer_set_hidden((Layer *)delta_layer, false);
 						}
-					*/
 				}
 		}
 	if (units_changed_cgm & MINUTE_UNIT)
@@ -2351,8 +2380,13 @@ void window_load_cgm(Window *window_cgm)
 	upper_face_layer = bitmap_layer_create(GRect(0,0,144,88));
 	lower_face_layer = bitmap_layer_create(GRect(0,89,144,165));
 #else
+	#ifdef PBL_ROUND
+	upper_face_layer = bitmap_layer_create(GRect(0,0,180,83));
+	lower_face_layer = bitmap_layer_create(GRect(0,84,180,165));
+	#else
 	upper_face_layer = bitmap_layer_create(GRect(0,0,144,83));
 	lower_face_layer = bitmap_layer_create(GRect(0,84,144,165));
+	#endif
 #endif
 
 	if(SameColourTopAndBottom) {
@@ -2368,7 +2402,10 @@ void window_load_cgm(Window *window_cgm)
 #ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating Arrow Bitmap layer");
 #endif
-#ifdef PBL_COLOR
+#ifdef PBL_ROUND
+	icon_layer = bitmap_layer_create(GRect(120, 30, 78, 50));
+	bitmap_layer_set_compositing_mode(icon_layer, GCompOpSet);
+#elif PBL_COLOR
 	icon_layer = bitmap_layer_create(GRect(85, -9, 78, 49));
 	bitmap_layer_set_compositing_mode(icon_layer, GCompOpSet);
 #else
@@ -2395,21 +2432,29 @@ void window_load_cgm(Window *window_cgm)
 #ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating Delta BG Text layer");
 #endif
-	//delta_layer = text_layer_create(GRect(0, 36, 143, 50));
-	delta_layer = text_layer_create(GRect(0, 58, 143, 50));
-	if(SameColourTopAndBottom){
+#ifdef PBL_ROUND
+	delta_layer = text_layer_create(GRect(0, 36, 180, 50));
+#else
+	delta_layer = text_layer_create(GRect(0, 36, 143, 50));
+#endif
+if(SameColourTopAndBottom){
 		text_layer_set_text_color(delta_layer, fg_colour);
 	} else {
 		text_layer_set_text_color(delta_layer, bg_colour);
 	}
 	text_layer_set_background_color(delta_layer, GColorClear);
 	text_layer_set_font(delta_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28));
-
+#ifdef TEST_MODE
+	text_layer_set_text(delta_layer,"0.5mmol");
+#endif
 #ifndef PBL_COLOR
 	text_layer_set_text_alignment(delta_layer, GTextAlignmentRight);
 #else
-	//text_layer_set_text_alignment(delta_layer, GTextAlignmentCenter);
+	#ifdef PBL_ROUND
+	text_layer_set_text_alignment(delta_layer, GTextAlignmentCenter);
+	#else
 	text_layer_set_text_alignment(delta_layer, GTextAlignmentLeft);
+	#endif
 #endif
 
 	layer_add_child(window_layer_cgm, text_layer_get_layer(delta_layer));
@@ -2435,7 +2480,9 @@ void window_load_cgm(Window *window_cgm)
 #ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating BG Text layer");
 #endif
-#ifdef PBL_COLOR
+#ifdef PBL_ROUND
+	bg_layer = text_layer_create(GRect(0, -7, 180, 47));
+#elif PBL_COLOR
 	bg_layer = text_layer_create(GRect(0, -5, 95, 42));
 #else
 	bg_layer = text_layer_create(GRect(0, -5, 95, 47));
@@ -2455,11 +2502,15 @@ void window_load_cgm(Window *window_cgm)
 #ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating CGM Time Ago Bitmap layer");
 #endif
+//if it is not for a COLOR platform, it is monochrome
 #ifndef PBL_COLOR
 	cgmtime_layer = text_layer_create(GRect(104, 58, 40, 24));
 #else
-	//cgmtime_layer = text_layer_create(GRect(52, 58, 40, 24));
+	#ifdef PBL_ROUND
+	cgmtime_layer = text_layer_create(GRect(5, 58, 40, 24));
+	#else
 	cgmtime_layer = text_layer_create(GRect(104, 58, 40, 24));
+	#endif
 #endif
 	if(SameColourTopAndBottom){
 		text_layer_set_text_color(cgmtime_layer, fg_colour);
@@ -2472,6 +2523,7 @@ void window_load_cgm(Window *window_cgm)
 	//text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentCenter);
 	layer_add_child(window_layer_cgm, text_layer_get_layer(cgmtime_layer));
 
+// if this is not COLOR platform, it is monochrome.
 #ifndef PBL_COLOR
 	// top layer on pebble classic
 	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(bg_trend_layer));
@@ -2481,20 +2533,19 @@ void window_load_cgm(Window *window_cgm)
 #ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating Watch Time Text layer");
 #endif
-#ifdef PBL_COLOR
-	time_watch_layer = text_layer_create(GRect(0, 82, 143, 44));
+#ifdef PBL_ROUND
+	time_watch_layer = text_layer_create(GRect(18, 82, 143, 44));
 #else
 
-	#ifdef PBL_PLATFORM_APLITE
-		time_watch_layer = text_layer_create(GRect(0, 84, 143, 44));
-	#else
+	#ifndef PBL_COLOR
 		time_watch_layer = text_layer_create(GRect(0, 82, 143, 44));
+	#else
+		time_watch_layer = text_layer_create(GRect(0, 84, 143, 44));
 	#endif
 
 #endif
 	text_layer_set_text_color(time_watch_layer, fg_colour);
 	text_layer_set_background_color(time_watch_layer, GColorClear);
-//	text_layer_set_font(time_watch_layer, fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD));
 	text_layer_set_font(time_watch_layer,time_font);
 	text_layer_set_text_alignment(time_watch_layer, GTextAlignmentCenter);
 	layer_add_child(window_layer_cgm, text_layer_get_layer(time_watch_layer));
@@ -2503,15 +2554,12 @@ void window_load_cgm(Window *window_cgm)
 #ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating Watch Date Text layer");
 #endif
-#ifdef PBL_COLOR
+#ifdef PBL_ROUND
+	date_app_layer = text_layer_create(GRect(18, 124, 143, 26));
+#elif PBL_COLOR
 	date_app_layer = text_layer_create(GRect(0, 124, 143, 29));
 #else
-	
-	#ifdef PBL_PLATFORM_APLITE
-		date_app_layer = text_layer_create(GRect(0, 122, 143, 29));
-	#else
-		date_app_layer = text_layer_create(GRect(0, 120, 143, 29));
-	#endif
+	date_app_layer = text_layer_create(GRect(0, 122, 143, 29));
 #endif
 	text_layer_set_text_color(date_app_layer, fg_colour);
 	text_layer_set_background_color(date_app_layer, GColorClear);
@@ -2524,7 +2572,9 @@ void window_load_cgm(Window *window_cgm)
 #ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating Phone Battery Text layer");
 #endif
-#ifdef PBL_COLOR
+#ifdef PBL_ROUND
+	battlevel_layer = text_layer_create(GRect(48, 150, 1, 1));
+#elif PBL_COLOR
 	battlevel_layer = text_layer_create(GRect(0, 150, 72, 18));
 #else
 	battlevel_layer = text_layer_create(GRect(0, 148, 59, 18));
@@ -2544,16 +2594,24 @@ void window_load_cgm(Window *window_cgm)
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating Watch Battery Text layer");
 #endif
 	BatteryChargeState charge_state=battery_state_service_peek();
-	//snprintf(watch_battlevel_percent, BATTLEVEL_FORMATTED_SIZE, "W:%i%%", charge_state.charge_percent);
-#ifdef PBL_COLOR
+#ifdef PBL_ROUND
+	#ifdef DEBUG_LEVEL
+	APP_LOG(APP_LOG_LEVEL_INFO, "watch_battlevel_layer: ROUND DETECTED");
+	#endif
+	watch_battlevel_layer = text_layer_create(GRect(45, 150, 90, 18));
+#elif PBL_COLOR
 	watch_battlevel_layer = text_layer_create(GRect(72, 150, 72, 18));
-	APP_LOG(APP_LOG_LEVEL_INFO, "COLOR DETECTED");
+	APP_LOG(APP_LOG_LEVEL_INFO, "watch_batt_level_layer: COLOR DETECTED");
 #else
-	APP_LOG(APP_LOG_LEVEL_INFO, "BW DETECTED");
+	APP_LOG(APP_LOG_LEVEL_INFO, "watch_batt_level_layer: BW DETECTED");
 	watch_battlevel_layer = text_layer_create(GRect(81, 148, 59, 18));
 #endif
 	text_layer_set_font(watch_battlevel_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+#ifdef PBL_ROUND
+	text_layer_set_text_alignment(watch_battlevel_layer, GTextAlignmentCenter);
+#else
 	text_layer_set_text_alignment(watch_battlevel_layer, GTextAlignmentRight);
+#endif
 #ifdef PBL_COLOR
 	if(charge_state.is_charging)
 		{
@@ -2586,6 +2644,10 @@ void window_load_cgm(Window *window_cgm)
 	// put " " (space) in bg field so logo continues to show
 	// " " (space) also shows these are init values, not bad or null values
 	snprintf(current_icon, 1, " ");
+#ifdef TEST_MODE
+    snprintf(current_icon,1,"1");
+    specvalue_alert=false;
+#endif
 	load_icon();
 	snprintf(last_bg, BG_MSGSTR_SIZE, " ");
 	load_bg();
@@ -2593,8 +2655,14 @@ void window_load_cgm(Window *window_cgm)
 	load_cgmtime();
 	current_app_time = 0;
 	snprintf(current_bg_delta, BGDELTA_MSGSTR_SIZE, "LOAD");
+#ifdef TEST_MODE
+    snprintf(current_bg_delta, BGDELTA_MSGSTR_SIZE, "+0.08");
+#endif
 	load_bg_delta();
 	snprintf(last_battlevel, BATTLEVEL_MSGSTR_SIZE, " ");
+#ifdef TEST_MODE
+    snprintf(last_battlevel, BATTLEVEL_MSGSTR_SIZE, "100%%");
+#endif
 	load_battlevel();
 
 	//APP_LOG(APP_LOG_LEVEL_INFO, "WINDOW LOAD, ABOUT TO CALL APP SYNC INIT");
