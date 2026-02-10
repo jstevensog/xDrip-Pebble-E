@@ -2435,7 +2435,7 @@ void window_load_cgm(Window *window_cgm)
 #ifdef PBL_ROUND
 	delta_layer = text_layer_create(GRect(0, 36, 180, 50));
 #else
-	delta_layer = text_layer_create(GRect(0, 36, 143, 50));
+	delta_layer = text_layer_create(GRect(0, 58, 143, 50));
 #endif
 if(SameColourTopAndBottom){
 		text_layer_set_text_color(delta_layer, fg_colour);
