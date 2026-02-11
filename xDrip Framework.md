@@ -78,7 +78,8 @@ The trend series will be sent to the watch only when requested, say initially to
 
 ## Data semt from the watch face/app to xDrip.
 The watch face/app will obviously send the heartbeat message described above to xDrip.  However, there are other pieces of information that could be of use for xDrip to get from the watch face/app.
-1. Carbohydrate intake
-2. Insuling dose.  (could this tell the pump to do this?  I'm not a pumper so don't know)
-3. Temporary Basal adjustment?  (I'm not a pumper, so not sure)
+1. Alarm silence/snooze
+2. Carbohydrate intake
+3. Insuling dose.  (could this tell the pump to do this?  I'm not a pumper so don't know)
+4. Temporary Basal adjustment?  (I'm not a pumper, so not sure)
 
