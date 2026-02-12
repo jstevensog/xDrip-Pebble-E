@@ -528,10 +528,17 @@ static void battery_handler(BatteryChargeState charge_state)
 {
 
 	static char watch_battlevel_percent[9];
-#if defined (PBL_COLOR) || (PBL_ROUND)
+#ifdef PBL_COLOR 
+	#ifdef PBL_ROUND
+	snprintf(watch_battlevel_percent, BATTLEVEL_FORMATTED_SIZE, "%i%% ", charge_state.charge_percent);
+	#else
 	snprintf(watch_battlevel_percent, BATTLEVEL_FORMATTED_SIZE, "W:%i%% ", charge_state.charge_percent);
+	#endif
 #else
 	snprintf(watch_battlevel_percent, BATTLEVEL_FORMATTED_SIZE, "W:%i%%", charge_state.charge_percent);
+#endif
+#ifdef DEBUG_LEVEL
+	APP_LOG(APP_LOG_LEVEL_INFO, " battery_handler: watch_battlevel_percent: %s", watch_battlevel_percent); 
 #endif
 	if(BacklightOnCharge)
 	{
