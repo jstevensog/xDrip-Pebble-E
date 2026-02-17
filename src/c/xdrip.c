@@ -4,7 +4,7 @@
 /* The line below will set the debug message level.
 Make sure you set this to 0 before building a release. */
 
-//#define DEBUG_LEVEL 2
+//#define DEBUG_LEVEL 3
 /* The line below, if defined, will only indicate test values on the display.
 this is for testing purposes only until I can get the PebbleKit.JS code operating with the emulator.
 Make sure you udefine this before building a release.
@@ -61,6 +61,7 @@ static GColor bg_colour;
 static char time_watch_format[9] = TIME_24H_FORMAT;
 static char time_watch_text[] = "00:00:00";
 static char date_app_text[] = "Wed 13 Jan";
+static char message_layer_text[13];
 static GFont time_font;
 static GFont time_font_small;
 static GFont time_font_normal;
@@ -1622,7 +1623,7 @@ static void load_battlevel()
 	// VARIABLES
 	// NOTE: buffers have to be static and hardcoded
 	int current_battlevel = 0;
-	static char battlevel_percent[7];
+	static char battlevel_percent[9];
 
 	// CODE START
 
@@ -1998,7 +1999,9 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 #ifdef DEBUG_LEVEL
 				APP_LOG(APP_LOG_LEVEL_INFO, "Got Message Key, message is \"%s\"", data->value->cstring);
 #endif
-				text_layer_set_text(message_layer,data->value->cstring);
+				snprintf(message_layer_text,sizeof(message_layer_text),"%s",data->value->cstring);
+				//text_layer_set_text(message_layer,data->value->cstring);
+				text_layer_set_text(message_layer,message_layer_text);
 				if(strcmp(data->value->cstring, "")==0)
 				{
 #ifdef DEBUG_LEVEL
@@ -2495,10 +2498,18 @@ if(SameColourTopAndBottom){
 	text_layer_set_background_color(message_layer, GColorClear);
 	text_layer_set_font(message_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28));
 	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
-	text_layer_set_text(message_layer, "");
+#ifdef TEST_MODE
+	snprintf(message_layer_text,sizeof(message_layer_text), "Test Mode");
+	text_layer_set_text(message_layer, message_layer_text);
+	display_message=true;
 	layer_set_hidden((Layer *)message_layer, true);
 	layer_add_child(window_layer_cgm, text_layer_get_layer(message_layer));
-
+#else
+	snprintf(message_layer_text,sizeof(message_layer_text),"%s","");
+	text_layer_set_text(message_layer, message_layer_text);
+	layer_set_hidden((Layer *)message_layer, true);
+	layer_add_child(window_layer_cgm, text_layer_get_layer(message_layer));
+#endif
 	// BG
 #ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating BG Text layer");
