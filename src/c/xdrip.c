@@ -1789,7 +1789,7 @@ void updateColours()
 	text_layer_set_text_color(time_watch_layer, fg_colour);
 	text_layer_set_text_color(date_app_layer, fg_colour);
 	text_layer_set_text_color(watch_battlevel_layer, bg_colour);
-	text_layer_set_background_color(watch_battlevel_layer, fg_colour);
+	text_layer_set_background_color(watch_battlevel_layer, GColorClear);
 }
 // end updateColours
 #endif
