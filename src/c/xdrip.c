@@ -2009,7 +2009,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 #endif
 					display_message = false;
 					layer_set_hidden((Layer *)message_layer, true);
-#if !defined(PBL_PLATFORM_BASALT) || !defined(PBL_PLATFORM_EMERY)
+#if defined(PBL_PLATFORM_APLITE) || defined(PBL_PLATFORM_CHALK) || defined(PBL_PLATFORM_DIORITE) || defined(PBL_PLATFORM_FLINT)
 					layer_set_hidden((Layer *)delta_layer, false);
 #endif
 				}
@@ -2020,7 +2020,9 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 #endif
 					display_message = true;
 					layer_set_hidden((Layer *)message_layer, false);
+#if defined(PBL_PLATFORM_APLITE) || defined(PBL_PLATFORM_CHALK) || defined(PBL_PLATFORM_DIORITE) || defined(PBL_PLATFORM_FLINT)
 					layer_set_hidden((Layer *)delta_layer, true);
+#endif
 				}
 			break;
 
@@ -2236,7 +2238,7 @@ void handle_second_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
 			APP_LOG(APP_LOG_LEVEL_DEBUG, "message_layer toggling %i", (tick_time_cgm->tm_sec & 0x01)==1);
 #endif
 			layer_set_hidden((Layer *)message_layer, !(layer_get_hidden((Layer *)message_layer)));
-#if !defined(PBL_PLATFORM_BASALT) || !defined(PBL_PLATFORM_EMERY)
+#if defined(PBL_PLATFORM_APLITE) || defined(PBL_PLATFORM_CHALK) || defined(PBL_PLATFORM_DIORITE) || defined(PBL_PLATFORM_FLINT)
 			layer_set_hidden((Layer *)delta_layer, !(layer_get_hidden((Layer *)message_layer)));
 #endif
 		}
