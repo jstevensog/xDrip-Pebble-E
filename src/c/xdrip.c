@@ -265,10 +265,14 @@ static uint8_t minutes_cgm = 0;
 #define SET_VIBE_REPEAT			103		// Setting key - Vibration Repeat
 #define SET_NO_VIBE				104		// Setting key - No Vibrations
 #define SET_LIGHT_ON_CHG		105		// Setting key - Backlight on when charging
-#define SET_SAMECOLOUR			106		// Setting key - Same Colours top and bottom#define CGM_SYNC_KEY			1000	// key pebble will use to request an update.
-#define CGM_SYNC_KEY			1000	// key pebble will use to request an update.#define PBL_PLATFORM			1001	// key pebble will use to send it's platform
-#define PBL_PLATFORM			1001	// key pebble will use to send it's platform#define PBL_APP_VER				1002	// key pebble will use to send the face/app version.
-#define PBL_APP_VER				1002	// key pebble will use to send the face/app version.
+#define SET_SAMECOLOUR			106		// Setting key - Same Colours top and bottom
+#define SET_NO_DELTA			107		// Setting key - Do not display the Delta value
+#define SET_NO_ARROWS			108		// Setting key - Do not show arrows
+#define SET_HIGH_LINE			110		// Setting key - Enable High line on graph.
+#define SET_LOW_LINE			111		// Setting key - Enable Low line on graph.
+#define CGM_SYNC_KEY			1000	// key pebble will use to request an update.  This should probably include the "capabilities" bits
+#define PBL_PLATFORM			1001	// key pebble will use to send it's platform  This is probably not required under the new famework.
+#define PBL_APP_VER				1002	// key pebble will use to send the face/app version.  This is probably not required under the new framework.
 #define PBL_TREND_SIZE			1003	// key pebble will use to send trend image size.
 #define PBL_TREND_LINES			1004	// key pebble will use to send trend line options.
 #define PBL_DISP_OPTS			1005	// key pebble will use to send display options (delta/arrows).
@@ -1717,6 +1721,8 @@ static void load_battlevel()
 	//APP_LOG(APP_LOG_LEVEL_INFO, "LOAD BATTLEVEL, END FUNCTION");
 } // end load_battlevel
 
+// send_cmd_cgm - Function to send dat to xDrip to cause a refresh/update of data.
+// Needs to include configuration values that xDrip can read and respond to.
 static void send_cmd_cgm(void)
 {
 
@@ -1778,18 +1784,21 @@ void updateColours()
 		text_layer_set_text_color(message_layer, fg_colour);
 		text_layer_set_text_color(bg_layer, fg_colour);
 		text_layer_set_text_color(cgmtime_layer, fg_colour);
+		text_layer_set_text_color(watch_battlevel_layer, fg_colour);
 	} else {
 		bitmap_layer_set_background_color(upper_face_layer, fg_colour);
 		text_layer_set_text_color(delta_layer, bg_colour);
 		text_layer_set_text_color(message_layer, bg_colour);
 		text_layer_set_text_color(bg_layer, bg_colour);
 		text_layer_set_text_color(cgmtime_layer, bg_colour);
+		text_layer_set_text_color(watch_battlevel_layer, bg_colour);
 	}
 	bitmap_layer_set_background_color(lower_face_layer, bg_colour);
 	text_layer_set_text_color(time_watch_layer, fg_colour);
 	text_layer_set_text_color(date_app_layer, fg_colour);
-	text_layer_set_text_color(watch_battlevel_layer, bg_colour);
 	text_layer_set_background_color(watch_battlevel_layer, GColorClear);
+	// update the watch battery colours etc.
+	battery_handler(battery_state_service_peek());
 }
 // end updateColours
 #endif

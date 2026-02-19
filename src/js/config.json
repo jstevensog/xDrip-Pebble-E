@@ -9,7 +9,7 @@
   },
   {
     "type": "toggle",
-    "messageKey": "dispsecs",
+    "messageKey": "displaysecs",
     "label": "Display Seconds in Time",
     "defaultValue": false
   },
