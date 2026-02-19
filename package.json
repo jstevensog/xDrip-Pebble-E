@@ -2,14 +2,12 @@
   "version": "1.0.0",
   "author": "Nightscout Foundation",
   "private": true,
-  "dependencies": {
-    "pebble-clay": "^1.0.2"
-  },
   "keywords": [
     "pebble-app"
   ],
   "pebble": {
     "sdkVersion": "3",
+    "enableMultiJS": "false",
     "resources": {
       "media": [
         {
@@ -124,12 +122,18 @@
       "t_beg": 7,
       "t_dat": 8,
       "t_end": 9,
-      "dispsecs": 100,
+      "displaysecs": 100,
       "foreground": 101,
       "background": 102,
       "viberepeat": 103,
       "novibe": 104,
       "lightoncharge": 105,
+      "monochrome": 106,
+	  "nodelta": 107,
+	  "noarrows": 108,
+	  "nohighline": 109,
+	  "nolowline": 110,
+      "health": 112,
       "sync": 1000,
       "platform": 1001,
       "version": 1002,
@@ -137,7 +141,6 @@
       "trend_lines": 1004,
       "data_options": 1005
     },
-    "enableMultiJS": true,
     "displayName": "xDrip Watch Face",
     "watchapp": {
       "onlyShownOnCommunication": false,
@@ -147,12 +150,17 @@
     "targetPlatforms": [
       "aplite",
       "basalt",
+      "chalk",
       "diorite",
       "emery"
     ],
     "capabilities": [
-      "configurable"
+      "configurable",
+      "health"
     ]
   },
-  "name": "xDrip-Trend"
+  "name": "xDrip-Trend",
+  "dependencies": {
+    "@rebble/clay": "^1.0.6"
+  }
 }
