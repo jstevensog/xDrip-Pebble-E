@@ -1,6 +1,6 @@
 # xDrip-Pebble
-Offline pebble watchface for xDrip, based on the Nightscout community version
-Note:  This current version is a modifcation of Kevin Lee's original cgm-pebble-offline.  It is intended for use with xDrip, not Nightscout.
+Offline Pebble watchface for xDrip+, based on the Nightscout community version
+Note: You require xDrip+ version later than January 2025 and Pebble application version 1.0.10.8 or later.
 
 As such, it is based on the cgm-pebble version 6.0 code.
 There ARE NO EASTER EGGS, unless they are provided by xDrip.
