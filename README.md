@@ -4,8 +4,9 @@ Note: You require xDrip+ version later than January 2025 and Pebble application 
 
 As such, it is based on the cgm-pebble version 6.0 code.
 There ARE NO EASTER EGGS, unless they are provided by xDrip.
+
 This watch face is meant for patients to use with xDrip, not for parents/carers.
-Ensure you enable notifications from xDrip in the Pebble App, and enable Third Party notifications, otherwise these will NOT come through on the pebble.
+Ensure you enable notifications from xDrip in the Pebble App otherwise these will NOT come through on the Pebble.
 Note:  The following settings are available from xDrip:
  * Display Trend - Turning on will display the BGL trend, sent as a Pebble format PNG.
  * Display Low Line - Display the low limit line on the trend.
@@ -21,8 +22,11 @@ Using Pebble Clay, the watch face now has settings available in the Pebble app. 
 As of this version, the following settings are available.
  * Display Seconds - Appends the Seconds to the watch time.  ie 00:00:00, instead of 00:00. Default off.
  * Re Raise NO BLUETOOTH vibration alert - Causes a periodic vibration until NO BLUETOOTH is cleared.  Default on.
- * Foreground Colour - Colour to use for "light" sections of the display.  Default white.
- * Background Colour - Colour to use for "Dark" sections of the display.  Default Duke Blue.
+ * Watch will not make any vigrations - effectively silences the watch face vibrations.  Default off.
+ * Light on charge - Illuminates the watch face when charging.  (note, you have to dismiss the charging display and get back to the watch face)  Allows you to see the watch in the dark when charghing.  Default off.
+ * Same background top and bottom - Sets the same background colour top and bottom.
+ * Foreground Colour - Colour to use for "light" sections of the display.  Default white.  Only useful for Basalt, Chalk, and Emery
+ * Background Colour - Colour to use for "Dark" sections of the display.  Default Duke Blue.  Only useful for Basalt, Chalk, and Emery
 The above settings are stored in the watch, and persist between watch face transitions.
 
 To Do:
@@ -32,6 +36,6 @@ To Do:
  * Add automation of display components, such that if a component is turned off, or it's font size is changed, components will dynamically reposition to make the best possible use of the available screen realestate.
 
 Plan for Multiple Apps.
- * Apps will be identified in xDrip settings as their name/version.  This will set a string that matches the PBL_APP_VER key that is sent when the pebble requests an update or responds to xDrip.  The xDrip Pebble watch face settings will also set the watch face/app UUID in PebbleTrend.  No two watch faces can have the same UUID.
- * PebbleTrend will try to activate the selected watch face, and if it fails to do so, will install the face.
+ * Apps will be identified in xDrip settings as their name/version.  This will set a string that matches the PBL_APP_VER key that is sent when the Pebble requests an update or responds to xDrip.  The xDrip Pebble watch face settings will also set the watch face/app UUID in settings.  No two watch faces can have the same UUID.
+ * The Pebble code in xDrip will try to activate the selected watch face, and if it fails to do so, will install the face.
 
