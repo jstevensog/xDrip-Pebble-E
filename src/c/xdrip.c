@@ -143,7 +143,7 @@ static uint8_t lastAlertTime = 0;
 // global special value alert
 static bool specvalue_alert = false;
 // global flag to set the top and bottom colours the same
-static bool SameColourTopAndBottom = true;
+static bool SameColourTopAndBottom = false;
 
 // global variables for vibrating in special conditions
 static bool DoubleDownAlert = false;
@@ -2051,6 +2051,19 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 #endif
 				send_cmd_cgm();
 			break;
+			
+			case SET_SAMECOLOUR:
+#ifdef DEBUG_LEVEL
+				APP_LOG(APP_LOG_LEVEL_INFO, "Got SET_SAMECOLOUR Key, message is \"%u\"", data->value->uint8);
+#endif
+				SameColourTopAndBottom = data->value->uint8;
+				persist_write_int(SET_SAMECOLOUR, data->value->uint8);
+#ifdef PBL_COLOR
+				updateColours();
+#else 
+				//add code here to deal with monochrome watches
+#endif
+			break;
 
 			case SET_FG_COLOUR:
 #ifdef DEBUG_LEVEL
@@ -2796,7 +2809,7 @@ static void init_cgm(void)
 	//Load persistent settings
 	display_seconds = persist_exists(SET_DISP_SECS)? persist_read_bool(SET_DISP_SECS) : false;
 	vibe_repeat = persist_exists(SET_VIBE_REPEAT)? persist_read_bool(SET_VIBE_REPEAT) : true;
-	SameColourTopAndBottom = persist_exists(SET_SAMECOLOUR)? persist_read_bool(SET_SAMECOLOUR) : true;
+	SameColourTopAndBottom = persist_exists(SET_SAMECOLOUR)? persist_read_bool(SET_SAMECOLOUR) : false;
 #ifdef PBL_COLOR
 	fg_colour = persist_exists(SET_FG_COLOUR)? GColorFromHEX(persist_read_int(SET_FG_COLOUR)) : COLOR_FALLBACK(GColorWhite,GColorWhite);
 	bg_colour = persist_exists(SET_BG_COLOUR)? GColorFromHEX(persist_read_int(SET_BG_COLOUR)) : COLOR_FALLBACK(GColorDukeBlue,GColorBlack);
