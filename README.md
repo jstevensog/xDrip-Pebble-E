@@ -1,6 +1,8 @@
 # xDrip-Pebble
 Offline Pebble watchface for xDrip+, based on the Nightscout community version
-Note: You require xDrip+ version later than January 2025 and Pebble application version 1.0.10.8 or later.  And until further notice, or this face is added to xDrip+, please install the "Pebble Trend Clay Version (Test)" watch face before installing this.  Ohterwise you may be stuck at the LOADING... message as that code is required in xDrip to support this face.
+Note: You require xDrip+ version later than January 2025 and Pebble application version 1.0.10.8 or later.  
+And until further notice, or this face is added to xDrip+, please install the "Pebble Trend Clay Version (Test)" watch face before installing this on Colour Pebbles, or "Pebble Trend Classic" for monochrome Pebbles.
+Otherwise you may be stuck at the LOADING... message as that code is required in xDrip to support this face.
 
 As such, it is based on the cgm-pebble version 6.0 code.
 There ARE NO EASTER EGGS, unless they are provided by xDrip.
