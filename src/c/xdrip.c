@@ -45,7 +45,7 @@ static GColor bg_colour;
 #ifdef PBL_PLATFORM_APLITE
 const uint8_t PLATFORM = 0;
 #elif PBL_PLATFORM_BASALT
-const uimt8_t PLATFORM = 1;
+const uint8_t PLATFORM = 1;
 #elif PBL_PLATFORM_CHALK
 const uint8_t PLATFORM = 2;
 #elif PBL_PLATFORM_DIORITE
@@ -145,11 +145,11 @@ const uint8_t BATTLEVEL_FORMATTED_SIZE = 8;
 
 // global variables for sync tuple functions
 // buffers have to be static and hardcoded
-static char current_icon[2];
+static char current_icon[4];
 static char last_bg[6];
 //static int current_bg = 0;
 static bool currentBG_isMMOL = false;
-static char last_battlevel[4];
+static char last_battlevel[5];
 static uint32_t current_cgm_time = 0;
 static uint32_t current_app_time = 0;
 static char current_bg_delta[14];
@@ -200,45 +200,45 @@ static const uint8_t TIMEAGO_BUFFER_SIZE = 10;
 // DO NOT USE NEGATIVE NUMBERS OR DECIMAL POINTS OR ANYTHING OTHER THAN A NUMBER
 
 // BG Ranges, MG/DL
-static const uint16_t SPECVALUE_BG_MGDL = 20;
-static const uint16_t SHOWLOW_BG_MGDL = 40;
-static const uint16_t SHOWHIGH_BG_MGDL = 400;
+//static const uint16_t SPECVALUE_BG_MGDL = 20;
+//static const uint16_t SHOWLOW_BG_MGDL = 40;
+//static const uint16_t SHOWHIGH_BG_MGDL = 400;
 
 // BG Ranges, MMOL
 // VALUES ARE IN INT, NOT FLOATING POINT, LAST DIGIT IS DECIMAL
 // FOR EXAMPLE : SPECVALUE IS 1.1, BIGHIGH IS 16.6
 // ALWAYS USE ONE AND ONLY ONE DECIMAL POINT FOR LAST DIGIT
 // GOOD : 5.0, 12.2 // BAD : 7 , 14.44
-static const uint16_t SPECVALUE_BG_MMOL = 11;
-static const uint16_t SHOWLOW_BG_MMOL = 22;
-static const uint16_t SHOWHIGH_BG_MMOL = 220;
+//static const uint16_t SPECVALUE_BG_MMOL = 11;
+//static const uint16_t SHOWLOW_BG_MMOL = 22;
+//static const uint16_t SHOWHIGH_BG_MMOL = 220;
 
 // BG Snooze Times, in Minutes; controls when vibrate again
 // RANGE 0-240
-static const uint8_t SPECVALUE_SNZ_MIN = 30;
+//static const uint8_t SPECVALUE_SNZ_MIN = 30;
 
 // Vibration Levels; 0 = NONE; 1 = LOW; 2 = MEDIUM; 3 = HIGH
 // IF YOU DO NOT WANT A SPECIFIC VIBRATION, SET TO 0
-static const uint8_t SPECVALUE_VIBE = 2;
-static const uint8_t DOUBLEDOWN_VIBE = 3;
+//static const uint8_t SPECVALUE_VIBE = 2;
+//static const uint8_t DOUBLEDOWN_VIBE = 3;
 static const uint8_t APPSYNC_ERR_VIBE = 1;
 static const uint8_t APPMSG_INDROP_VIBE = 1;
 static const uint8_t APPMSG_OUTFAIL_VIBE = 1;
 static const uint8_t BTOUT_VIBE = 1;
-static const uint8_t CGMOUT_VIBE = 1;
-static const uint8_t PHONEOUT_VIBE = 1;
+//static const uint8_t CGMOUT_VIBE = 1;
+//static const uint8_t PHONEOUT_VIBE = 1;
 static const uint8_t LOWBATTERY_VIBE = 1;
 
 // Icon Cross Out & Vibrate Once Wait Times, in Minutes
 // RANGE 0-240
 // IF YOU WANT TO WAIT LONGER TO GET CONDITION, INCREASE NUMBER
-static const uint8_t CGMOUT_WAIT_MIN = 15;
-static const uint8_t PHONEOUT_WAIT_MIN = 8;
+//static const uint8_t CGMOUT_WAIT_MIN = 15;
+//static const uint8_t PHONEOUT_WAIT_MIN = 8;
 
 // Control Messages
 // IF YOU DO NOT WANT A SPECIFIC MESSAGE, SET TO true
 static const bool TurnOff_NOBLUETOOTH_Msg = false;
-static const bool TurnOff_CHECKCGM_Msg = false;
+//static const bool TurnOff_CHECKCGM_Msg = false;
 static const bool TurnOff_CHECKPHONE_Msg = false;
 
 // Control Vibrations
@@ -320,7 +320,7 @@ static const uint8_t STOP_LIGHT_ICON_INDX = 3;
 static const uint8_t HOURGLASS_ICON_INDX = 4;
 static const uint8_t QUESTION_MARKS_ICON_INDX = 5;
 static const uint8_t LOGO_SPECVALUE_ICON_INDX = 6;
-static const uint8_t ERR_SPECVALUE_ICON_INDX = 7;
+//static const uint8_t ERR_SPECVALUE_ICON_INDX = 7;
 
 /*
 // ARRAY OF TIMEAGO ICONS
@@ -2498,7 +2498,6 @@ void window_load_cgm(Window *window_cgm)
 
 //CHALK (ROUND)
 #ifdef PBL_PLATFORM_CHALK
-	const uint8_t PLATFORM = 2;
 	//collour colours
 	static GColor8 fg_colour;
 	static GColor8 bg_colour;
@@ -2891,9 +2890,9 @@ void window_load_cgm(Window *window_cgm)
 
 	// put " " (space) in bg field so logo continues to show
 	// " " (space) also shows these are init values, not bad or null values
-	snprintf(current_icon, 1, " ");
+	snprintf(current_icon, 2, " ");
 #ifdef TEST_MODE
-	snprintf(current_icon,1,"1");
+	snprintf(current_icon, 2, "1");
 	specvalue_alert=false;
 #endif
 	load_icon();
