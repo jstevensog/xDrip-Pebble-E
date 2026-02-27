@@ -129,10 +129,10 @@
       "novibe": 104,
       "lightoncharge": 105,
       "monochrome": 106,
-	  "nodelta": 107,
-	  "noarrows": 108,
-	  "nohighline": 109,
-	  "nolowline": 110,
+      "nodelta": 107,
+      "noarrows": 108,
+      "nohighline": 109,
+      "nolowline": 110,
       "health": 112,
       "sync": 1000,
       "platform": 1001,
@@ -152,7 +152,8 @@
       "basalt",
       "chalk",
       "diorite",
-      "emery"
+      "emery",
+      "gabbro"
     ],
     "capabilities": [
       "configurable",
@@ -161,6 +162,6 @@
   },
   "name": "xDrip-Trend",
   "dependencies": {
-    "@rebble/clay": "^1.0.6"
+    "@rebble/clay": "^1.0.8"
   }
 }

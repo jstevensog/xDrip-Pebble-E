@@ -1,6 +1,8 @@
 # xDrip-Pebble
 Offline Pebble watchface for xDrip+, based on the Nightscout community version
-Note: You require xDrip+ version later than January 2025 and Pebble application version 1.0.10.8 or later.  And until further notice, or this face is added to xDrip+, please install the "Pebble Trend Clay Version (Test)" watch face before installing this.  Ohterwise you may be stuck at the LOADING... message as that code is required in xDrip to support this face.
+Note: You require xDrip+ version later than January 2025 and Pebble application version 1.0.10.8 or later.  
+And until further notice, or this face is added to xDrip+, please install the "Pebble Trend Clay Version (Test)" watch face before installing this on Colour Pebbles, or "Pebble Trend Classic" for monochrome Pebbles.
+Otherwise you may be stuck at the LOADING... message as that code is required in xDrip to support this face.
 
 As such, it is based on the cgm-pebble version 6.0 code.
 There ARE NO EASTER EGGS, unless they are provided by xDrip.
@@ -39,3 +41,13 @@ Plan for Multiple Apps.
  * Apps will be identified in xDrip settings as their name/version.  This will set a string that matches the PBL_APP_VER key that is sent when the Pebble requests an update or responds to xDrip.  The xDrip Pebble watch face settings will also set the watch face/app UUID in settings.  No two watch faces can have the same UUID.
  * The Pebble code in xDrip will try to activate the selected watch face, and if it fails to do so, will install the face.
 
+Build Environment:
+* Pebble Tool: v5.0.27
+* SDK: v4.9.127
+* Clay: @rebble/clay latest v1.0 or later
+
+Change Log:
+20260227 - This is a refactor of the oringinal code to build with SDK v4.9.127 and add initial support for Gabbro (Core Round 2).
+Notes:
+* Gabbro will look strange as none of the bitmap or text layers have been resized from Clay as yet.  Also, it is not tested. This will be fixed in later releases.
+* The SDK has imposed a lot more "errors" and will not build if there are unused defines or variables.  These have been removed by commenting, not yet removed fully from the source.

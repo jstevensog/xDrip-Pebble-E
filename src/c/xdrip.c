@@ -4,46 +4,35 @@
 /* The line below will set the debug message level.
 Make sure you set this to 0 before building a release. */
 
-//#define DEBUG_LEVEL 3
+#define DEBUG_LEVEL 3
 /* The line below, if defined, will only indicate test values on the display.
 this is for testing purposes only until I can get the PebbleKit.JS code operating with the emulator.
 Make sure you udefine this before building a release.
 */
-//#define TEST_MODE
+#define TEST_MODE
 // global window variables
 // ANYTHING THAT IS CALLED BY PEBBLE API HAS TO BE NOT STATIC
 
 const char FACE_VERSION[] = "xDrip-Pebble2";
-//#ifdef PBL_PLATFORM_APLITE
-#ifndef PBL_COLOR
-const uint8_t PLATFORM = 0;
-#else
-const uint8_t PLATFORM = 1;
-#endif
 
+// windows definition.
 Window *window_cgm = NULL;
 
+// text layer definitions.
 TextLayer *bg_layer = NULL;
 TextLayer *cgmtime_layer = NULL;
 TextLayer *delta_layer = NULL;		// BG DELTA LAYER
 TextLayer *message_layer = NULL;	// MESSAGE LAYER
 TextLayer *battlevel_layer = NULL;
 TextLayer *watch_battlevel_layer = NULL;
-static TextLayer *time_watch_layer = NULL;
+TextLayer *time_watch_layer = NULL;
 TextLayer *date_app_layer = NULL;
 
-
-
+// bitmap layer definitions
 BitmapLayer *icon_layer = NULL;
 BitmapLayer *bg_trend_layer = NULL;
 BitmapLayer *upper_face_layer = NULL;
 BitmapLayer *lower_face_layer = NULL;
-
-
-GBitmap *icon_bitmap = NULL;
-GBitmap *appicon_bitmap = NULL;
-GBitmap *specialvalue_bitmap = NULL;
-GBitmap *bg_trend_bitmap = NULL;
 
 #ifdef PBL_COLOR
 static GColor8 fg_colour;
@@ -52,6 +41,30 @@ static GColor8 bg_colour;
 static GColor fg_colour;
 static GColor bg_colour;
 #endif
+//Set up Platform specific values and global variables.
+#ifdef PBL_PLATFORM_APLITE
+const uint8_t PLATFORM = 0;
+#elif PBL_PLATFORM_BASALT
+const uint8_t PLATFORM = 1;
+#elif PBL_PLATFORM_CHALK
+const uint8_t PLATFORM = 2;
+#elif PBL_PLATFORM_DIORITE
+const uint8_t PLATFORM = 3;
+#elif PBL_PLATFORM_EMERY
+const uint8_t PLATFORM = 4;
+#elif PBL_PLATFORM_FLINT
+const uint8_t PLATFORM = 5;
+#elif PBL_PLATFORM_GABBRO
+const uint8_t PLATFORM = 6;
+#endif
+
+
+
+GBitmap *icon_bitmap = NULL;
+GBitmap *appicon_bitmap = NULL;
+GBitmap *specialvalue_bitmap = NULL;
+GBitmap *bg_trend_bitmap = NULL;
+
 
 // Defines to do with Time display
 #define TIME_24H_FORMAT "%H:%M"
@@ -63,6 +76,7 @@ static char time_watch_text[] = "00:00:00";
 static char date_app_text[] = "Wed 13 Jan";
 static char message_layer_text[13];
 static GFont time_font;
+static char message_layer_text[13];
 static GFont time_font_small;
 static GFont time_font_normal;
 
@@ -70,11 +84,15 @@ static GFont time_font_normal;
 static bool vibe_repeat = false;
 // variables for AppSync
 AppSync sync_cgm;
-//#ifdef PBL_PLATFORM_APLITE
+
 #ifndef PBL_COLOR
+// Boolean to allow/prevent re-raise of NO BLUETOOTH vibration
 #define CHUNK_SIZE 256
+
+// function definietion to update monochrome bitmap layers
 static void bitmapLayerUpdate(struct Layer *layer, GContext *ctx);
 #else
+	
 // From jamorhams version.  Enables Health stuff.
 /* #if defined(PBL_HEALTH)
 void health_handler(HealthEventType event, void *context);
@@ -127,11 +145,11 @@ const uint8_t BATTLEVEL_FORMATTED_SIZE = 8;
 
 // global variables for sync tuple functions
 // buffers have to be static and hardcoded
-static char current_icon[2];
+static char current_icon[4];
 static char last_bg[6];
 //static int current_bg = 0;
 static bool currentBG_isMMOL = false;
-static char last_battlevel[4];
+static char last_battlevel[5];
 static uint32_t current_cgm_time = 0;
 static uint32_t current_app_time = 0;
 static char current_bg_delta[14];
@@ -143,7 +161,7 @@ static uint8_t lastAlertTime = 0;
 // global special value alert
 static bool specvalue_alert = false;
 // global flag to set the top and bottom colours the same
-static bool SameColourTopAndBottom = true;
+static bool SameColourTopAndBottom = false;
 
 // global variables for vibrating in special conditions
 static bool DoubleDownAlert = false;
@@ -170,9 +188,9 @@ static const uint8_t DATE_TEXTBUFF_SIZE = 11;
 static const uint8_t LABEL_BUFFER_SIZE = 6;
 static const uint8_t TIMEAGO_BUFFER_SIZE = 10;
 
-// ** START OF CONSTANTS THAT CAN BE CHANGED; DO NOT CHANGE IF YOU DO NOT KNOW WHAT YOU ARE DOING **
-// ** FOR MMOL, ALL VALUES ARE STORED AS INTEGER; LAST DIGIT IS USED AS DECIMAL **
-// ** BE EXTRA CAREFUL OF CHANGING SPECIAL VALUES OR TIMERS; DO NOT CHANGE WITHOUT EXPERT HELP **
+// * START OF CONSTANTS THAT CAN BE CHANGED; DO NOT CHANGE IF YOU DO NOT KNOW WHAT YOU ARE DOING **
+// * FOR MMOL, ALL VALUES ARE STORED AS INTEGER; LAST DIGIT IS USED AS DECIMAL **
+// * BE EXTRA CAREFUL OF CHANGING SPECIAL VALUES OR TIMERS; DO NOT CHANGE WITHOUT EXPERT HELP **
 
 // FOR BG RANGES
 // DO NOT SET ANY BG RANGES EQUAL TO ANOTHER; LOW CAN NOT EQUAL MIDLOW
@@ -182,45 +200,45 @@ static const uint8_t TIMEAGO_BUFFER_SIZE = 10;
 // DO NOT USE NEGATIVE NUMBERS OR DECIMAL POINTS OR ANYTHING OTHER THAN A NUMBER
 
 // BG Ranges, MG/DL
-static const uint16_t SPECVALUE_BG_MGDL = 20;
-static const uint16_t SHOWLOW_BG_MGDL = 40;
-static const uint16_t SHOWHIGH_BG_MGDL = 400;
+//static const uint16_t SPECVALUE_BG_MGDL = 20;
+//static const uint16_t SHOWLOW_BG_MGDL = 40;
+//static const uint16_t SHOWHIGH_BG_MGDL = 400;
 
 // BG Ranges, MMOL
 // VALUES ARE IN INT, NOT FLOATING POINT, LAST DIGIT IS DECIMAL
 // FOR EXAMPLE : SPECVALUE IS 1.1, BIGHIGH IS 16.6
 // ALWAYS USE ONE AND ONLY ONE DECIMAL POINT FOR LAST DIGIT
 // GOOD : 5.0, 12.2 // BAD : 7 , 14.44
-static const uint16_t SPECVALUE_BG_MMOL = 11;
-static const uint16_t SHOWLOW_BG_MMOL = 22;
-static const uint16_t SHOWHIGH_BG_MMOL = 220;
+//static const uint16_t SPECVALUE_BG_MMOL = 11;
+//static const uint16_t SHOWLOW_BG_MMOL = 22;
+//static const uint16_t SHOWHIGH_BG_MMOL = 220;
 
 // BG Snooze Times, in Minutes; controls when vibrate again
 // RANGE 0-240
-static const uint8_t SPECVALUE_SNZ_MIN = 30;
+//static const uint8_t SPECVALUE_SNZ_MIN = 30;
 
 // Vibration Levels; 0 = NONE; 1 = LOW; 2 = MEDIUM; 3 = HIGH
 // IF YOU DO NOT WANT A SPECIFIC VIBRATION, SET TO 0
-static const uint8_t SPECVALUE_VIBE = 2;
-static const uint8_t DOUBLEDOWN_VIBE = 3;
+//static const uint8_t SPECVALUE_VIBE = 2;
+//static const uint8_t DOUBLEDOWN_VIBE = 3;
 static const uint8_t APPSYNC_ERR_VIBE = 1;
 static const uint8_t APPMSG_INDROP_VIBE = 1;
 static const uint8_t APPMSG_OUTFAIL_VIBE = 1;
 static const uint8_t BTOUT_VIBE = 1;
-static const uint8_t CGMOUT_VIBE = 1;
-static const uint8_t PHONEOUT_VIBE = 1;
+//static const uint8_t CGMOUT_VIBE = 1;
+//static const uint8_t PHONEOUT_VIBE = 1;
 static const uint8_t LOWBATTERY_VIBE = 1;
 
 // Icon Cross Out & Vibrate Once Wait Times, in Minutes
 // RANGE 0-240
 // IF YOU WANT TO WAIT LONGER TO GET CONDITION, INCREASE NUMBER
-static const uint8_t CGMOUT_WAIT_MIN = 15;
-static const uint8_t PHONEOUT_WAIT_MIN = 8;
+//static const uint8_t CGMOUT_WAIT_MIN = 15;
+//static const uint8_t PHONEOUT_WAIT_MIN = 8;
 
 // Control Messages
 // IF YOU DO NOT WANT A SPECIFIC MESSAGE, SET TO true
 static const bool TurnOff_NOBLUETOOTH_Msg = false;
-static const bool TurnOff_CHECKCGM_Msg = false;
+//static const bool TurnOff_CHECKCGM_Msg = false;
 static const bool TurnOff_CHECKPHONE_Msg = false;
 
 // Control Vibrations
@@ -239,7 +257,7 @@ static bool BacklightOnCharge = false;
 // CGM DATA RECEIVED EVERY 60 SECONDS, GOING BEYOND THAT MAY RESULT IN MISSED DATA
 static const uint8_t BT_ALERT_WAIT_SECS = 10;
 
-// ** END OF CONSTANTS THAT CAN BE CHANGED; DO NOT CHANGE IF YOU DO NOT KNOW WHAT YOU ARE DOING **
+// * END OF CONSTANTS THAT CAN BE CHANGED; DO NOT CHANGE IF YOU DO NOT KNOW WHAT YOU ARE DOING **
 
 // Message Timer Wait Times, in Seconds
 static const uint16_t WATCH_MSGSEND_SECS = 60;
@@ -302,7 +320,7 @@ static const uint8_t STOP_LIGHT_ICON_INDX = 3;
 static const uint8_t HOURGLASS_ICON_INDX = 4;
 static const uint8_t QUESTION_MARKS_ICON_INDX = 5;
 static const uint8_t LOGO_SPECVALUE_ICON_INDX = 6;
-static const uint8_t ERR_SPECVALUE_ICON_INDX = 7;
+//static const uint8_t ERR_SPECVALUE_ICON_INDX = 7;
 
 /*
 // ARRAY OF TIMEAGO ICONS
@@ -482,7 +500,7 @@ static void destroy_null_BitmapLayer(BitmapLayer **bmp_layer)
 	}
 
 	//APP_LOG(APP_LOG_LEVEL_INFO, "DESTROY NULL BITMAP: EXIT CODE");
-} // end destroy_null_BitmapLayer
+} // end destroy_null_BitmapLayer *
 
 static void destroy_null_TextLayer(TextLayer **txt_layer)
 {
@@ -1465,7 +1483,8 @@ static void load_cgmtime()
 		APP_LOG(APP_LOG_LEVEL_DEBUG, "LOAD CGMTIME, time_now: %lu, current_cgm_time: %lu", time_now, current_cgm_time);
 #endif
 
-		current_cgm_timeago = abs(time_now - current_cgm_time);
+		//current_cgm_timeago = abs(time_now - current_cgm_time);
+		current_cgm_timeago = (time_now - current_cgm_time);
 
 		//APP_LOG(APP_LOG_LEVEL_DEBUG, "LOAD CGMTIME, CURRENT CGM TIMEAGO: %lu", current_cgm_timeago);
 
@@ -1506,9 +1525,9 @@ static void load_cgmtime()
 		text_layer_set_text(cgmtime_layer, formatted_cgm_timeago);
 	} // else init code
 
-	//#ifdef DEBUG_LEVEL
-	//APP_LOG(APP_LOG_LEVEL_INFO, "LOAD_CGMTIME: time_app_layer is \"%s\"", text_layer_get_text(cgmtime_layer));
-	//#endif
+#ifdef DEBUG_LEVEL
+	APP_LOG(APP_LOG_LEVEL_INFO, "LOAD_CGMTIME: cgmtime_layer is \"%s\"", text_layer_get_text(cgmtime_layer));
+#endif
 	//APP_LOG(APP_LOG_LEVEL_DEBUG, "LOAD CGMTIME, CGM TIMEAGO LABEL OUT: %s", cgm_label_buffer);
 } // end load_cgmtime
 
@@ -2051,6 +2070,23 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 #endif
 				send_cmd_cgm();
 			break;
+			
+			case SET_SAMECOLOUR:
+#ifdef DEBUG_LEVEL
+				APP_LOG(APP_LOG_LEVEL_INFO, "Got SET_SAMECOLOUR Key, message is \"%u\"", data->value->uint8);
+#endif
+				SameColourTopAndBottom = data->value->uint8;
+				persist_write_int(SET_SAMECOLOUR, data->value->uint8);
+#ifdef PBL_COLOR
+				updateColours();
+#else 
+				if(SameColourTopAndBottom) {
+					bitmap_layer_set_background_color(upper_face_layer, bg_colour);
+				} else {
+					bitmap_layer_set_background_color(upper_face_layer, fg_colour);
+				}
+#endif
+			break;
 
 			case SET_FG_COLOUR:
 #ifdef DEBUG_LEVEL
@@ -2323,7 +2359,7 @@ static void bitmapLayerUpdate(struct Layer *layer, GContext *ctx)
 	framebuffer = graphics_capture_frame_buffer(ctx);
 	if (framebuffer == NULL)
 	{
-		APP_LOG(APP_LOG_LEVEL_DEBUG, "capture frame buffer failed!!");
+		APP_LOG(APP_LOG_LEVEL_DEBUG, "bitmapLayerUpdateProc: capture frame buffer failed!!");
 	}
 	else
 	{
@@ -2331,7 +2367,7 @@ static void bitmapLayerUpdate(struct Layer *layer, GContext *ctx)
 
 		if (graphic == NULL)
 		{
-			APP_LOG(APP_LOG_LEVEL_DEBUG, "GRAPHIC IS NULL!!");
+			APP_LOG(APP_LOG_LEVEL_DEBUG, "bitmapLayerUpdateProc: GRAPHIC IS NULL!!");
 		}
 		else
 		{
@@ -2340,14 +2376,14 @@ static void bitmapLayerUpdate(struct Layer *layer, GContext *ctx)
 			uint8_t* bitmapstart=(uint8_t*)gbitmap_get_data(graphic);
 			if (bitmapstart == NULL)
 			{
-				APP_LOG(APP_LOG_LEVEL_WARNING, "bitmap start went to null!!");
+				APP_LOG(APP_LOG_LEVEL_WARNING, "bitmapLayerUpdateProc: bitmap start went to null!!");
 				graphics_release_frame_buffer(ctx, framebuffer);
 				global_lock = false;
 				return;
 			}
 			if (bfstart == NULL)
 			{
-				APP_LOG(APP_LOG_LEVEL_WARNING, "framebuffer start went to null!!");
+				APP_LOG(APP_LOG_LEVEL_WARNING, "bitmapLayerUpdateProc: framebuffer start went to null!!");
 				graphics_release_frame_buffer(ctx, framebuffer);
 				global_lock = false;
 				return;
@@ -2382,41 +2418,330 @@ void window_load_cgm(Window *window_cgm)
 
 	// VARIABLES
 	Layer *window_layer_cgm = NULL;
+//APLITE (CLASSIC)
+#ifdef PBL_PLATFORM_APLITE
+	//monochrome colours
+	static GColor fg_colour;
+	static GColor bg_colour;
+	// face layer sizes
+	upper_face_layer = bitmap_layer_create(GRect(0,0,144,88));
+	lower_face_layer = bitmap_layer_create(GRect(0,89,144,165));
+	// icon layer dimensions
+	icon_layer = bitmap_layer_create(GRect(85, -7, 78, 51));
+	// trend bitmap layer dimensions
+	bg_trend_layer = bitmap_layer_create(GRect(0,24,144,64));
+	// delta layer dimensions
+	delta_layer = text_layer_create(GRect(0, 58, 143, 50));
+	text_layer_set_text_alignment(delta_layer, GTextAlignmentRight);
+	// message layer dimensions
+	message_layer = text_layer_create(GRect(0, 36, 143, 50));
+	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
+	// BG layter dimensions
+	bg_layer = text_layer_create(GRect(0, -5, 95, 47));
+	// cgmtime layer dimensions
+	cgmtime_layer = text_layer_create(GRect(104, 58, 40, 24));
+	text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentRight);
+	// time watch layer dimenssions
+	time_watch_layer = text_layer_create(GRect(0, 84, 143, 44));
+	text_layer_set_text_alignment(time_watch_layer, GTextAlignmentCenter);
+	// date layer dimenstions
+	date_app_layer = text_layer_create(GRect(0, 124, 143, 29));
+	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
+	// phone/bridge batter level layer diemnsions
+	battlevel_layer = text_layer_create(GRect(0, 148, 59, 18));
+	text_layer_set_text_alignment(battlevel_layer, GTextAlignmentLeft);
+	//watch battery level layer dimensions
+	watch_battlevel_layer = text_layer_create(GRect(81, 148, 59, 18));
+	text_layer_set_text_alignment(watch_battlevel_layer, GTextAlignmentRight);
+
+#endif
+
+//BASALT (TIME, TIME STEEL)
+#ifdef PBL_PLATFORM_BASALT
+	//collour colours
+	static GColor8 fg_colour;
+	static GColor8 bg_colour;
+	// upper and lower face dimensions
+	upper_face_layer = bitmap_layer_create(GRect(0,0,144,83));
+	lower_face_layer = bitmap_layer_create(GRect(0,84,144,165));
+	// icon layer dimensions
+	icon_layer = bitmap_layer_create(GRect(85, -9, 78, 49));
+	bitmap_layer_set_compositing_mode(icon_layer, GCompOpSet);
+	// trend bitmap layer dimensions and composition mode
+	bg_trend_layer = bitmap_layer_create(GRect(0,0,228,84));
+	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
+	// delta layer dimensions
+	delta_layer = text_layer_create(GRect(0, 58, 143, 50));
+	text_layer_set_text_alignment(delta_layer, GTextAlignmentLeft);
+	// message layer dimensions
+	message_layer = text_layer_create(GRect(0, 36, 143, 50));
+	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
+	// BG layer dimensions
+	bg_layer = text_layer_create(GRect(0, -5, 95, 42));
+	// cgmtime layer dimensions
+	cgmtime_layer = text_layer_create(GRect(104, 58, 40, 24));
+	text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentRight);
+	// time watch layer dimenssions
+	time_watch_layer = text_layer_create(GRect(0, 82, 143, 44));
+	text_layer_set_text_alignment(time_watch_layer, GTextAlignmentCenter);
+	// date layer dimenstions
+	date_app_layer = text_layer_create(GRect(0, 124, 143, 29));
+	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
+	// phone/bridge batter level layer diemnsions
+	battlevel_layer = text_layer_create(GRect(0, 150, 72, 18));
+	text_layer_set_text_alignment(battlevel_layer, GTextAlignmentLeft);
+	// watch battery level layer dimensions
+	watch_battlevel_layer = text_layer_create(GRect(72, 150, 72, 18));
+	text_layer_set_text_alignment(watch_battlevel_layer, GTextAlignmentRight);
+
+#endif
+
+//CHALK (ROUND)
+#ifdef PBL_PLATFORM_CHALK
+	//collour colours
+	static GColor8 fg_colour;
+	static GColor8 bg_colour;
+	// face layer sizes
+	upper_face_layer = bitmap_layer_create(GRect(0,0,180,83));
+	lower_face_layer = bitmap_layer_create(GRect(0,84,180,165));
+	// icon layer size and composition mode
+	icon_layer = bitmap_layer_create(GRect(120, 30, 78, 50));
+	bitmap_layer_set_compositing_mode(icon_layer, GCompOpSet);
+	// trend bitmap layer dimensions and composition mode
+	bg_trend_layer = bitmap_layer_create(GRect(0,0,144,84));
+	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
+	// delta layer dimensions
+	delta_layer = text_layer_create(GRect(0, 36, 180, 50));
+	text_layer_set_text_alignment(delta_layer, GTextAlignmentCenter);
+	// message layer dimensions
+	message_layer = text_layer_create(GRect(0, 36, 143, 50));
+	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
+	// BG layer dimensions
+	bg_layer = text_layer_create(GRect(0, -7, 180, 47));
+	// cgmtime layer dimensions
+	cgmtime_layer = text_layer_create(GRect(5, 58, 40, 24));
+	text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentRight);
+	// time watch layer dimenssions
+	time_watch_layer = text_layer_create(GRect(18, 82, 143, 44));
+	text_layer_set_text_alignment(time_watch_layer, GTextAlignmentCenter);
+	// date layer dimenstions
+	date_app_layer = text_layer_create(GRect(18, 124, 143, 26));
+	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
+	// phone/bridge batter level layer diemnsions
+	//battlevel_layer = text_layer_create(GRect(48, 150, 1, 1));
+	//text_layer_set_text_alignment(battlevel_layer, GTextAlignmentLeft);
+	// watch battery level layer dimensions
+	watch_battlevel_layer = text_layer_create(GRect(45, 150, 90, 18));
+	text_layer_set_text_alignment(watch_battlevel_layer, GTextAlignmentCenter);
+
+#endif
+
+//DIORITE (PEBBLE 2)
+#ifdef PBL_PLATFORM_DIORITE
+	//monochrome colours
+	static GColor fg_colour;
+	static GColor bg_colour;
+	upper_face_layer = bitmap_layer_create(GRect(0,0,144,88));
+	lower_face_layer = bitmap_layer_create(GRect(0,89,144,165));
+	// icon layer dimensions
+	icon_layer = bitmap_layer_create(GRect(85, -7, 78, 51));
+	// trend bitmap layer dimensions
+	bg_trend_layer = bitmap_layer_create(GRect(0,24,144,64));
+	// delta layer dimensions
+	delta_layer = text_layer_create(GRect(0, 58, 143, 50));
+	text_layer_set_text_alignment(delta_layer, GTextAlignmentRight);
+	// message layer dimensions
+	message_layer = text_layer_create(GRect(0, 36, 143, 50));
+	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
+	// BG layer dimensions
+	bg_layer = text_layer_create(GRect(0, -5, 95, 47));
+	// cgmtime layer dimensions
+	cgmtime_layer = text_layer_create(GRect(104, 58, 40, 24));
+	text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentRight);
+	// time watch layer dimenssions
+	time_watch_layer = text_layer_create(GRect(0, 84, 143, 44));
+	text_layer_set_text_alignment(time_watch_layer, GTextAlignmentCenter);
+	// date layer dimenstions
+	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
+	date_app_layer = text_layer_create(GRect(0, 124, 143, 29));
+	// phone/bridge batter level layer diemnsions
+	battlevel_layer = text_layer_create(GRect(0, 148, 59, 18));
+	text_layer_set_text_alignment(battlevel_layer, GTextAlignmentLeft);
+	// watch battery level layer dimensions
+	watch_battlevel_layer = text_layer_create(GRect(81, 148, 59, 18));
+	text_layer_set_text_alignment(watch_battlevel_layer, GTextAlignmentRight);
+
+#endif
+
+//EMERY (CORE TIME 2)
+#ifdef PBL_PLATFORM_EMERY
+	//monochrome colours
+	static GColor8 fg_colour;
+	static GColor8 bg_colour;
+	//upper and lower face layer dimensions
+	upper_face_layer = bitmap_layer_create(GRect(0,0,200,114));
+	lower_face_layer = bitmap_layer_create(GRect(0,115,200,228));
+	// icon layer diemnsions and composition mode.
+	icon_layer = bitmap_layer_create(GRect(150, -9, 78, 49));
+	bitmap_layer_set_compositing_mode(icon_layer, GCompOpSet);
+	// trend bitmap layer dimensions and composition mode
+	bg_trend_layer = bitmap_layer_create(GRect(0,0,228,84));
+	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
+	// delta layer dimensions
+	delta_layer = text_layer_create(GRect(0, 78, 220, 50));
+	text_layer_set_text_alignment(delta_layer, GTextAlignmentRight);
+	// message layer dimensions
+	message_layer = text_layer_create(GRect(0, 49, 200, 50));
+	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
+	// BG layer dimensions
+	bg_layer = text_layer_create(GRect(0, -5, 132, 57));
+	// cgmtime layer dimensions
+	cgmtime_layer = text_layer_create(GRect(144, 78, 55, 32));
+	text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentRight);
+	// time watch layer dimenssions
+	time_watch_layer = text_layer_create(GRect(0, 111, 227, 60));
+	text_layer_set_text_alignment(time_watch_layer, GTextAlignmentCenter);
+	// date layer dimenstions
+	date_app_layer = text_layer_create(GRect(0, 168, 199, 39));
+	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
+	// phone/bridge batter level layer diemnsions
+	battlevel_layer = text_layer_create(GRect(0, 203, 100, 24));
+	text_layer_set_text_alignment(battlevel_layer, GTextAlignmentLeft);
+	// watch battery level layer dimensions
+	watch_battlevel_layer = text_layer_create(GRect(100, 203, 100, 24));
+	text_layer_set_text_alignment(watch_battlevel_layer, GTextAlignmentRight);
+
+#endif
+
+//FLINT (CORE DUO 2)
+#ifdef PBL_PLATFORM_FLINT
+	//monochrome colours
+	static GColor fg_colour;
+	static GColor bg_colour;
+	// upper and lower face layer dimensions
+	upper_face_layer = bitmap_layer_create(GRect(0,0,144,88));
+	lower_face_layer = bitmap_layer_create(GRect(0,89,144,165));
+	// icon layer dimensions
+	icon_layer = bitmap_layer_create(GRect(85, -7, 78, 51));
+	// trend bitmap layer dimensions
+	bg_trend_layer = bitmap_layer_create(GRect(0,24,144,64));
+	// delta layer dimensions
+	delta_layer = text_layer_create(GRect(0, 58, 143, 50));
+	text_layer_set_text_alignment(delta_layer, GTextAlignmentRight);
+	// message layer dimensions
+	message_layer = text_layer_create(GRect(0, 36, 143, 50));
+	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
+	// BG layer dimensions
+	bg_layer = text_layer_create(GRect(0, -5, 95, 47));
+	// cgmtime layer dimensions
+	cgmtime_layer = text_layer_create(GRect(104, 58, 40, 24));
+	text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentRight);
+	// time watch layer dimenssions
+	time_watch_layer = text_layer_create(GRect(0, 84, 143, 44));
+	text_layer_set_text_alignment(time_watch_layer, GTextAlignmentCenter);
+	// date layer dimenstions
+	date_app_layer = text_layer_create(GRect(0, 124, 143, 29));
+	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
+	// phone/bridge batter level layer diemnsions
+	battlevel_layer = text_layer_create(GRect(0, 148, 59, 18));
+	text_layer_set_text_alignment(battlevel_layer, GTextAlignmentLeft);
+	// watch battery level layer dimensions
+	watch_battlevel_layer = text_layer_create(GRect(81, 148, 59, 18));
+	text_layer_set_text_alignment(watch_battlevel_layer, GTextAlignmentRight);
+
+#endif
+
+//GABBRO (CORE ROUND 2)
+#ifdef PBL_PLATFORM_GABBRO
+	//collour colours
+	static GColor8 fg_colour;
+	static GColor8 bg_colour;
+	// upper and lower face layer dimensions
+	// Note, thede to update these dimensions
+	upper_face_layer = (BitmapLayer *)bitmap_layer_create(GRect(0,0,180,83));
+	lower_face_layer = bitmap_layer_create(GRect(0,84,180,165));
+	// icon layer dimensions
+	// Note, need to update these dimentions.
+	// icon layer dimensions
+	icon_layer = bitmap_layer_create(GRect(85, -7, 78, 51));
+	// trend bitmap layer dimensions and composition mode
+	// Note, need to update these dimentions.
+	bg_trend_layer = bitmap_layer_create(GRect(0,0,144,84));
+	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
+	// delta layer dimensions
+	// Note, need to update these dimentions.
+	delta_layer = text_layer_create(GRect(0, 36, 180, 50));
+	text_layer_set_text_alignment(delta_layer, GTextAlignmentCenter);
+	// Note, need to update these dimentions.
+	// message layer dimensions
+	// Note, need to update these dimentions.
+	message_layer = text_layer_create(GRect(0, 36, 143, 50));
+	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
+	// BG layter dimensions
+	// Note, need to update these dimentions.
+	bg_layer = text_layer_create(GRect(0, -7, 180, 47));
+	// cgmtime layer dimensions
+	// Note, need to update these dimentions.
+	cgmtime_layer = text_layer_create(GRect(5, 58, 40, 24));
+	text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentRight);
+	// time watch layer dimenssions
+	// Note, need to update these dimentions.
+	time_watch_layer = text_layer_create(GRect(18, 82, 143, 44));
+	text_layer_set_text_alignment(time_watch_layer, GTextAlignmentCenter);
+	// date layer dimenstions
+	// Note, need to update these dimentions.
+	date_app_layer = text_layer_create(GRect(18, 124, 143, 26));
+	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
+	// phone/bridge batter level layer diemnsions
+	// Note, need to update these dimentions.
+	//	battlevel_layer = text_layer_create(GRect(48, 150, 1, 1));
+	//	text_layer_set_text_alignment(battlevel_layer, GTextAlignmentLeft);
+	// watch battery level layer dimensions
+	// Note, need to update these dimentions.
+	watch_battlevel_layer = text_layer_create(GRect(45, 150, 90, 18));
+	text_layer_set_text_alignment(watch_battlevel_layer, GTextAlignmentCenter);
+
+
+#endif
 
 	// CODE START
 
 	window_layer_cgm = window_get_root_layer(window_cgm);
+	// Platform Sepcific display objects
 
+	if(SameColourTopAndBottom) {
+		bitmap_layer_set_background_color(upper_face_layer, bg_colour);
+		text_layer_set_text_color(delta_layer, fg_colour);
+		text_layer_set_text_color(message_layer, fg_colour);
+		text_layer_set_text_color(bg_layer, fg_colour);
+		text_layer_set_text_color(cgmtime_layer, fg_colour);
+	} else {
+		bitmap_layer_set_background_color(upper_face_layer, fg_colour);
+		text_layer_set_text_color(delta_layer, bg_colour);
+		text_layer_set_text_color(message_layer, bg_colour);
+		text_layer_set_text_color(bg_layer, bg_colour);
+		text_layer_set_text_color(cgmtime_layer, bg_colour);
+	}
+	bitmap_layer_set_background_color(lower_face_layer, bg_colour);
+	bitmap_layer_set_alignment(icon_layer, GAlignTopLeft);
+	bitmap_layer_set_background_color(icon_layer, GColorClear);
+	text_layer_set_background_color(delta_layer, GColorClear);
+	text_layer_set_background_color(message_layer, GColorClear);
+	text_layer_set_font(message_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28));
+	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
+	text_layer_set_background_color(bg_layer, GColorClear);
+	text_layer_set_font(bg_layer, fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD));
+	text_layer_set_background_color(cgmtime_layer, GColorClear);
+	text_layer_set_font(cgmtime_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+	text_layer_set_text_color(time_watch_layer, fg_colour);
+	text_layer_set_background_color(time_watch_layer, GColorClear);
+	text_layer_set_font(time_watch_layer,time_font);
+
+	
 	//Paint the backgrounds for upper and lower halves of the watch face.
 #ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating Upper and Lower face panels");
 #endif
-
-//#ifdef PBL_PLATFORM_APLITE
-#ifndef PBL_COLOR
-	upper_face_layer = bitmap_layer_create(GRect(0,0,144,88));
-	lower_face_layer = bitmap_layer_create(GRect(0,89,144,165));
-#else
-	#ifdef PBL_ROUND
-	upper_face_layer = bitmap_layer_create(GRect(0,0,180,83));
-	lower_face_layer = bitmap_layer_create(GRect(0,84,180,165));
-	#else
-		#ifdef PBL_PLATFORM_EMERY
-		upper_face_layer = bitmap_layer_create(GRect(0,0,200,114));
-		lower_face_layer = bitmap_layer_create(GRect(0,115,200,228));
-		#else
-		upper_face_layer = bitmap_layer_create(GRect(0,0,144,83));
-		lower_face_layer = bitmap_layer_create(GRect(0,84,144,165));
-		#endif
-	#endif
-#endif
-
-	if(SameColourTopAndBottom) {
-		bitmap_layer_set_background_color(upper_face_layer, bg_colour);
-	} else {
-		bitmap_layer_set_background_color(upper_face_layer, fg_colour);
-	}
-	bitmap_layer_set_background_color(lower_face_layer, bg_colour);
 	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(upper_face_layer));
 	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(lower_face_layer));
 
@@ -2424,40 +2749,18 @@ void window_load_cgm(Window *window_cgm)
 #ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating Arrow Bitmap layer");
 #endif
-#ifdef PBL_ROUND
-	icon_layer = bitmap_layer_create(GRect(120, 30, 78, 50));
-	bitmap_layer_set_compositing_mode(icon_layer, GCompOpSet);
-#elif PBL_COLOR
-	#ifdef PBL_PLATFORM_EMERY
-		icon_layer = bitmap_layer_create(GRect(150, -9, 78, 49));
-		bitmap_layer_set_compositing_mode(icon_layer, GCompOpSet);
-	#else
-		icon_layer = bitmap_layer_create(GRect(85, -9, 78, 49));
-		bitmap_layer_set_compositing_mode(icon_layer, GCompOpSet);
-	#endif
-#else
-	icon_layer = bitmap_layer_create(GRect(85, -7, 78, 51));
-#endif
-	bitmap_layer_set_alignment(icon_layer, GAlignTopLeft);
-	bitmap_layer_set_background_color(icon_layer, GColorClear);
 	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(icon_layer));
 
 	//create the bg_trend_layer
 #ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating BG Trend Bitmap layer");
+	text_layer_set_background_color(message_layer, GColorClear);
+	text_layer_set_font(message_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28));
+	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
 #endif
 #ifdef PBL_COLOR
-	#ifdef PBL_PLATFORM_EMERY
-		bg_trend_layer = bitmap_layer_create(GRect(0,0,228,84));
-		bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
-		layer_add_child(window_layer_cgm, bitmap_layer_get_layer(bg_trend_layer));
-	#else
-		bg_trend_layer = bitmap_layer_create(GRect(0,0,144,84));
-		bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
-		layer_add_child(window_layer_cgm, bitmap_layer_get_layer(bg_trend_layer));
-	#endif
+	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(bg_trend_layer));
 #else
-	bg_trend_layer = bitmap_layer_create(GRect(0,24,144,64));
 	layer_set_update_proc(bitmap_layer_get_layer(bg_trend_layer),bitmapLayerUpdate);
 #endif
 
@@ -2465,33 +2768,9 @@ void window_load_cgm(Window *window_cgm)
 #ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating Delta BG Text layer");
 #endif
-#ifdef PBL_ROUND
-	delta_layer = text_layer_create(GRect(0, 36, 180, 50));
-#else
-	#ifdef PBL_PLATFORM_EMERY
-		delta_layer = text_layer_create(GRect(0, 78, 220, 50));
-	#else
-		delta_layer = text_layer_create(GRect(0, 58, 143, 50));
-	#endif
-#endif
-if(SameColourTopAndBottom){
-		text_layer_set_text_color(delta_layer, fg_colour);
-	} else {
-		text_layer_set_text_color(delta_layer, bg_colour);
-	}
-	text_layer_set_background_color(delta_layer, GColorClear);
 	text_layer_set_font(delta_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28));
 #ifdef TEST_MODE
 	text_layer_set_text(delta_layer,"0.5mmol");
-#endif
-#ifndef PBL_COLOR
-	text_layer_set_text_alignment(delta_layer, GTextAlignmentRight);
-#else
-	#ifdef PBL_ROUND
-	text_layer_set_text_alignment(delta_layer, GTextAlignmentCenter);
-	#else
-	text_layer_set_text_alignment(delta_layer, GTextAlignmentLeft);
-	#endif
 #endif
 
 	layer_add_child(window_layer_cgm, text_layer_get_layer(delta_layer));
@@ -2500,19 +2779,6 @@ if(SameColourTopAndBottom){
 #ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating Message Text layer");
 #endif
-#ifdef PBL_PLATFORM_EMERY
-	message_layer = text_layer_create(GRect(0, 49, 200, 50));
-#else
-	message_layer = text_layer_create(GRect(0, 36, 143, 50));
-#endif
-	if(SameColourTopAndBottom){
-		text_layer_set_text_color(message_layer, fg_colour);
-	} else {
-		text_layer_set_text_color(message_layer, bg_colour);
-	}
-	text_layer_set_background_color(message_layer, GColorClear);
-	text_layer_set_font(message_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28));
-	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
 #ifdef TEST_MODE
 	snprintf(message_layer_text,sizeof(message_layer_text), "Test Mode");
 	text_layer_set_text(message_layer, message_layer_text);
@@ -2529,25 +2795,6 @@ if(SameColourTopAndBottom){
 #ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating BG Text layer");
 #endif
-#ifdef PBL_ROUND
-	bg_layer = text_layer_create(GRect(0, -7, 180, 47));
-#elif PBL_COLOR
-	#ifdef PBL_PLATFORM_EMERY
-		bg_layer = text_layer_create(GRect(0, -5, 132, 57));
-	#else
-		bg_layer = text_layer_create(GRect(0, -5, 95, 42));
-	#endif
-#else
-	bg_layer = text_layer_create(GRect(0, -5, 95, 47));
-#endif
-	if(SameColourTopAndBottom){
-		text_layer_set_text_color(bg_layer, fg_colour);
-	} else {
-		text_layer_set_text_color(bg_layer, bg_colour);
-	}
-	text_layer_set_background_color(bg_layer, GColorClear);
-	text_layer_set_font(bg_layer, fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD));
-	text_layer_set_text_alignment(bg_layer, GTextAlignmentCenter);
 	layer_add_child(window_layer_cgm, text_layer_get_layer(bg_layer));
 
 
@@ -2556,27 +2803,7 @@ if(SameColourTopAndBottom){
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating CGM Time Ago Bitmap layer");
 #endif
 //if it is not for a COLOR platform, it is monochrome
-#ifndef PBL_COLOR
-	cgmtime_layer = text_layer_create(GRect(104, 58, 40, 24));
-#else
-	#ifdef PBL_ROUND
-	cgmtime_layer = text_layer_create(GRect(5, 58, 40, 24));
-	#else
-		#ifdef PBL_PLATFORM_EMERY
-			cgmtime_layer = text_layer_create(GRect(144, 78, 55, 32));
-		#else
-			cgmtime_layer = text_layer_create(GRect(104, 58, 40, 24));
-		#endif
-	#endif
-#endif
-	if(SameColourTopAndBottom){
-		text_layer_set_text_color(cgmtime_layer, fg_colour);
-	} else {
-		text_layer_set_text_color(cgmtime_layer, bg_colour);
-	}
-	text_layer_set_background_color(cgmtime_layer, GColorClear);
-	text_layer_set_font(cgmtime_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
-	text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentRight);
+	//text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentRight);
 	//text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentCenter);
 	layer_add_child(window_layer_cgm, text_layer_get_layer(cgmtime_layer));
 
@@ -2590,43 +2817,18 @@ if(SameColourTopAndBottom){
 #ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating Watch Time Text layer");
 #endif
-#ifdef PBL_COLOR
-	#ifdef PBL_ROUND
-		time_watch_layer = text_layer_create(GRect(18, 82, 143, 44));
-	#elif PBL_PLATFORM_EMERY
-		time_watch_layer = text_layer_create(GRect(0, 111, 227, 60));
-	#else
-		time_watch_layer = text_layer_create(GRect(0, 82, 143, 44));
-	#endif
-#else
-	time_watch_layer = text_layer_create(GRect(0, 84, 143, 44));
-
-#endif
-	text_layer_set_text_color(time_watch_layer, fg_colour);
-	text_layer_set_background_color(time_watch_layer, GColorClear);
-	text_layer_set_font(time_watch_layer,time_font);
-	text_layer_set_text_alignment(time_watch_layer, GTextAlignmentCenter);
+//	text_layer_set_text_alignment(time_watch_layer, GTextAlignmentCenter);
 	layer_add_child(window_layer_cgm, text_layer_get_layer(time_watch_layer));
 
 	// CURRENT ACTUAL DATE FROM APP
 #ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating Watch Date Text layer");
 #endif
-#ifdef PBL_COLOR
-	#ifdef PBL_ROUND
-		date_app_layer = text_layer_create(GRect(18, 124, 143, 26));
-	#elif PBL_PLATFORM_EMERY
-		date_app_layer = text_layer_create(GRect(0, 168, 199, 39));
-	#else
-		date_app_layer = text_layer_create(GRect(0, 124, 143, 29));
-	#endif
-#else
-	date_app_layer = text_layer_create(GRect(0, 122, 143, 29));
-#endif
+//	date_app_layer = text_layer_create(GRect(0, 122, 143, 29));
 	text_layer_set_text_color(date_app_layer, fg_colour);
 	text_layer_set_background_color(date_app_layer, GColorClear);
 	text_layer_set_font(date_app_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
-	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
+	//text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
 	layer_add_child(window_layer_cgm, text_layer_get_layer(date_app_layer));
 	draw_date_from_app();
 
@@ -2634,21 +2836,10 @@ if(SameColourTopAndBottom){
 #ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating Phone Battery Text layer");
 #endif
-#ifdef PBL_COLOR
-	#ifdef PBL_ROUND
-		battlevel_layer = text_layer_create(GRect(48, 150, 1, 1));
-	#elif PBL_PLATFORM_EMERY
-		battlevel_layer = text_layer_create(GRect(0, 203, 100, 24));
-	#else
-		battlevel_layer = text_layer_create(GRect(0, 150, 72, 18));
-	#endif
-#else
-	battlevel_layer = text_layer_create(GRect(0, 148, 59, 18));
-#endif
 	text_layer_set_text_color(battlevel_layer, GColorGreen);
 	text_layer_set_background_color(battlevel_layer, GColorClear);
 	text_layer_set_font(battlevel_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
-	text_layer_set_text_alignment(battlevel_layer, GTextAlignmentLeft);
+//	text_layer_set_text_alignment(battlevel_layer, GTextAlignmentLeft);
 	layer_add_child(window_layer_cgm, text_layer_get_layer(battlevel_layer));
 #ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "battlevel_layer; %s", text_layer_get_text(battlevel_layer));
@@ -2660,33 +2851,14 @@ if(SameColourTopAndBottom){
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating Watch Battery Text layer");
 #endif
 	BatteryChargeState charge_state=battery_state_service_peek();
-#ifdef PBL_COLOR
-	#ifdef PBL_ROUND
-		#ifdef DEBUG_LEVEL
-		APP_LOG(APP_LOG_LEVEL_INFO, "watch_battlevel_layer: ROUND DETECTED");
-		#endif
-		watch_battlevel_layer = text_layer_create(GRect(45, 150, 90, 18));
-	#elif PBL_PLATFORM_EMERY
-		#ifdef DEBUG_LEVEL
-		APP_LOG(APP_LOG_LEVEL_INFO, "watch_batt_level_layer: COLOR EMERY DETECTED");
-		#endif
-		watch_battlevel_layer = text_layer_create(GRect(100, 203, 100, 24));
-	#else
-		#ifdef DEBUG_LEVEL
-		APP_LOG(APP_LOG_LEVEL_INFO, "watch_batt_level_layer: COLOR DETECTED");
-		#endif
-		watch_battlevel_layer = text_layer_create(GRect(72, 150, 72, 18));
-	#endif
-#else
-	APP_LOG(APP_LOG_LEVEL_INFO, "watch_batt_level_layer: BW DETECTED");
-	watch_battlevel_layer = text_layer_create(GRect(81, 148, 59, 18));
-#endif
 	text_layer_set_font(watch_battlevel_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+/*
 #ifdef PBL_ROUND
 	text_layer_set_text_alignment(watch_battlevel_layer, GTextAlignmentCenter);
 #else
 	text_layer_set_text_alignment(watch_battlevel_layer, GTextAlignmentRight);
 #endif
+*/
 #ifdef PBL_COLOR
 	if(charge_state.is_charging)
 	{
@@ -2718,9 +2890,9 @@ if(SameColourTopAndBottom){
 
 	// put " " (space) in bg field so logo continues to show
 	// " " (space) also shows these are init values, not bad or null values
-	snprintf(current_icon, 1, " ");
+	snprintf(current_icon, 2, " ");
 #ifdef TEST_MODE
-	snprintf(current_icon,1,"1");
+	snprintf(current_icon, 2, "1");
 	specvalue_alert=false;
 #endif
 	load_icon();
@@ -2796,7 +2968,7 @@ static void init_cgm(void)
 	//Load persistent settings
 	display_seconds = persist_exists(SET_DISP_SECS)? persist_read_bool(SET_DISP_SECS) : false;
 	vibe_repeat = persist_exists(SET_VIBE_REPEAT)? persist_read_bool(SET_VIBE_REPEAT) : true;
-	SameColourTopAndBottom = persist_exists(SET_SAMECOLOUR)? persist_read_bool(SET_SAMECOLOUR) : true;
+	SameColourTopAndBottom = persist_exists(SET_SAMECOLOUR)? persist_read_bool(SET_SAMECOLOUR) : false;
 #ifdef PBL_COLOR
 	fg_colour = persist_exists(SET_FG_COLOUR)? GColorFromHEX(persist_read_int(SET_FG_COLOUR)) : COLOR_FALLBACK(GColorWhite,GColorWhite);
 	bg_colour = persist_exists(SET_BG_COLOUR)? GColorFromHEX(persist_read_int(SET_BG_COLOUR)) : COLOR_FALLBACK(GColorDukeBlue,GColorBlack);
