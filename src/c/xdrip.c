@@ -4,12 +4,12 @@
 /* The line below will set the debug message level.
 Make sure you set this to 0 before building a release. */
 
-#define DEBUG_LEVEL 3
+//#define DEBUG_LEVEL 3
 /* The line below, if defined, will only indicate test values on the display.
 this is for testing purposes only until I can get the PebbleKit.JS code operating with the emulator.
 Make sure you udefine this before building a release.
 */
-#define TEST_MODE
+//#define TEST_MODE
 // global window variables
 // ANYTHING THAT IS CALLED BY PEBBLE API HAS TO BE NOT STATIC
 
@@ -2420,9 +2420,12 @@ void window_load_cgm(Window *window_cgm)
 	Layer *window_layer_cgm = NULL;
 //APLITE (CLASSIC)
 #ifdef PBL_PLATFORM_APLITE
+#ifdef DEBUG_LEVEL
+	APP_LOG(APP_LOG_LEVEL_INFO, "WINDOW LOAD: Detected Aplite");
+#endif
 	//monochrome colours
-	static GColor fg_colour;
-	static GColor bg_colour;
+	//static GColor fg_colour;
+	//static GColor bg_colour;
 	// face layer sizes
 	upper_face_layer = bitmap_layer_create(GRect(0,0,144,88));
 	lower_face_layer = bitmap_layer_create(GRect(0,89,144,165));
@@ -2458,9 +2461,12 @@ void window_load_cgm(Window *window_cgm)
 
 //BASALT (TIME, TIME STEEL)
 #ifdef PBL_PLATFORM_BASALT
+#ifdef DEBUG_LEVEL
+	APP_LOG(APP_LOG_LEVEL_INFO, "WINDOW LOAD: Detected Basalt");
+#endif
 	//collour colours
-	static GColor8 fg_colour;
-	static GColor8 bg_colour;
+	//static GColor8 fg_colour;
+	//static GColor8 bg_colour;
 	// upper and lower face dimensions
 	upper_face_layer = bitmap_layer_create(GRect(0,0,144,83));
 	lower_face_layer = bitmap_layer_create(GRect(0,84,144,165));
@@ -2498,9 +2504,12 @@ void window_load_cgm(Window *window_cgm)
 
 //CHALK (ROUND)
 #ifdef PBL_PLATFORM_CHALK
+#ifdef DEBUG_LEVEL
+	APP_LOG(APP_LOG_LEVEL_INFO, "WINDOW LOAD: Detected Chalk");
+#endif
 	//collour colours
-	static GColor8 fg_colour;
-	static GColor8 bg_colour;
+	//static GColor8 fg_colour;
+	//static GColor8 bg_colour;
 	// face layer sizes
 	upper_face_layer = bitmap_layer_create(GRect(0,0,180,83));
 	lower_face_layer = bitmap_layer_create(GRect(0,84,180,165));
@@ -2538,9 +2547,12 @@ void window_load_cgm(Window *window_cgm)
 
 //DIORITE (PEBBLE 2)
 #ifdef PBL_PLATFORM_DIORITE
+#ifdef DEBUG_LEVEL
+	APP_LOG(APP_LOG_LEVEL_INFO, "WINDOW LOAD: Detected Diorite");
+#endif
 	//monochrome colours
-	static GColor fg_colour;
-	static GColor bg_colour;
+	//static GColor fg_colour;
+	//static GColor bg_colour;
 	upper_face_layer = bitmap_layer_create(GRect(0,0,144,88));
 	lower_face_layer = bitmap_layer_create(GRect(0,89,144,165));
 	// icon layer dimensions
@@ -2575,9 +2587,12 @@ void window_load_cgm(Window *window_cgm)
 
 //EMERY (CORE TIME 2)
 #ifdef PBL_PLATFORM_EMERY
+#ifdef DEBUG_LEVEL
+	APP_LOG(APP_LOG_LEVEL_INFO, "WINDOW LOAD: Detected Emery");
+#endif
 	//monochrome colours
-	static GColor8 fg_colour;
-	static GColor8 bg_colour;
+	//static GColor8 fg_colour;
+	//static GColor8 bg_colour;
 	//upper and lower face layer dimensions
 	upper_face_layer = bitmap_layer_create(GRect(0,0,200,114));
 	lower_face_layer = bitmap_layer_create(GRect(0,115,200,228));
@@ -2615,9 +2630,12 @@ void window_load_cgm(Window *window_cgm)
 
 //FLINT (CORE DUO 2)
 #ifdef PBL_PLATFORM_FLINT
+#ifdef DEBUG_LEVEL
+	APP_LOG(APP_LOG_LEVEL_INFO, "WINDOW LOAD: Detected Flint");
+#endif
 	//monochrome colours
-	static GColor fg_colour;
-	static GColor bg_colour;
+	//static GColor fg_colour;
+	//static GColor bg_colour;
 	// upper and lower face layer dimensions
 	upper_face_layer = bitmap_layer_create(GRect(0,0,144,88));
 	lower_face_layer = bitmap_layer_create(GRect(0,89,144,165));
@@ -2654,8 +2672,8 @@ void window_load_cgm(Window *window_cgm)
 //GABBRO (CORE ROUND 2)
 #ifdef PBL_PLATFORM_GABBRO
 	//collour colours
-	static GColor8 fg_colour;
-	static GColor8 bg_colour;
+	//static GColor8 fg_colour;
+	//static GColor8 bg_colour;
 	// upper and lower face layer dimensions
 	// Note, thede to update these dimensions
 	upper_face_layer = (BitmapLayer *)bitmap_layer_create(GRect(0,0,180,83));
