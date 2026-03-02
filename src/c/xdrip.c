@@ -2474,7 +2474,7 @@ void window_load_cgm(Window *window_cgm)
 	icon_layer = bitmap_layer_create(GRect(85, -9, 78, 49));
 	bitmap_layer_set_compositing_mode(icon_layer, GCompOpSet);
 	// trend bitmap layer dimensions and composition mode
-	bg_trend_layer = bitmap_layer_create(GRect(0,0,228,84));
+	bg_trend_layer = bitmap_layer_create(GRect(0,0,144,84));
 	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
 	// delta layer dimensions
 	delta_layer = text_layer_create(GRect(0, 58, 143, 50));
