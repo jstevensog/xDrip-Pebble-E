@@ -10,7 +10,7 @@ Make sure you set this to 0 before building a release. */
 #define DEBUG_APP_DEBUG 2
 #define DEBUG_APP_INFO 1
 
-/* #define DEBUG_LEVEL 0  */
+/* #define DEBUG_LEVEL 3  */
 
 #if DEBUG_LEVEL >= 3
 #define TRACE(...)  APP_LOG(APP_LOG_LEVEL_DEBUG, __VA_ARGS__)
@@ -176,7 +176,6 @@ const uint8_t BATTLEVEL_FORMATTED_SIZE = 8;
 // buffers have to be static and hardcoded
 static char current_icon[4];
 static char last_bg[6];
-static int current_bg = 0;
 static bool currentBG_isMMOL = false;
 static char last_battlevel[5];
 static uint32_t current_cgm_time = 0;
@@ -1316,7 +1315,6 @@ static void load_bg()
 	specvalue_alert = false;
 
 	INFO("LAST BG: %s", last_bg);
-	TRACE("CURRENT BG: %i", current_bg);
 
 #ifdef TEST_MODE
 	snprintf(last_bg,sizeof(last_bg),"%s","100");
@@ -1346,7 +1344,6 @@ static void load_bg()
 		{
 			// if init code, we will set it right in message layer
 			TRACE("LOAD BG, UNEXPECTED BG: SET ERR ICON");
-			TRACE("LOAD BG, UNEXP BG, CURRENT_BG: %d LAST_BG: %s ", current_bg, last_bg);
 			text_layer_set_text(bg_layer, "ERR");
 			create_update_bitmap(&icon_bitmap,icon_layer,SPECIAL_VALUE_ICONS[NONE_SPECVALUE_ICON_INDX]);
 			specvalue_alert = true;
@@ -2373,14 +2370,17 @@ void window_load_cgm(Window *window_cgm)
 	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
 	// delta layer dimensions
 	delta_layer = text_layer_create(GRect(0, 58, 143, 50));
+    layer_set_bounds((Layer *) delta_layer, GRect(0, -2, 143, 50)); // fixes bounding box with latest sdk
 	text_layer_set_text_alignment(delta_layer, GTextAlignmentLeft);
 	// message layer dimensions
 	message_layer = text_layer_create(GRect(0, 36, 143, 50));
+    layer_set_bounds((Layer *) message_layer, GRect(0, -2, 143, 50)); // fixes bounding box with latest sdk
 	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
 	// BG layer dimensions
 	bg_layer = text_layer_create(GRect(0, -5, 95, 42));
 	// cgmtime layer dimensions
 	cgmtime_layer = text_layer_create(GRect(104, 58, 40, 24));
+    layer_set_bounds((Layer *) cgmtime_layer, GRect(0, -2, 40, 24)); // fixes bounding box with latest sdk
 	text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentRight);
 	// time watch layer dimenssions
 	time_watch_layer = text_layer_create(GRect(0, 82, 143, 44));
@@ -2390,9 +2390,11 @@ void window_load_cgm(Window *window_cgm)
 	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
 	// phone/bridge batter level layer diemnsions
 	battlevel_layer = text_layer_create(GRect(0, 150, 72, 18));
+    layer_set_bounds((Layer *) battlevel_layer, GRect(0, -1, 72, 18)); // fixes bounding box with latest sdk
 	text_layer_set_text_alignment(battlevel_layer, GTextAlignmentLeft);
 	// watch battery level layer dimensions
 	watch_battlevel_layer = text_layer_create(GRect(72, 150, 72, 18));
+    layer_set_bounds((Layer *) watch_battlevel_layer, GRect(0, -1, 72, 18)); // fixes bounding box with latest sdk
 	text_layer_set_text_alignment(watch_battlevel_layer, GTextAlignmentRight);
 
 #endif
@@ -2430,8 +2432,8 @@ void window_load_cgm(Window *window_cgm)
 	date_app_layer = text_layer_create(GRect(18, 124, 143, 26));
 	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
 	// phone/bridge batter level layer diemnsions
-	//battlevel_layer = text_layer_create(GRect(48, 150, 1, 1));
-	//text_layer_set_text_alignment(battlevel_layer, GTextAlignmentLeft);
+	battlevel_layer = text_layer_create(GRect(48, 150, 1, 1));
+	text_layer_set_text_alignment(battlevel_layer, GTextAlignmentLeft);
 	// watch battery level layer dimensions
 	watch_battlevel_layer = text_layer_create(GRect(45, 150, 90, 18));
 	text_layer_set_text_alignment(watch_battlevel_layer, GTextAlignmentCenter);
@@ -2446,6 +2448,7 @@ void window_load_cgm(Window *window_cgm)
 	//static GColor bg_colour;
 	upper_face_layer = bitmap_layer_create(GRect(0,0,144,88));
 	lower_face_layer = bitmap_layer_create(GRect(0,89,144,165));
+
 	// icon layer dimensions
 	icon_layer = bitmap_layer_create(GRect(85, -7, 78, 51));
 	// trend bitmap layer dimensions
@@ -2465,8 +2468,8 @@ void window_load_cgm(Window *window_cgm)
 	time_watch_layer = text_layer_create(GRect(0, 84, 143, 44));
 	text_layer_set_text_alignment(time_watch_layer, GTextAlignmentCenter);
 	// date layer dimenstions
-	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
 	date_app_layer = text_layer_create(GRect(0, 124, 143, 29));
+	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
 	// phone/bridge batter level layer diemnsions
 	battlevel_layer = text_layer_create(GRect(0, 148, 59, 18));
 	text_layer_set_text_alignment(battlevel_layer, GTextAlignmentLeft);
@@ -2566,54 +2569,44 @@ void window_load_cgm(Window *window_cgm)
 
 //GABBRO (CORE ROUND 2)
 #ifdef PBL_PLATFORM_GABBRO
+    // 260x260 (renumerate from original round is 180-180, everything *1.44
+	//collour colours
+    LOG("WINDOW LOAD: Detected GABBRO");
 	//collour colours
 	//static GColor8 fg_colour;
 	//static GColor8 bg_colour;
-	// upper and lower face layer dimensions
-	// Note, thede to update these dimensions
-	upper_face_layer = (BitmapLayer *)bitmap_layer_create(GRect(0,0,180,83));
-	lower_face_layer = bitmap_layer_create(GRect(0,84,180,165));
-	// icon layer dimensions
-	// Note, need to update these dimentions.
-	// icon layer dimensions
-	icon_layer = bitmap_layer_create(GRect(85, -7, 78, 51));
+	// face layer sizes
+	upper_face_layer = bitmap_layer_create(     GRect(0  ,   0, 260, 120));
+	lower_face_layer = bitmap_layer_create(     GRect(0   ,121, 260, 238));
+	// icon layer size and composition mode
+	icon_layer = bitmap_layer_create(           GRect(173,  43, 112,  72));
+	bitmap_layer_set_compositing_mode(icon_layer, GCompOpSet);
 	// trend bitmap layer dimensions and composition mode
-	// Note, need to update these dimentions.
-	bg_trend_layer = bitmap_layer_create(GRect(0,0,144,84));
+	bg_trend_layer = bitmap_layer_create(       GRect(  0,   0, 207, 121));
 	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
 	// delta layer dimensions
-	// Note, need to update these dimentions.
-	delta_layer = text_layer_create(GRect(0, 36, 180, 50));
+	delta_layer = text_layer_create(            GRect(  0,  52, 260,  72));
 	text_layer_set_text_alignment(delta_layer, GTextAlignmentCenter);
-	// Note, need to update these dimentions.
 	// message layer dimensions
-	// Note, need to update these dimentions.
-	message_layer = text_layer_create(GRect(0, 36, 143, 50));
+	message_layer = text_layer_create(          GRect(  0,  52, 206,  72));
 	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
-	// BG layter dimensions
-	// Note, need to update these dimentions.
-	bg_layer = text_layer_create(GRect(0, -7, 180, 47));
+	// BG layer dimensions
+	bg_layer = text_layer_create(               GRect(  0,  -7, 260,  68));
 	// cgmtime layer dimensions
-	// Note, need to update these dimentions.
-	cgmtime_layer = text_layer_create(GRect(5, 58, 40, 24));
+	cgmtime_layer = text_layer_create(          GRect(  7,  84,  58,  35));
 	text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentRight);
 	// time watch layer dimenssions
-	// Note, need to update these dimentions.
-	time_watch_layer = text_layer_create(GRect(18, 82, 143, 44));
+	time_watch_layer = text_layer_create(       GRect( 26, 118, 206,  64));
 	text_layer_set_text_alignment(time_watch_layer, GTextAlignmentCenter);
 	// date layer dimenstions
-	// Note, need to update these dimentions.
-	date_app_layer = text_layer_create(GRect(18, 124, 143, 26));
+	date_app_layer = text_layer_create(         GRect( 26, 178, 206,  38));
 	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
 	// phone/bridge batter level layer diemnsions
-	// Note, need to update these dimentions.
-	//	battlevel_layer = text_layer_create(GRect(48, 150, 1, 1));
-	//	text_layer_set_text_alignment(battlevel_layer, GTextAlignmentLeft);
+	battlevel_layer = text_layer_create(        GRect( 69, 236,  130,  26));
+	text_layer_set_text_alignment(battlevel_layer, GTextAlignmentLeft);
 	// watch battery level layer dimensions
-	// Note, need to update these dimentions.
-	watch_battlevel_layer = text_layer_create(GRect(45, 150, 90, 18));
+	watch_battlevel_layer = text_layer_create(  GRect( 65, 210,  130,  26));
 	text_layer_set_text_alignment(watch_battlevel_layer, GTextAlignmentCenter);
-
 
 #endif
 
