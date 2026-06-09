@@ -10,27 +10,27 @@ Make sure you set this to 0 before building a release. */
 #define DEBUG_APP_DEBUG 2
 #define DEBUG_APP_INFO 1
 
-#define DEBUG_LEVEL DEBUG_APP_TRACE
+/* #define DEBUG_LEVEL 0  */
 
-#if DEBUG_LEVEL > 2
+#if DEBUG_LEVEL >= 3
 #define TRACE(...)  APP_LOG(APP_LOG_LEVEL_DEBUG, __VA_ARGS__)
 #else 
-#define TRACE()
+#define TRACE(...)
 #endif
-#if DEBUG_LEVEL > 1
+#if DEBUG_LEVEL >= 2
 #define DEBUG(...) APP_LOG(APP_LOG_LEVEL_DEBUG, __VA_ARGS__)
 #else
-#define DEBUG()
+#define DEBUG(...)
 #endif
-#if DEBUG_LEVEL > 0
+#if DEBUG_LEVEL >= 1
 #define INFO(...) APP_LOG(APP_LOG_LEVEL_INFO, __VA_ARGS__)
 #else
-#define INFO()
+#define INFO(...)
 #endif
-#ifdef DEBUG_LEVEL
+#if DEBUG_LEVEL >= 0
 #define LOG(...) APP_LOG(APP_LOG_LEVEL_INFO, __VA_ARGS__)
 #else
-#define LOG()
+#define LOG(...)
 #endif
 
 /* The line below, if defined, will only indicate test values on the display.
@@ -378,7 +378,6 @@ void handle_second_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
 void handle_minute_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cgm);
 void handle_message_tick(void *data);
 
-#if DEBUG_LEVEL > 0
 static char *translate_app_error(AppMessageResult result)
 {
 	switch (result)
@@ -434,7 +433,6 @@ static char *translate_dict_error(DictionaryResult result)
 			return "DICT UNKNOWN ERROR";
 	}
 }
-#endif
 
 int myAtoi(char *str)
 {
