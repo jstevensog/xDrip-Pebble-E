@@ -54,6 +54,16 @@
     "sunlight": false
   },
   {
+      "type": "slider",
+      "messageKey": "messagetimeout",
+      "defaultValue": 15,
+      "label": "Process messages every",
+      "min": 5,
+      "max": 60,
+      "step": 5,
+      "description": "seconds"
+  },
+  {
     "type": "submit",
     "defaultValue": "Save Settings"
   }

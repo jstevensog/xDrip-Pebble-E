@@ -320,6 +320,7 @@ static uint8_t minutes_cgm = 0;
 #define SET_NO_ARROWS			108		// Setting key - Do not show arrows
 #define SET_HIGH_LINE			110		// Setting key - Enable High line on graph.
 #define SET_LOW_LINE			111		// Setting key - Enable Low line on graph.
+#define SET_MESSAGE_TIMEOUT     113     // Setting key - Message timeout
 #define CGM_SYNC_KEY			1000	// key pebble will use to request an update.  This should probably include the "capabilities" bits
 #define PBL_PLATFORM			1001	// key pebble will use to send it's platform  This is probably not required under the new famework.
 #define PBL_APP_VER				1002	// key pebble will use to send the face/app version.  This is probably not required under the new framework.
@@ -374,6 +375,7 @@ static const uint8_t PHONEOFF_ICON_INDX = 2;
 
 void handle_second_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cgm);
 void handle_minute_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cgm);
+void handle_message_tick(void *data);
 
 #if DEBUG_LEVEL > 0
 static char *translate_app_error(AppMessageResult result)
@@ -778,7 +780,7 @@ void handle_bluetooth_cgm(bool bt_connected)
 
 		// timer has popped
 		// Vibrate; BluetoothAlert takes over until Bluetooth connection comes back on
-    LOG("BT HANDLER: TIMER POP, NO BLUETOOTH");
+        LOG("BT HANDLER: TIMER POP, NO BLUETOOTH");
 		alert_handler_cgm(BTOUT_VIBE);
 		BluetoothAlert = true;
 
@@ -1836,7 +1838,6 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 			break; // break for CGM_UBAT_KEY
 
 
-//		#ifdef PBL_PLATFORM_BASALT
 			case CGM_TREND_BEGIN_KEY:
 				expected_trend_buffer_length = data->value->uint16;
                 LOG("TREND_BEGIN; About to receive Trend Image of %i size.", expected_trend_buffer_length);
@@ -1921,7 +1922,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 					trend_buffer = NULL;
 				}
 			break;
-//		#endif
+
 			case CGM_MESSAGE_KEY:
                 LOG("Got Message Key, message is \"%s\"", data->value->cstring);
 				snprintf(message_layer_text,sizeof(message_layer_text),"%s",data->value->cstring);
@@ -2041,6 +2042,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 				draw_date_from_app();
 			break;
 
+
 			case SET_VIBE_REPEAT:
                 LOG("Got background Key, message is \"%lx\"", data->value->uint32);
 				if(data->value->uint8 > 0)
@@ -2080,12 +2082,21 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 				persist_write_bool(SET_LIGHT_ON_CHG, BacklightOnCharge);
 			break;
 
+            case SET_MESSAGE_TIMEOUT:
+                LOG("Got message timeout, message is \"%lx\"", data->value->uint32);
+                message_tick_timeout = data->value->uint32 * 1000;
+                if (!app_timer_reschedule(message_tick_timer, message_tick_timeout)) {
+                    message_tick_timer = app_timer_register(message_tick_timeout, handle_message_tick, NULL);
+                }
+                break;
+
 			default:
                 LOG("sync_tuple_cgm_callback: Dictionary Key not recognised");
 			break;
 		}
 			// end switch(key)
 		data = dict_read_next(iterator);
+        if (data == NULL) LOG("Exiting");
 	}
 } // end sync_tuple_changed_callback_cgm()
 
@@ -2827,6 +2838,7 @@ static void init_cgm(void)
 	display_seconds = persist_exists(SET_DISP_SECS)? persist_read_bool(SET_DISP_SECS) : false;
 	vibe_repeat = persist_exists(SET_VIBE_REPEAT)? persist_read_bool(SET_VIBE_REPEAT) : true;
 	SameColourTopAndBottom = persist_exists(SET_SAMECOLOUR)? persist_read_bool(SET_SAMECOLOUR) : false;
+    message_tick_timeout = persist_exists(SET_MESSAGE_TIMEOUT) ? persist_read_int(SET_MESSAGE_TIMEOUT) * 1000 : 15000;
 #ifdef PBL_COLOR
 	fg_colour = persist_exists(SET_FG_COLOUR)? GColorFromHEX(persist_read_int(SET_FG_COLOUR)) : COLOR_FALLBACK(GColorWhite,GColorWhite);
 	bg_colour = persist_exists(SET_BG_COLOUR)? GColorFromHEX(persist_read_int(SET_BG_COLOUR)) : COLOR_FALLBACK(GColorDukeBlue,GColorBlack);
@@ -2924,6 +2936,7 @@ static void deinit_cgm(void)
 	// unsubscribe to the tick timer service
 	TRACE("DEINIT, UNSUBSCRIBE TICK TIMER");
 	tick_timer_service_unsubscribe();
+    app_timer_cancel(message_tick_timer);
 
 	// unsubscribe to the bluetooth connection service
 	TRACE("DEINIT, UNSUBSCRIBE BLUETOOTH");

@@ -134,6 +134,7 @@
       "nohighline": 109,
       "nolowline": 110,
       "health": 112,
+      "messagetimeout": 113,
       "sync": 1000,
       "platform": 1001,
       "version": 1002,
