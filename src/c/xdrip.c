@@ -2489,21 +2489,21 @@ void window_load_cgm(Window *window_cgm)
 	upper_face_layer = bitmap_layer_create(GRect(0,0,200,114));
 	lower_face_layer = bitmap_layer_create(GRect(0,115,200,228));
 	// icon layer diemnsions and composition mode.
-	icon_layer = bitmap_layer_create(GRect(150, -9, 78, 49));
+	icon_layer = bitmap_layer_create(GRect(146, -9, 78, 49));
 	bitmap_layer_set_compositing_mode(icon_layer, GCompOpSet);
 	// trend bitmap layer dimensions and composition mode
 	bg_trend_layer = bitmap_layer_create(GRect(0,0,200,84));
 	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
 	// delta layer dimensions
-	delta_layer = text_layer_create(GRect(0, 78, 200, 50));
+	delta_layer = text_layer_create(GRect(2, 78, 198, 50));
 	text_layer_set_text_alignment(delta_layer, GTextAlignmentLeft);
 	// message layer dimensions
-	message_layer = text_layer_create(GRect(0, 49, 200, 50));
+	message_layer = text_layer_create(GRect(2, 49, 198, 50));
 	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
 	// BG layer dimensions
 	bg_layer = text_layer_create(GRect(0, -5, 132, 57));
 	// cgmtime layer dimensions
-	cgmtime_layer = text_layer_create(GRect(144, 78, 55, 32));
+	cgmtime_layer = text_layer_create(GRect(142, 78, 55, 32));
 	text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentRight);
 	// time watch layer dimenssions
     if (display_seconds) {
@@ -2520,10 +2520,10 @@ void window_load_cgm(Window *window_cgm)
     }
 	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
 	// phone/bridge batter level layer diemnsions
-	battlevel_layer = text_layer_create(GRect(0, 203, 100, 24));
+	battlevel_layer = text_layer_create(GRect(2, 203, 100, 24));
 	text_layer_set_text_alignment(battlevel_layer, GTextAlignmentLeft);
 	// watch battery level layer dimensions
-	watch_battlevel_layer = text_layer_create(GRect(100, 203, 100, 24));
+	watch_battlevel_layer = text_layer_create(GRect(98, 203, 100, 24));
 	text_layer_set_text_alignment(watch_battlevel_layer, GTextAlignmentRight);
 
 #endif
@@ -2724,7 +2724,7 @@ void window_load_cgm(Window *window_cgm)
 
 	// PHONE BATTERY LEVEL
     LOG("Creating Phone Battery Text layer");
-	text_layer_set_text_color(battlevel_layer, GColorGreen);
+	text_layer_set_text_color(battlevel_layer, GColorMintGreen);
 	text_layer_set_background_color(battlevel_layer, GColorClear);
 	text_layer_set_font(battlevel_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
 //	text_layer_set_text_alignment(battlevel_layer, GTextAlignmentLeft);
@@ -2751,7 +2751,7 @@ void window_load_cgm(Window *window_cgm)
 	}
 	else
 	{
-		text_layer_set_text_color(watch_battlevel_layer, GColorGreen);
+		text_layer_set_text_color(watch_battlevel_layer, GColorMintGreen);
 		text_layer_set_background_color(watch_battlevel_layer, GColorClear);
 	}
 #else
