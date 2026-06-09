@@ -367,6 +367,14 @@ static const uint8_t NONE_TIMEAGO_ICON_INDX = 0;
 static const uint8_t PHONEON_ICON_INDX = 1;
 static const uint8_t PHONEOFF_ICON_INDX = 2;
 */
+
+/**
+ * predefines
+ */
+
+void handle_second_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cgm);
+void handle_minute_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cgm);
+
 #if DEBUG_LEVEL > 0
 static char *translate_app_error(AppMessageResult result)
 {
@@ -1989,11 +1997,20 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
                 LOG("Got dispsecs Key, message is \"%u\"", data->value->uint8);
 				if(data->value->uint8 > 0)
 				{
+                    if (!display_seconds) {
+                        // register second timer
+                        tick_timer_service_subscribe(SECOND_UNIT, &handle_second_tick_cgm);
+                    }
 					display_seconds = true;
 					time_font = time_font_small;
 				}
 				else
 				{
+                    if (display_seconds) {
+                        // unsub seconds timer to save power
+                        tick_timer_service_unsubscribe();
+                        tick_timer_service_subscribe(MINUTE_UNIT, &handle_minute_tick_cgm);
+                    }
 					display_seconds = false;
 					time_font = time_font_normal;
 				}
