@@ -2599,7 +2599,7 @@ void window_load_cgm(Window *window_cgm)
 	text_layer_set_background_color(bg_layer, GColorClear);
 	text_layer_set_font(bg_layer, fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD));
 	text_layer_set_background_color(cgmtime_layer, GColorClear);
-	text_layer_set_font(cgmtime_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+	text_layer_set_font(cgmtime_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
 	text_layer_set_text_color(time_watch_layer, fg_colour);
 	text_layer_set_background_color(time_watch_layer, GColorClear);
 	text_layer_set_font(time_watch_layer,time_font);
