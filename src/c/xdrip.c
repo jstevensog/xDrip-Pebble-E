@@ -86,6 +86,7 @@ const uint8_t PLATFORM = 5;
 const uint8_t PLATFORM = 6;
 #endif
 
+#define HIGH_RES() (PBL_PLATFORM_TYPE_CURRENT >= PlatformTypeEmery)
 
 
 GBitmap *icon_bitmap = NULL;
@@ -2001,6 +2002,11 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
                     if (!display_seconds) {
                         // register second timer
                         tick_timer_service_subscribe(SECOND_UNIT, &handle_second_tick_cgm);
+                        // resize time and date layer iff PT2
+                        if (HIGH_RES()) {
+                            layer_set_frame((Layer *) time_watch_layer, GRect(0, 121, 200, 60));
+                            layer_set_frame((Layer *) date_app_layer, GRect(0, 168, 200, 39));
+                        }
                     }
 					display_seconds = true;
 					time_font = time_font_small;
@@ -2011,12 +2017,18 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
                         // unsub seconds timer to save power
                         tick_timer_service_unsubscribe();
                         tick_timer_service_subscribe(MINUTE_UNIT, &handle_minute_tick_cgm);
+                        // reset layers
+
+                        if (HIGH_RES()) {
+                            layer_set_frame((Layer *) time_watch_layer, GRect(0, 111, 200, 60));
+                            layer_set_frame((Layer *) date_app_layer, GRect(0, 176, 200, 39));
+                        }
                     }
 					display_seconds = false;
 					time_font = time_font_normal;
 				}
 				persist_write_bool(SET_DISP_SECS, display_seconds);
-				text_layer_set_font(time_watch_layer,time_font);
+				text_layer_set_font(time_watch_layer, time_font);
 				if(clock_is_24h_style() == true)
 				{
 					if(display_seconds)
@@ -2479,10 +2491,10 @@ void window_load_cgm(Window *window_cgm)
 	icon_layer = bitmap_layer_create(GRect(150, -9, 78, 49));
 	bitmap_layer_set_compositing_mode(icon_layer, GCompOpSet);
 	// trend bitmap layer dimensions and composition mode
-	bg_trend_layer = bitmap_layer_create(GRect(0,0,228,84));
+	bg_trend_layer = bitmap_layer_create(GRect(0,0,200,84));
 	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
 	// delta layer dimensions
-	delta_layer = text_layer_create(GRect(0, 78, 220, 50));
+	delta_layer = text_layer_create(GRect(0, 78, 200, 50));
 	text_layer_set_text_alignment(delta_layer, GTextAlignmentLeft);
 	// message layer dimensions
 	message_layer = text_layer_create(GRect(0, 49, 200, 50));
@@ -2493,10 +2505,18 @@ void window_load_cgm(Window *window_cgm)
 	cgmtime_layer = text_layer_create(GRect(144, 78, 55, 32));
 	text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentRight);
 	// time watch layer dimenssions
-	time_watch_layer = text_layer_create(GRect(0, 111, 227, 60));
+    if (display_seconds) {
+        time_watch_layer = text_layer_create(GRect(0, 121, 200, 60));
+    } else {
+        time_watch_layer = text_layer_create(GRect(0, 111, 200, 60));
+    }
 	text_layer_set_text_alignment(time_watch_layer, GTextAlignmentCenter);
 	// date layer dimenstions
-	date_app_layer = text_layer_create(GRect(0, 168, 199, 39));
+    if (display_seconds) {
+        date_app_layer = text_layer_create(GRect(0, 168, 200, 39));
+    } else {
+        date_app_layer = text_layer_create(GRect(0, 176, 200, 39));
+    }
 	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
 	// phone/bridge batter level layer diemnsions
 	battlevel_layer = text_layer_create(GRect(0, 203, 100, 24));
@@ -2847,8 +2867,13 @@ static void init_cgm(void)
 	BacklightOnCharge = persist_exists(SET_LIGHT_ON_CHG)? persist_read_bool(SET_LIGHT_ON_CHG) : false;
     LOG("display_seconds: %i", display_seconds);
 	//initialise the Time Fonts
-	time_font_normal = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_40));
-	time_font_small = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_30));
+    if (HIGH_RES()) {
+        time_font_normal = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_60));
+        time_font_small = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_40));
+    } else {
+        time_font_normal = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_40));
+        time_font_small = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_30));
+    }
 	//Initialise the time format string.  No seconds here.
 	if(clock_is_24h_style() == true)
 	{
