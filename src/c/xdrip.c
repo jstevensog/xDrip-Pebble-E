@@ -10,7 +10,7 @@ Make sure you set this to 0 before building a release. */
 #define DEBUG_APP_DEBUG 2
 #define DEBUG_APP_INFO 1
 
-/* #define DEBUG_LEVEL 3  */
+/* #define DEBUG_LEVEL DEBUG_APP_TRACE  */
 
 #if DEBUG_LEVEL >= 3
 #define TRACE(...)  APP_LOG(APP_LOG_LEVEL_DEBUG, __VA_ARGS__)
@@ -27,7 +27,7 @@ Make sure you set this to 0 before building a release. */
 #else
 #define INFO(...)
 #endif
-#if DEBUG_LEVEL >= 0
+#if defined(DEBUG_LEVEL)
 #define LOG(...) APP_LOG(APP_LOG_LEVEL_INFO, __VA_ARGS__)
 #else
 #define LOG(...)
@@ -2103,7 +2103,6 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 		}
 			// end switch(key)
 		data = dict_read_next(iterator);
-        if (data == NULL) LOG("Exiting");
 	}
 } // end sync_tuple_changed_callback_cgm()
 
