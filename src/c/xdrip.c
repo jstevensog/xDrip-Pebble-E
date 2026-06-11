@@ -2096,7 +2096,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
                     message_tick_timer = app_timer_register(message_tick_timeout, handle_message_tick, NULL);
                 }
                 break;
-
+                persist_write_int(SET_MESSAGE_TIMEOUT, message_tick_timeout);
 			default:
                 LOG("sync_tuple_cgm_callback: Dictionary Key not recognised");
 			break;
