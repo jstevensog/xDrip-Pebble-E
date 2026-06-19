@@ -4,7 +4,7 @@
 /* The line below will set the debug message level.
 Make sure you set this to 0 before building a release. */
 
-#define DEBUG_LEVEL 3
+//#define DEBUG_LEVEL 3
 /* The line below, if defined, will only indicate test values on the display.
 this is for testing purposes only until I can get the PebbleKit.JS code operating with the emulator.
 Make sure you udefine this before building a release.
@@ -840,11 +840,11 @@ static void draw_date_from_app()
 	// format current date from app
 	//if (strcmp(time_watch_text, "00:00") == 0)
 //	{
-		draw_return = strftime(time_watch_text, TIME_TEXTBUFF_SIZE, time_watch_format , current_d_app);
-		if (draw_return != 0)
-		{
-			text_layer_set_text(time_watch_layer, time_watch_text);
-		}
+	draw_return = strftime(time_watch_text, TIME_TEXTBUFF_SIZE, time_watch_format , current_d_app);
+	if (draw_return != 0)
+	{
+		text_layer_set_text(time_watch_layer, time_watch_text);
+	}
 //	}
 
 	draw_return = strftime(date_app_text, DATE_TEXTBUFF_SIZE, "%a %d %b", current_d_app);
