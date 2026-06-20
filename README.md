@@ -29,7 +29,10 @@ As of this version, the following settings are available.
  * Same background top and bottom - Sets the same background colour top and bottom.
  * Foreground Colour - Colour to use for "light" sections of the display.  Default white.  Only useful for Basalt, Chalk, and Emery
  * Background Colour - Colour to use for "Dark" sections of the display.  Default Duke Blue.  Only useful for Basalt, Chalk, and Emery
+<<<<<<< HEAD
+=======
  * Message timer - Seconds between each check for displaying the message / delta. This is done to avoid having to use the seconds timer for everything increasing the system/battery load. Default is 15 seconds (5-60s)
+>>>>>>> origin/master
 The above settings are stored in the watch, and persist between watch face transitions.
 
 Build Environment:
@@ -37,7 +40,18 @@ Build Environment:
 * SDK: latest  
 * Clay: @rebble/clay latest v1.0 or later
 
+Plan for Multiple Apps.
+ * Apps will be identified in xDrip settings as their name/version.  This will set a string that matches the PBL_APP_VER key that is sent when the Pebble requests an update or responds to xDrip.  The xDrip Pebble watch face settings will also set the watch face/app UUID in settings.  No two watch faces can have the same UUID.
+ * The Pebble code in xDrip will try to activate the selected watch face, and if it fails to do so, will install the face.
+
+Build Environment:
+* Pebble Tool: v5.0.27
+* SDK: v4.9.127
+* Clay: @rebble/clay latest v1.0 or later
+
 Change Log:
+20260620 - Built with latest SDK.
+
 20260609 - Refactored code, fixed outstanding issues and made it nicer to watch on a PT2 display.
 * Fixed issues with wrong x/y width/height values on PT2, PD2, Gabbro
 * Fixed Gabbro face to look like the one for the PR
