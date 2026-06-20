@@ -7,10 +7,11 @@
 #define DEBUG_APP_TRACE 3
 #define DEBUG_APP_DEBUG 2
 #define DEBUG_APP_INFO 1
+#define DEBUG_APP_NONE 0
 
 /* The line below will set the debug message level.
-Make sure you set this to 0 before building a release. */
-#define DEBUG_LEVEL 0
+Make sure you set this to 0 or DEBUG_APP_NONE before building a release. */
+#define DEBUG_LEVEL DEBUG_APP_NONE
 
 /* #define DEBUG_LEVEL DEBUG_APP_TRACE  */
 
@@ -53,8 +54,8 @@ TextLayer *bg_layer = NULL;
 TextLayer *cgmtime_layer = NULL;
 TextLayer *delta_layer = NULL;		// BG DELTA LAYER
 TextLayer *message_layer = NULL;	// MESSAGE LAYER
-TextLayer *battlevel_layer = NULL;
-TextLayer *watch_battlevel_layer = NULL;
+TextLayer *bottom_left_text_layer = NULL;
+TextLayer *bottom_right_text_layer = NULL;
 TextLayer *time_watch_layer = NULL;
 TextLayer *date_app_layer = NULL;
 
@@ -613,12 +614,12 @@ static void battery_handler(BatteryChargeState charge_state)
 	LOG("Charging.  BacklightOnCharge:%u", BacklightOnCharge);
 #ifdef PBL_COLOR
 		TRACE("COLOR DETECTED");
-		text_layer_set_text_color(watch_battlevel_layer, GColorDukeBlue);
-		text_layer_set_background_color(watch_battlevel_layer, GColorGreen);
+		text_layer_set_text_color(bottom_right_text_layer, GColorDukeBlue);
+		text_layer_set_background_color(bottom_right_text_layer, GColorGreen);
 #else
 		TRACE("BW DETECTED");
-		text_layer_set_text_color(watch_battlevel_layer, bg_colour);
-		text_layer_set_background_color(watch_battlevel_layer, fg_colour);
+		text_layer_set_text_color(bottom_right_text_layer, bg_colour);
+		text_layer_set_background_color(bottom_right_text_layer, fg_colour);
 #endif
 	}
 	else
@@ -629,26 +630,26 @@ static void battery_handler(BatteryChargeState charge_state)
 		if(charge_state.charge_percent > 40)
 		{
 			TRACE("BATTERY > 40");
-			text_layer_set_text_color(watch_battlevel_layer, GColorGreen);
+			text_layer_set_text_color(bottom_right_text_layer, GColorGreen);
 		}
 		else if (charge_state.charge_percent > 20)
 		{
 			TRACE("BATTERY > 20");
-			text_layer_set_text_color(watch_battlevel_layer, GColorYellow);
+			text_layer_set_text_color(bottom_right_text_layer, GColorYellow);
 		}
 		else
 		{
 			TRACE("BATTERY <= 20");
-			text_layer_set_text_color(watch_battlevel_layer, GColorRed);
+			text_layer_set_text_color(bottom_right_text_layer, GColorRed);
 		}
-		text_layer_set_background_color(watch_battlevel_layer, GColorClear);
+		text_layer_set_background_color(bottom_right_text_layer, GColorClear);
 #else
 		TRACE("BW DETECTED");
-		text_layer_set_text_color(watch_battlevel_layer, GColorWhite);
-		text_layer_set_background_color(watch_battlevel_layer, GColorBlack);
+		text_layer_set_text_color(bottom_right_text_layer, GColorWhite);
+		text_layer_set_background_color(bottom_right_text_layer, GColorBlack);
 #endif
 	}
-	text_layer_set_text(watch_battlevel_layer, watch_battlevel_percent);
+	text_layer_set_text(bottom_right_text_layer, watch_battlevel_percent);
 
 
 } // end battery_handler
@@ -1623,7 +1624,7 @@ static void load_battlevel()
 	{
 		// Init code or no battery, can't do battery; set text layer & icon to empty value
 	INFO("LOAD BATTLEVEL, NO BATTERY");
-		text_layer_set_text(battlevel_layer, "");
+		text_layer_set_text(bottom_left_text_layer, "");
 		LowBatteryAlert = false;
 		return;
 	}
@@ -1632,7 +1633,7 @@ static void load_battlevel()
 	{
 		// Zero battery level; set here, so if we get zero later we know we have an error instead
 	INFO("LOAD BATTLEVEL, ZERO BATTERY, SET STRING");
-		text_layer_set_text(battlevel_layer, "0%");
+		text_layer_set_text(bottom_left_text_layer, "0%");
 		if (!LowBatteryAlert)
 		{
 	INFO("LOAD BATTLEVEL, ZERO BATTERY, VIBRATE");
@@ -1650,7 +1651,7 @@ static void load_battlevel()
 	{
 		// got a negative or out of bounds or error battery level
 	INFO("LOAD BATTLEVEL, UNKNOWN, ERROR BATTERY");
-		text_layer_set_text(battlevel_layer, "ERR");
+		text_layer_set_text(bottom_left_text_layer, "ERR");
 		return;
 	}
 
@@ -1664,12 +1665,12 @@ static void load_battlevel()
 #endif
 	LOG("SETTING BATTLEVEL to %s", battlevel_percent);
 #ifndef PBL_ROUND
-	text_layer_set_text(battlevel_layer, battlevel_percent);
+	text_layer_set_text(bottom_left_text_layer, battlevel_percent);
 #endif
 #ifdef PBL_COLOR
 	if ( (current_battlevel > 0) && (current_battlevel <= 30) )
 	{
-		text_layer_set_text_color(battlevel_layer, GColorRed);
+		text_layer_set_text_color(bottom_left_text_layer, GColorRed);
 		if (!LowBatteryAlert)
 		{
 	INFO("LOAD BATTLEVEL, LOW BATTERY, 5 OR LESS, VIBRATE");
@@ -1679,14 +1680,14 @@ static void load_battlevel()
 	}
 	else if ( (current_battlevel > 30) && (current_battlevel <= 50) )
 	{
-		text_layer_set_text_color(battlevel_layer, GColorYellow);
+		text_layer_set_text_color(bottom_left_text_layer, GColorYellow);
 	}
 	else
 	{
-		text_layer_set_text_color(battlevel_layer, GColorGreen);
+		text_layer_set_text_color(bottom_left_text_layer, GColorGreen);
 	}
 #endif
-	LOG("LOAD_BATTLEVEL: battlevel_layer is \"%s\"", text_layer_get_text(battlevel_layer));
+	LOG("LOAD_BATTLEVEL: bottom_left_text_layer is \"%s\"", text_layer_get_text(bottom_left_text_layer));
 	TRACE("LOAD BATTLEVEL, END FUNCTION");
 } // end load_battlevel
 
@@ -1745,19 +1746,19 @@ void updateColours()
 		text_layer_set_text_color(message_layer, fg_colour);
 		text_layer_set_text_color(bg_layer, fg_colour);
 		text_layer_set_text_color(cgmtime_layer, fg_colour);
-		text_layer_set_text_color(watch_battlevel_layer, fg_colour);
+		text_layer_set_text_color(bottom_right_text_layer, fg_colour);
 	} else {
 		bitmap_layer_set_background_color(upper_face_layer, fg_colour);
 		text_layer_set_text_color(delta_layer, bg_colour);
 		text_layer_set_text_color(message_layer, bg_colour);
 		text_layer_set_text_color(bg_layer, bg_colour);
 		text_layer_set_text_color(cgmtime_layer, bg_colour);
-		text_layer_set_text_color(watch_battlevel_layer, bg_colour);
+		text_layer_set_text_color(bottom_right_text_layer, bg_colour);
 	}
 	bitmap_layer_set_background_color(lower_face_layer, bg_colour);
 	text_layer_set_text_color(time_watch_layer, fg_colour);
 	text_layer_set_text_color(date_app_layer, fg_colour);
-	text_layer_set_background_color(watch_battlevel_layer, GColorClear);
+	text_layer_set_background_color(bottom_right_text_layer, GColorClear);
 	// update the watch battery colours etc.
 	battery_handler(battery_state_service_peek());
 }
@@ -2321,7 +2322,7 @@ void window_load_cgm(Window *window_cgm)
 	//static GColor fg_colour;
 	//static GColor bg_colour;
 	// face layer sizes
-	upper_face_layer = bitmap_layer_create(GRect(0,0,144,88));
+	upper_face_layer = bitmap_layer_create(GRect(0,0,144,89));
 	lower_face_layer = bitmap_layer_create(GRect(0,89,144,165));
 	// icon layer dimensions
 	icon_layer = bitmap_layer_create(GRect(85, -7, 78, 51));
@@ -2345,11 +2346,11 @@ void window_load_cgm(Window *window_cgm)
 	date_app_layer = text_layer_create(GRect(0, 124, 143, 29));
 	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
 	// phone/bridge batter level layer diemnsions
-	battlevel_layer = text_layer_create(GRect(0, 148, 59, 18));
-	text_layer_set_text_alignment(battlevel_layer, GTextAlignmentLeft);
+	bottom_left_text_layer = text_layer_create(GRect(0, 148, 59, 18));
+	text_layer_set_text_alignment(bottom_left_text_layer, GTextAlignmentLeft);
 	//watch battery level layer dimensions
-	watch_battlevel_layer = text_layer_create(GRect(81, 148, 59, 18));
-	text_layer_set_text_alignment(watch_battlevel_layer, GTextAlignmentRight);
+	bottom_right_text_layer = text_layer_create(GRect(81, 148, 59, 18));
+	text_layer_set_text_alignment(bottom_right_text_layer, GTextAlignmentRight);
 
 #endif
 
@@ -2360,7 +2361,7 @@ void window_load_cgm(Window *window_cgm)
 	//static GColor8 fg_colour;
 	//static GColor8 bg_colour;
 	// upper and lower face dimensions
-	upper_face_layer = bitmap_layer_create(GRect(0,0,144,83));
+	upper_face_layer = bitmap_layer_create(GRect(0,0,144,84));
 	lower_face_layer = bitmap_layer_create(GRect(0,84,144,165));
 	// icon layer dimensions
 	icon_layer = bitmap_layer_create(GRect(85, -9, 78, 49));
@@ -2389,13 +2390,13 @@ void window_load_cgm(Window *window_cgm)
 	date_app_layer = text_layer_create(GRect(0, 124, 143, 29));
 	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
 	// phone/bridge batter level layer diemnsions
-	battlevel_layer = text_layer_create(GRect(0, 150, 72, 18));
-	layer_set_bounds((Layer *) battlevel_layer, GRect(0, -1, 72, 18)); // fixes bounding box with latest sdk
-	text_layer_set_text_alignment(battlevel_layer, GTextAlignmentLeft);
+	bottom_left_text_layer = text_layer_create(GRect(0, 150, 72, 18));
+	layer_set_bounds((Layer *) bottom_left_text_layer, GRect(0, -1, 72, 18)); // fixes bounding box with latest sdk
+	text_layer_set_text_alignment(bottom_left_text_layer, GTextAlignmentLeft);
 	// watch battery level layer dimensions
-	watch_battlevel_layer = text_layer_create(GRect(72, 150, 72, 18));
-	layer_set_bounds((Layer *) watch_battlevel_layer, GRect(0, -1, 72, 18)); // fixes bounding box with latest sdk
-	text_layer_set_text_alignment(watch_battlevel_layer, GTextAlignmentRight);
+	bottom_right_text_layer = text_layer_create(GRect(72, 150, 72, 18));
+	layer_set_bounds((Layer *) bottom_right_text_layer, GRect(0, -1, 72, 18)); // fixes bounding box with latest sdk
+	text_layer_set_text_alignment(bottom_right_text_layer, GTextAlignmentRight);
 
 #endif
 
@@ -2406,7 +2407,7 @@ void window_load_cgm(Window *window_cgm)
 	//static GColor8 fg_colour;
 	//static GColor8 bg_colour;
 	// face layer sizes
-	upper_face_layer = bitmap_layer_create(GRect(0,0,180,83));
+	upper_face_layer = bitmap_layer_create(GRect(0,0,180,84));
 	lower_face_layer = bitmap_layer_create(GRect(0,84,180,165));
 	// icon layer size and composition mode
 	icon_layer = bitmap_layer_create(GRect(120, 30, 78, 50));
@@ -2432,11 +2433,11 @@ void window_load_cgm(Window *window_cgm)
 	date_app_layer = text_layer_create(GRect(18, 124, 143, 26));
 	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
 	// phone/bridge batter level layer diemnsions
-	battlevel_layer = text_layer_create(GRect(48, 150, 1, 1));
-	text_layer_set_text_alignment(battlevel_layer, GTextAlignmentLeft);
+	bottom_left_text_layer = text_layer_create(GRect(48, 150, 1, 1));
+	text_layer_set_text_alignment(bottom_left_text_layer, GTextAlignmentLeft);
 	// watch battery level layer dimensions
-	watch_battlevel_layer = text_layer_create(GRect(45, 150, 90, 18));
-	text_layer_set_text_alignment(watch_battlevel_layer, GTextAlignmentCenter);
+	bottom_right_text_layer = text_layer_create(GRect(45, 150, 90, 18));
+	text_layer_set_text_alignment(bottom_right_text_layer, GTextAlignmentCenter);
 
 #endif
 
@@ -2470,11 +2471,11 @@ void window_load_cgm(Window *window_cgm)
 	date_app_layer = text_layer_create(GRect(0, 124, 143, 29));
 	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
 	// phone/bridge batter level layer diemnsions
-	battlevel_layer = text_layer_create(GRect(0, 148, 59, 18));
-	text_layer_set_text_alignment(battlevel_layer, GTextAlignmentLeft);
+	bottom_left_text_layer = text_layer_create(GRect(0, 148, 59, 18));
+	text_layer_set_text_alignment(bottom_left_text_layer, GTextAlignmentLeft);
 	// watch battery level layer dimensions
-	watch_battlevel_layer = text_layer_create(GRect(81, 148, 59, 18));
-	text_layer_set_text_alignment(watch_battlevel_layer, GTextAlignmentRight);
+	bottom_right_text_layer = text_layer_create(GRect(81, 148, 59, 18));
+	text_layer_set_text_alignment(bottom_right_text_layer, GTextAlignmentRight);
 
 #endif
 
@@ -2519,11 +2520,11 @@ void window_load_cgm(Window *window_cgm)
 	}
 	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
 	// phone/bridge batter level layer diemnsions
-	battlevel_layer = text_layer_create(GRect(2, 203, 100, 24));
-	text_layer_set_text_alignment(battlevel_layer, GTextAlignmentLeft);
+	bottom_left_text_layer = text_layer_create(GRect(2, 203, 100, 24));
+	text_layer_set_text_alignment(bottom_left_text_layer, GTextAlignmentLeft);
 	// watch battery level layer dimensions
-	watch_battlevel_layer = text_layer_create(GRect(98, 203, 100, 24));
-	text_layer_set_text_alignment(watch_battlevel_layer, GTextAlignmentRight);
+	bottom_right_text_layer = text_layer_create(GRect(98, 203, 100, 24));
+	text_layer_set_text_alignment(bottom_right_text_layer, GTextAlignmentRight);
 
 #endif
 
@@ -2558,11 +2559,11 @@ void window_load_cgm(Window *window_cgm)
 	date_app_layer = text_layer_create(GRect(0, 124, 143, 29));
 	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
 	// phone/bridge batter level layer diemnsions
-	battlevel_layer = text_layer_create(GRect(0, 148, 59, 18));
-	text_layer_set_text_alignment(battlevel_layer, GTextAlignmentLeft);
+	bottom_left_text_layer = text_layer_create(GRect(0, 148, 59, 18));
+	text_layer_set_text_alignment(bottom_left_text_layer, GTextAlignmentLeft);
 	// watch battery level layer dimensions
-	watch_battlevel_layer = text_layer_create(GRect(81, 148, 59, 18));
-	text_layer_set_text_alignment(watch_battlevel_layer, GTextAlignmentRight);
+	bottom_right_text_layer = text_layer_create(GRect(81, 148, 59, 18));
+	text_layer_set_text_alignment(bottom_right_text_layer, GTextAlignmentRight);
 
 #endif
 
@@ -2601,11 +2602,11 @@ void window_load_cgm(Window *window_cgm)
 	date_app_layer = text_layer_create(         GRect( 26, 178, 206,  38));
 	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
 	// phone/bridge batter level layer diemnsions
-	battlevel_layer = text_layer_create(        GRect( 69, 236,  130,  26));
-	text_layer_set_text_alignment(battlevel_layer, GTextAlignmentLeft);
+	bottom_left_text_layer = text_layer_create(        GRect( 69, 236,  130,  26));
+	text_layer_set_text_alignment(bottom_left_text_layer, GTextAlignmentLeft);
 	// watch battery level layer dimensions
-	watch_battlevel_layer = text_layer_create(  GRect( 65, 210,  130,  26));
-	text_layer_set_text_alignment(watch_battlevel_layer, GTextAlignmentCenter);
+	bottom_right_text_layer = text_layer_create(  GRect( 65, 210,  130,  26));
+	text_layer_set_text_alignment(bottom_right_text_layer, GTextAlignmentCenter);
 
 #endif
 
@@ -2723,51 +2724,51 @@ void window_load_cgm(Window *window_cgm)
 
 	// PHONE BATTERY LEVEL
 	LOG("Creating Phone Battery Text layer");
-	text_layer_set_text_color(battlevel_layer, GColorMintGreen);
-	text_layer_set_background_color(battlevel_layer, GColorClear);
-	text_layer_set_font(battlevel_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
-//	text_layer_set_text_alignment(battlevel_layer, GTextAlignmentLeft);
-	layer_add_child(window_layer_cgm, text_layer_get_layer(battlevel_layer));
-	LOG("battlevel_layer; %s", text_layer_get_text(battlevel_layer));
+	text_layer_set_text_color(bottom_left_text_layer, GColorMintGreen);
+	text_layer_set_background_color(bottom_left_text_layer, GColorClear);
+	text_layer_set_font(bottom_left_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+//	text_layer_set_text_alignment(bottom_left_text_layer, GTextAlignmentLeft);
+	layer_add_child(window_layer_cgm, text_layer_get_layer(bottom_left_text_layer));
+	LOG("bottom_left_text_layer; %s", text_layer_get_text(bottom_left_text_layer));
 
 
 	// WATCH BATTERY LEVEL
 	LOG("Creating Watch Battery Text layer");
 	BatteryChargeState charge_state=battery_state_service_peek();
-	text_layer_set_font(watch_battlevel_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+	text_layer_set_font(bottom_right_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
 /*
 #ifdef PBL_ROUND
-	text_layer_set_text_alignment(watch_battlevel_layer, GTextAlignmentCenter);
+	text_layer_set_text_alignment(bottom_right_text_layer, GTextAlignmentCenter);
 #else
-	text_layer_set_text_alignment(watch_battlevel_layer, GTextAlignmentRight);
+	text_layer_set_text_alignment(bottom_right_text_layer, GTextAlignmentRight);
 #endif
 */
 #ifdef PBL_COLOR
 	if(charge_state.is_charging)
 	{
-		text_layer_set_text_color(watch_battlevel_layer, GColorDukeBlue);
-		text_layer_set_background_color(watch_battlevel_layer, GColorGreen);
+		text_layer_set_text_color(bottom_right_text_layer, GColorDukeBlue);
+		text_layer_set_background_color(bottom_right_text_layer, GColorGreen);
 	}
 	else
 	{
-		text_layer_set_text_color(watch_battlevel_layer, GColorMintGreen);
-		text_layer_set_background_color(watch_battlevel_layer, GColorClear);
+		text_layer_set_text_color(bottom_right_text_layer, GColorMintGreen);
+		text_layer_set_background_color(bottom_right_text_layer, GColorClear);
 	}
 #else
 	if(charge_state.is_charging)
 	{
-		text_layer_set_text_color(watch_battlevel_layer, GColorBlack);
-		text_layer_set_background_color(watch_battlevel_layer, GColorWhite);
+		text_layer_set_text_color(bottom_right_text_layer, GColorBlack);
+		text_layer_set_background_color(bottom_right_text_layer, GColorWhite);
 	}
 	else
 	{
-		text_layer_set_text_color(watch_battlevel_layer, GColorWhite);
-		text_layer_set_background_color(watch_battlevel_layer, GColorBlack);
+		text_layer_set_text_color(bottom_right_text_layer, GColorWhite);
+		text_layer_set_background_color(bottom_right_text_layer, GColorBlack);
 	}
 #endif
-	layer_add_child(window_layer_cgm, text_layer_get_layer(watch_battlevel_layer));
+	layer_add_child(window_layer_cgm, text_layer_get_layer(bottom_right_text_layer));
 	battery_handler(charge_state);
-	LOG("watch_battlevel_layer; %s", text_layer_get_text(watch_battlevel_layer));
+	LOG("bottom_right_text_layer; %s", text_layer_get_text(bottom_right_text_layer));
 
 	// put " " (space) in bg field so logo continues to show
 	// " " (space) also shows these are init values, not bad or null values
@@ -2829,8 +2830,8 @@ void window_unload_cgm(Window *window_cgm)
 	if(cgmtime_layer != NULL) destroy_null_TextLayer(&cgmtime_layer);
 	if(delta_layer != NULL) destroy_null_TextLayer(&delta_layer);
 	if(message_layer != NULL) destroy_null_TextLayer(&message_layer);
-	if(battlevel_layer != NULL) destroy_null_TextLayer(&battlevel_layer);
-	if(watch_battlevel_layer != NULL) destroy_null_TextLayer(&watch_battlevel_layer);
+	if(bottom_left_text_layer != NULL) destroy_null_TextLayer(&bottom_left_text_layer);
+	if(bottom_right_text_layer != NULL) destroy_null_TextLayer(&bottom_right_text_layer);
 	if(time_watch_layer != NULL) destroy_null_TextLayer(&time_watch_layer);
 	if(date_app_layer != NULL) destroy_null_TextLayer(&date_app_layer);
 
