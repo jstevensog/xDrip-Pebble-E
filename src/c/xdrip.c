@@ -1,14 +1,16 @@
 #include "pebble.h"
 
 
-/* The line below will set the debug message level.
-Make sure you set this to 0 before building a release. */
 
 // Scope debug to cleanup debug ifdefs
 
 #define DEBUG_APP_TRACE 3
 #define DEBUG_APP_DEBUG 2
 #define DEBUG_APP_INFO 1
+
+/* The line below will set the debug message level.
+Make sure you set this to 0 before building a release. */
+#define DEBUG_LEVEL 0
 
 /* #define DEBUG_LEVEL DEBUG_APP_TRACE  */
 
@@ -28,7 +30,7 @@ Make sure you set this to 0 before building a release. */
 #define INFO(...)
 #endif
 #if defined(DEBUG_LEVEL)
-#define LOG(...) APP_LOG(APP_LOG_LEVEL_INFO, __VA_ARGS__)
+#define LOG(...) 
 #else
 #define LOG(...)
 #endif
