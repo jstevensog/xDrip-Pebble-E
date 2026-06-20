@@ -29,13 +29,16 @@ As of this version, the following settings are available.
  * Same background top and bottom - Sets the same background colour top and bottom.
  * Foreground Colour - Colour to use for "light" sections of the display.  Default white.  Only useful for Basalt, Chalk, and Emery
  * Background Colour - Colour to use for "Dark" sections of the display.  Default Duke Blue.  Only useful for Basalt, Chalk, and Emery
+<<<<<<< HEAD
+=======
+ * Message timer - Seconds between each check for displaying the message / delta. This is done to avoid having to use the seconds timer for everything increasing the system/battery load. Default is 15 seconds (5-60s)
+>>>>>>> origin/master
 The above settings are stored in the watch, and persist between watch face transitions.
 
-To Do:
- * I am working on a watch face framework that will allow other developers to enhance and expand the number and styles of watch faces in xDrip.
- * Move most settings in xDrip into persistent settings in the watch face.  This will allow watch faces to request the items they want from xDrip.  ie, Trend size, Trend lines, Delta, Arrows, etc.
- * Add settings to select font sizes for some display components.
- * Add automation of display components, such that if a component is turned off, or it's font size is changed, components will dynamically reposition to make the best possible use of the available screen realestate.
+Build Environment:
+* Pebble Tool: latest 
+* SDK: latest  
+* Clay: @rebble/clay latest v1.0 or later
 
 Plan for Multiple Apps.
  * Apps will be identified in xDrip settings as their name/version.  This will set a string that matches the PBL_APP_VER key that is sent when the Pebble requests an update or responds to xDrip.  The xDrip Pebble watch face settings will also set the watch face/app UUID in settings.  No two watch faces can have the same UUID.
@@ -47,6 +50,20 @@ Build Environment:
 * Clay: @rebble/clay latest v1.0 or later
 
 Change Log:
+20260620 - Built with latest SDK.
+
+20260609 - Refactored code, fixed outstanding issues and made it nicer to watch on a PT2 display.
+* Fixed issues with wrong x/y width/height values on PT2, PD2, Gabbro
+* Fixed Gabbro face to look like the one for the PR
+* Moved seconds timer and message display timer into their own functions to avoid waking every second when seconds is off (this should reduce battery load)
+* Removed most ifdefs for debug messages and replaced them with vararg macros 
+* Added 60pt font
+* Dynamic 40pt/60pt font for PT2 without/with seconds enabled. This also moves the date to accomodate a bit more screenspace niceness
+* Increased size of the CGM Time value to make it readable for those without microscopic vision
+* Moved all text 1 or 2 pixels from the border
+* Fixed bounding box on PT, for some reason on the latest SDK it would otherwise render some text patially off screen
+* Switched green to brightgreen to increase contrast
+
 20260227 - This is a refactor of the oringinal code to build with SDK v4.9.127 and add initial support for Gabbro (Core Round 2).
 Notes:
 * Gabbro will look strange as none of the bitmap or text layers have been resized from Clay as yet.  Also, it is not tested. This will be fixed in later releases.
