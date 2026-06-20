@@ -11,7 +11,6 @@
 
 /* The line below will set the debug message level.
 Make sure you set this to 0 or DEBUG_APP_NONE before building a release. */
-#define DEBUG_LEVEL DEBUG_APP_NONE
 
 /* #define DEBUG_LEVEL DEBUG_APP_TRACE  */
 
@@ -31,7 +30,7 @@ Make sure you set this to 0 or DEBUG_APP_NONE before building a release. */
 #define INFO(...)
 #endif
 #if defined(DEBUG_LEVEL)
-#define LOG(...) 
+#define LOG(...) APP_LOG(APP_LOG_LEVEL_INFO, __VA_ARGS__)
 #else
 #define LOG(...)
 #endif
@@ -281,6 +280,9 @@ static bool TurnOffStrongVibrations = false;
 //Control Backlight
 static bool BacklightOnCharge = false;
 
+//Control TimeAgo text boldness
+static bool TimeAgoBold = false;
+
 // Bluetooth Timer Wait Time, in Seconds
 // RANGE 0-240
 // THIS IS ONLY FOR BAD BLUETOOTH CONNECTIONS
@@ -299,33 +301,36 @@ static const uint8_t LOADING_MSGSEND_SECS = 2;
 static uint8_t minutes_cgm = 0;
 
 
-#define	CGM_ICON_KEY			0		// TUPLE_CSTRING, MAX 2 BYTES (10)
-#define	CGM_BG_KEY				1		// TUPLE_CSTRING, MAX 4 BYTES (253 OR 22.2)
-#define	CGM_TCGM_KEY			2		// TUPLE_INT, 4 BYTES (CGM TIME)
-#define	CGM_TAPP_KEY			3		// TUPLE_INT, 4 BYTES (APP / PHONE TIME)
-#define	CGM_DLTA_KEY			4		// TUPLE_CSTRING, MAX 5 BYTES (BG DELTA, -100 or -10.0)
-#define	CGM_UBAT_KEY			5		// TUPLE_CSTRING, MAX 3 BYTES (UPLOADER BATTERY, 100)
-#define	CGM_NAME_KEY			6		// TUPLE_CSTRING, MAX 9 BYTES (Christine)
+#define	CGM_ICON_KEY			0	// TUPLE_CSTRING, MAX 2 BYTES (10)
+#define	CGM_BG_KEY			1	// TUPLE_CSTRING, MAX 4 BYTES (253 OR 22.2)
+#define	CGM_TCGM_KEY			2	// TUPLE_INT, 4 BYTES (CGM TIME)
+#define	CGM_TAPP_KEY			3	// TUPLE_INT, 4 BYTES (APP / PHONE TIME)
+#define	CGM_DLTA_KEY			4	// TUPLE_CSTRING, MAX 5 BYTES (BG DELTA, -100 or -10.0)
+#define	CGM_UBAT_KEY			5	// TUPLE_CSTRING, MAX 3 BYTES (UPLOADER BATTERY, 100)
+#define	CGM_NAME_KEY			6	// TUPLE_CSTRING, MAX 9 BYTES (Christine)
 #define	CGM_TREND_BEGIN_KEY 	7		// TUPLE_INT, 4 BYTES (length of CGM_TREND_DATA_KEY
-#define	CGM_TREND_DATA_KEY		8		// TUPLE_BYTE[], No Maximum, based on value found in CGM_TREND_DATA_KEY
-#define	CGM_TREND_END_KEY 		9		// TUPLE_INT, always 0.
-#define CGM_MESSAGE_KEY			10
-#define CGM_VIBE_KEY			11
-#define SET_DISP_SECS			100		// Setting key - Display Seconds
-#define SET_FG_COLOUR			101		// Setting key - Foreground Colour
-#define SET_BG_COLOUR			102		// Setting key - Background Colour 
-#define SET_VIBE_REPEAT			103		// Setting key - Vibration Repeat
-#define SET_NO_VIBE				104		// Setting key - No Vibrations
-#define SET_LIGHT_ON_CHG		105		// Setting key - Backlight on when charging
-#define SET_SAMECOLOUR			106		// Setting key - Same Colours top and bottom
-#define SET_NO_DELTA			107		// Setting key - Do not display the Delta value
-#define SET_NO_ARROWS			108		// Setting key - Do not show arrows
-#define SET_HIGH_LINE			110		// Setting key - Enable High line on graph.
-#define SET_LOW_LINE			111		// Setting key - Enable Low line on graph.
-#define SET_MESSAGE_TIMEOUT     113     // Setting key - Message timeout
+#define	CGM_TREND_DATA_KEY		8	// TUPLE_BYTE[], No Maximum, based on value found in CGM_TREND_DATA_KEY
+#define	CGM_TREND_END_KEY 		9	// TUPLE_INT, always 0.
+#define CGM_MESSAGE_KEY			10	// TUPLE_CSTRING, Message to display flashing in mid screen
+#define CGM_VIBE_KEY			11	// TUPLE_INT, Vibe pattern to alert with
+#define SET_DISP_SECS			100	// Setting key - Display Seconds
+#define SET_FG_COLOUR			101	// Setting key - Foreground Colour
+#define SET_BG_COLOUR			102	// Setting key - Background Colour 
+#define SET_VIBE_REPEAT			103	// Setting key - Vibration Repeat
+#define SET_NO_VIBE			104	// Setting key - No Vibrations
+#define SET_LIGHT_ON_CHG		105	// Setting key - Backlight on when charging
+#define SET_SAMECOLOUR			106	// Setting key - Same Colours top and bottom
+#define SET_NO_DELTA			107	// Setting key - Do not display the Delta value
+#define SET_NO_ARROWS			108	// Setting key - Do not show arrows
+#define SET_HIGH_LINE			110	// Setting key - Enable High line on graph.
+#define SET_LOW_LINE			111	// Setting key - Enable Low line on graph.
+#define SET_MESSAGE_TIMEOUT     	113     // Setting key - Message timeout
+#define SET_BOLD_TIMEAGO		114	// Setting key - Meke the TimeAgo text bold if true
+#define SET_BOTTOM_LEFT_TEXT		115	// Setting key - What to display in the bottom left text field
+#define SET_BOTTOM_RIGHT_TEXT		116	// Setting key - What to display in the bottom right text field
 #define CGM_SYNC_KEY			1000	// key pebble will use to request an update.  This should probably include the "capabilities" bits
 #define PBL_PLATFORM			1001	// key pebble will use to send it's platform  This is probably not required under the new famework.
-#define PBL_APP_VER				1002	// key pebble will use to send the face/app version.  This is probably not required under the new framework.
+#define PBL_APP_VER			1002	// key pebble will use to send the face/app version.  This is probably not required under the new framework.
 #define PBL_TREND_SIZE			1003	// key pebble will use to send trend image size.
 #define PBL_TREND_LINES			1004	// key pebble will use to send trend line options.
 #define PBL_DISP_OPTS			1005	// key pebble will use to send display options (delta/arrows).
@@ -1787,27 +1792,27 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 
 	while ((data != NULL) && (!global_lock))
 	{
-	    LOG("inbox_received_callback_cgm: key is %lu", data->key);
+		LOG("inbox_received_callback_cgm: key is %lu", data->key);
 		switch (data->key)
 		{
 
 			case CGM_ICON_KEY:
 			;
-	            LOG("SYNC TUPLE: ICON ARROW");
+				LOG("SYNC TUPLE: ICON ARROW");
 				strncpy(current_icon, data->value->cstring, ICON_MSGSTR_SIZE);
 				load_icon();
 			break; // break for CGM_ICON_KEY
 
 			case CGM_BG_KEY:
 			;
-	            LOG("SYNC TUPLE: BG CURRENT");
+				LOG("SYNC TUPLE: BG CURRENT");
 				strncpy(last_bg, data->value->cstring, BG_MSGSTR_SIZE);
 				load_bg();
 			break; // break for CGM_BG_KEY
 
 			case CGM_TCGM_KEY:
 			;
-	            LOG("SYNC TUPLE: READ CGM TIME");
+				LOG("SYNC TUPLE: READ CGM TIME");
 				current_cgm_time = data->value->uint32;
 				load_cgmtime();
 				// as long as current_cgm_time is not zero, we know we have gotten an update from the app,
@@ -1821,13 +1826,13 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 			case CGM_DLTA_KEY:
 			;
 				strncpy(current_bg_delta, data->value->cstring, BGDELTA_MSGSTR_SIZE);
-	            LOG("SYNC TUPLE: BG DELTA - %s", current_bg_delta);
+				LOG("SYNC TUPLE: BG DELTA - %s", current_bg_delta);
 				load_bg_delta();
 			break; // break for CGM_DLTA_KEY
 
 			case CGM_UBAT_KEY:
 			;
-	            LOG("SYNC TUPLE: UPLOADER BATTERY LEVEL");
+				LOG("SYNC TUPLE: UPLOADER BATTERY LEVEL");
 				TRACE("SYNC TUPLE: BATTERY LEVEL IN, COPY LAST BATTLEVEL");
 				strncpy(last_battlevel, data->value->cstring, BATTLEVEL_MSGSTR_SIZE);
 				TRACE("SYNC TUPLE: BATTERY LEVEL, CALL LOAD BATTLEVEL");
@@ -1838,13 +1843,13 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 
 			case CGM_TREND_BEGIN_KEY:
 				expected_trend_buffer_length = data->value->uint16;
-	            LOG("TREND_BEGIN; About to receive Trend Image of %i size.", expected_trend_buffer_length);
+				LOG("TREND_BEGIN; About to receive Trend Image of %i size.", expected_trend_buffer_length);
 				if(trend_buffer)
 				{
-	                LOG("TREND_BEGIN; Freeing trend_buffer.");
+					LOG("TREND_BEGIN; Freeing trend_buffer.");
 					free(trend_buffer);
 				}
-	            LOG("TREND_BEGIN; Allocating trend_buffer.");
+				LOG("TREND_BEGIN; Allocating trend_buffer.");
 				trend_buffer = malloc(expected_trend_buffer_length);
 				trend_buffer_length = 0;
 				if(trend_buffer == NULL)
@@ -1855,18 +1860,18 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 				DEBUG("TREND_BEGIN: trend_buffer is %lx, trend_buffer_length is %i", (uint32_t)trend_buffer, trend_buffer_length);
 			break;
 			case CGM_TREND_DATA_KEY:
-	            LOG("TREND_DATA: receiving Trend Image chunk");
+				LOG("TREND_DATA: receiving Trend Image chunk");
 				if(trend_buffer)
 				{
 					if ((trend_buffer_length + data->length) <= expected_trend_buffer_length)
 					{
 						memcpy((trend_buffer+trend_buffer_length), data->value->data, data->length);
 						trend_buffer_length += data->length;
-	                    LOG("TREND_DATA: received %u of %u so far", trend_buffer_length, expected_trend_buffer_length);
+						LOG("TREND_DATA: received %u of %u so far", trend_buffer_length, expected_trend_buffer_length);
 					}
 					else
 					{
-	                    LOG("TREND_DATA: EXCEEDED BUFFER received %u of %u so far", trend_buffer_length, expected_trend_buffer_length);
+						LOG("TREND_DATA: EXCEEDED BUFFER received %u of %u so far", trend_buffer_length, expected_trend_buffer_length);
 
 					}
 				}
@@ -1880,13 +1885,13 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 			case CGM_TREND_END_KEY:
 				if(!doing_trend)
 				{
-	                LOG("Got a TREND_END without TREND_START");
+					LOG("Got a TREND_END without TREND_START");
 					break;
 				}
-	            LOG("Finished receiving Trend Image");
+				LOG("Finished receiving Trend Image");
 				if(bg_trend_bitmap != NULL)
 				{
-	                INFO("Destroying bg_trend_bitmap");
+					INFO("Destroying bg_trend_bitmap");
 					gbitmap_destroy(bg_trend_bitmap);
 					bg_trend_bitmap = NULL;
 				}
@@ -1905,7 +1910,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 
 				if(bg_trend_bitmap != NULL)
 				{
-	                LOG("bg_trend_bitmap created, setting to layer");
+					LOG("bg_trend_bitmap created, setting to layer");
 					bitmap_layer_set_bitmap(bg_trend_layer, bg_trend_bitmap);
 				}
 
@@ -1915,20 +1920,20 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 				}
 				if (trend_buffer)
 				{
-	                LOG("Free trend buffer 2");
+					LOG("Free trend buffer 2");
 					free(trend_buffer);
 					trend_buffer = NULL;
 				}
 			break;
 
 			case CGM_MESSAGE_KEY:
-	            LOG("Got Message Key, message is \"%s\"", data->value->cstring);
+				LOG("Got Message Key, message is \"%s\"", data->value->cstring);
 				snprintf(message_layer_text,sizeof(message_layer_text),"%s",data->value->cstring);
 				//text_layer_set_text(message_layer,data->value->cstring);
 				text_layer_set_text(message_layer,message_layer_text);
 				if(strcmp(data->value->cstring, "")==0)
 				{
-	                LOG("Setting message_layer hidden");
+					LOG("Setting message_layer hidden");
 					display_message = false;
 					layer_set_hidden((Layer *)message_layer, true);
 #if defined(PBL_PLATFORM_APLITE) || defined(PBL_PLATFORM_CHALK) || defined(PBL_PLATFORM_DIORITE) || defined(PBL_PLATFORM_FLINT)
@@ -1937,7 +1942,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 				}
 				else
 				{
-	                LOG("Setting message_layer visible");
+					LOG("Setting message_layer visible");
 					display_message = true;
 					layer_set_hidden((Layer *)message_layer, false);
 #if defined(PBL_PLATFORM_APLITE) || defined(PBL_PLATFORM_CHALK) || defined(PBL_PLATFORM_DIORITE) || defined(PBL_PLATFORM_FLINT)
@@ -1947,7 +1952,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 			break;
 
 			case CGM_VIBE_KEY:
-	            LOG("Got Vibe Key, message is \"%u\"", data->value->uint8);
+				LOG("Got Vibe Key, message is \"%u\"", data->value->uint8);
 				if((data->value->uint8 > 0 || data->value->uint8 <4) && ! BluetoothAlert)
 				{
 					alert_handler_cgm(data->value->uint8);
@@ -1955,12 +1960,12 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 			break;
 
 			case CGM_SYNC_KEY:
-	            LOG("Got Sync Key, message is \"%u\"", data->value->uint8);
+				LOG("Got Sync Key, message is \"%u\"", data->value->uint8);
 				send_cmd_cgm();
 			break;
 			
 			case SET_SAMECOLOUR:
-	            LOG("Got SET_SAMECOLOUR Key, message is \"%u\"", data->value->uint8);
+				LOG("Got SET_SAMECOLOUR Key, message is \"%u\"", data->value->uint8);
 				SameColourTopAndBottom = data->value->uint8;
 				persist_write_int(SET_SAMECOLOUR, data->value->uint8);
 #ifdef PBL_COLOR
@@ -1975,7 +1980,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 			break;
 
 			case SET_FG_COLOUR:
-	            LOG("Got foreground Key, message is \"%lx\"", data->value->uint32);
+				LOG("Got foreground Key, message is \"%lx\"", data->value->uint32);
 #ifdef PBL_COLOR
 				fg_colour = GColorFromHEX(data->value->uint32);
 				persist_write_int(SET_FG_COLOUR, data->value->uint32);
@@ -1984,7 +1989,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 			break;
 
 			case SET_BG_COLOUR:
-	            LOG("Got background Key, message is \"%lx\"", data->value->uint32);
+				LOG("Got background Key, message is \"%lx\"", data->value->uint32);
 #ifdef PBL_COLOR
 				bg_colour = GColorFromHEX(data->value->uint32);
 				persist_write_int(SET_BG_COLOUR, data->value->uint32);
@@ -1993,34 +1998,34 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 			break;
 
 			case SET_DISP_SECS:
-	            LOG("Got dispsecs Key, message is \"%u\"", data->value->uint8);
+				LOG("Got dispsecs Key, message is \"%u\"", data->value->uint8);
 				if(data->value->uint8 > 0)
 				{
-	                if (!display_seconds) {
-	                    // register second timer
-	                    tick_timer_service_subscribe(SECOND_UNIT, &handle_second_tick_cgm);
-	                    // resize time and date layer iff PT2
-	                    if (HIGH_RES()) {
-	                        layer_set_frame((Layer *) time_watch_layer, GRect(0, 121, 200, 60));
-	                        layer_set_frame((Layer *) date_app_layer, GRect(0, 168, 200, 39));
-	                    }
-	                }
+					if (!display_seconds) {
+						// register second timer
+						tick_timer_service_subscribe(SECOND_UNIT, &handle_second_tick_cgm);
+						// resize time and date layer iff PT2
+						if (HIGH_RES()) {
+							layer_set_frame((Layer *) time_watch_layer, GRect(0, 121, 200, 60));
+							layer_set_frame((Layer *) date_app_layer, GRect(0, 168, 200, 39));
+						}
+					}
 					display_seconds = true;
 					time_font = time_font_small;
 				}
 				else
 				{
-	                if (display_seconds) {
-	                    // unsub seconds timer to save power
-	                    tick_timer_service_unsubscribe();
-	                    tick_timer_service_subscribe(MINUTE_UNIT, &handle_minute_tick_cgm);
-	                    // reset layers
+					if (display_seconds) {
+						// unsub seconds timer to save power
+						tick_timer_service_unsubscribe();
+						tick_timer_service_subscribe(MINUTE_UNIT, &handle_minute_tick_cgm);
+						// reset layers
 
-	                    if (HIGH_RES()) {
-	                        layer_set_frame((Layer *) time_watch_layer, GRect(0, 111, 200, 60));
-	                        layer_set_frame((Layer *) date_app_layer, GRect(0, 176, 200, 39));
-	                    }
-	                }
+						if (HIGH_RES()) {
+							layer_set_frame((Layer *) time_watch_layer, GRect(0, 111, 200, 60));
+							layer_set_frame((Layer *) date_app_layer, GRect(0, 176, 200, 39));
+						}
+					}
 					display_seconds = false;
 					time_font = time_font_normal;
 				}
@@ -2053,7 +2058,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 
 
 			case SET_VIBE_REPEAT:
-	            LOG("Got background Key, message is \"%lx\"", data->value->uint32);
+				LOG("Got background Key, message is \"%lx\"", data->value->uint32);
 				if(data->value->uint8 > 0)
 				{
 					vibe_repeat = true;
@@ -2066,7 +2071,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 			break;
 
 			case SET_NO_VIBE:
-	            LOG("Got No Vibe Key, message is \"%lx\"", data->value->uint32);
+				LOG("Got No Vibe Key, message is \"%lx\"", data->value->uint32);
 				if(data->value->uint8 > 0)
 				{
 					TurnOffAllVibrations = true;
@@ -2079,7 +2084,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 			break;
 
 			case SET_LIGHT_ON_CHG:
-	            LOG("Got Backlight on Charge key, message is \"%lx\"", data->value->uint32);
+				LOG("Got Backlight on Charge key, message is \"%lx\"", data->value->uint32);
 				if(data->value->uint8 > 0)
 				{
 					BacklightOnCharge = true;
@@ -2091,19 +2096,40 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 				persist_write_bool(SET_LIGHT_ON_CHG, BacklightOnCharge);
 			break;
 
-	        case SET_MESSAGE_TIMEOUT:
-	            LOG("Got message timeout, message is \"%lx\"", data->value->uint32);
-	            message_tick_timeout = data->value->uint32 * 1000;
-	            if (!app_timer_reschedule(message_tick_timer, message_tick_timeout)) {
-	                message_tick_timer = app_timer_register(message_tick_timeout, handle_message_tick, NULL);
-	            }
-	            break;
-	            persist_write_int(SET_MESSAGE_TIMEOUT, message_tick_timeout);
+			case SET_MESSAGE_TIMEOUT:
+				LOG("Got message timeout, message is \"%lx\"", data->value->uint32);
+				message_tick_timeout = data->value->uint32 * 1000;
+				if (!app_timer_reschedule(message_tick_timer, message_tick_timeout)) {
+					message_tick_timer = app_timer_register(message_tick_timeout, handle_message_tick, NULL);
+				}
+				persist_write_int(SET_MESSAGE_TIMEOUT, message_tick_timeout);
+			break;
+
+			case SET_BOLD_TIMEAGO:
+				LOG("Got timeago bold, message is \"%lx\"", data->value->uint32);
+				if(data->value->uint8 > 0) {
+					TimeAgoBold = true;
+				}
+				else
+				{
+					TimeAgoBold = false;
+				}
+				persist_write_bool(SET_BOLD_TIMEAGO, TimeAgoBold);
+				LOG("Setting TimeAgoBold to \"%lx\"", TimeAgoBold);
+				if(TimeAgoBold) {
+					text_layer_set_font(cgmtime_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
+				}
+				else
+				{
+					text_layer_set_font(cgmtime_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28));
+				}
+			break;
+
 			default:
-	            LOG("sync_tuple_cgm_callback: Dictionary Key not recognised");
+				LOG("sync_tuple_cgm_callback: Dictionary Key not recognised");
 			break;
 		}
-			// end switch(key)
+		// end switch(key)
 		data = dict_read_next(iterator);
 	}
 } // end sync_tuple_changed_callback_cgm()
@@ -2638,7 +2664,13 @@ void window_load_cgm(Window *window_cgm)
 	text_layer_set_background_color(bg_layer, GColorClear);
 	text_layer_set_font(bg_layer, fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD));
 	text_layer_set_background_color(cgmtime_layer, GColorClear);
-	text_layer_set_font(cgmtime_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
+	if(TimeAgoBold) {
+		text_layer_set_font(cgmtime_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
+	}
+	else
+	{
+		text_layer_set_font(cgmtime_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28));
+	}
 	text_layer_set_text_color(time_watch_layer, fg_colour);
 	text_layer_set_background_color(time_watch_layer, GColorClear);
 	text_layer_set_font(time_watch_layer,time_font);

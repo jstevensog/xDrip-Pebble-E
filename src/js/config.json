@@ -38,6 +38,12 @@
     "defaultValue": false
   },
   {
+    "type": "toggle",
+    "messageKey": "boldtimeago",
+    "label": "Make the Time Ago reading bold",
+    "defaultValue": false
+  },
+  {
     "type": "color",
     "messageKey": "foreground",
     "defaultValue": "ffffff",
