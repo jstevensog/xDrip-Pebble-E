@@ -88,7 +88,6 @@ const uint8_t PLATFORM = 6;
 
 #define HIGH_RES() (PBL_PLATFORM_TYPE_CURRENT >= PlatformTypeEmery)
 
-
 GBitmap *icon_bitmap = NULL;
 GBitmap *appicon_bitmap = NULL;
 GBitmap *specialvalue_bitmap = NULL;
@@ -1469,9 +1468,19 @@ static void load_cgmtime()
          *
          * To avoid this issue we use the tm_gmtoff which should always be the
          * local offset from UTC.
+         *
+         * This only works with the new SDK so we detect the old pebbles and use 
+         * the old method.
          */
-        struct tm *lc_tm = localtime(&time_now);
-		time_now = abs(time_now + lc_tm->tm_gmtoff);
+        if (watch_info_get_model() > WATCH_INFO_MODEL_PEBBLE_TIME_2) {
+            // all old models with old firmware (for now unless updated?)
+            // should not contain core devices models
+            struct tm *lc_tm = localtime(&time_now);
+            time_now = abs(time_now + lc_tm->tm_gmtoff);
+        } else {
+            // old models can use get_UTC_offset
+            time_now = abs(time_now + get_UTC_offset(localtime(&time_now)));
+        }
         TRACE("LOAD CGMTIME, UTC OFFSET: %lu", lc_tm->tm_gmtoff);
 		TRACE("LOAD CGMTIME, CURRENT CGM TIME: %lu", current_cgm_time);
         LOG("LOAD CGMTIME, time_now: %lu, current_cgm_time: %lu", time_now, current_cgm_time);
