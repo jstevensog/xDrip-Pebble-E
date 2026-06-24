@@ -69,62 +69,76 @@
       "step": 5,
       "description": "seconds"
   },
-   { 
-	"type": "select",
-	"id": "bottomLeft",
-	"messageKey": "bottomlefttext",
-	"label": "Bottom Left Metric",
-	"defaultValue": "pbatt",
-	"options": [
-		{
-			"label": "Phone Battery",
-			"value": "pbatt"
-		},
-		{
-			"label": "Watch Battery",
-			"value": "wbatt"
-		},
-		{
-			"label": "Step Count",
-			"value": "steps",
-			"capabilities": "HEALTH"
-		},
-		{
-			"label": "Heart Rate",
-			"value": "hr",
-			"capabilities": ["PLATFORM_DIORITE","PLATFORM_EMERY","PLATFORM_FLINT","PLATFROM_GABBRO"]
-		}
-	]
-  },
   {
-	"type": "select",
-	"id": "bottomRight",
-	"messageKey": "bottomrighttext",
-	"defaultValue": "wbatt",
-	"label": "Bottom Right Metric",
-	"options": [
-		{
-			"label": "",
-			"value": ""
-		},
-		{
-			"label": "Phone Battery",
-			"value": "pbatt"
-		},
-		{
-			"label": "Watch Battery",
-			"value": "wbatt"
-		},
-		{
-			"label": "Step Count",
-			"value": "steps"
-		},
-		{
-			"label": "Heart Rate",
-			"value": "hr",
-			"capabilities": ["PLATFORM_DIORITE","PLATFORM_EMERY","PLATFORM_FLINT","PLATFROM_GABBRO"]
-		}
-	]
+	  "type": "section",
+	  "items": [
+		  {
+			  "type": "heading",
+			  "defaultValue": "Lower Screen Metrics"
+		  },
+		  { 
+			"type": "select",
+			"id": "bottomLeft",
+			"messageKey": "bottomlefttext",
+			"label": "Bottom Left Metric",
+			"defaultValue": "pb",
+			"options": [
+				{
+					"label": "",
+					"value": ""
+				},
+				{
+					"label": "Phone Battery",
+					"value": "pb"
+				},
+				{
+					"label": "Watch Battery",
+					"value": "wb"
+				},
+				{
+					"label": "Step Count",
+					"value": "sc",
+					"capabilities": "HEALTH"
+				},
+				{
+					"label": "Heart Rate",
+					"value": "hr",
+					"capabilities": ["PLATFORM_DIORITE","PLATFORM_EMERY","PLATFORM_FLINT","PLATFROM_GABBRO"]
+				}
+			]
+		  },
+		  {
+			"type": "select",
+			"id": "bottomRight",
+			"messageKey": "bottomrighttext",
+			"defaultValue": "wb",
+			"label": "Bottom Right Metric",
+			"options": [
+				{
+					"label": "",
+					"value": ""
+				},
+				{
+					"label": "Phone Battery",
+					"value": "pb"
+				},
+				{
+					"label": "Watch Battery",
+					"value": "wb"
+				},
+				{
+					"label": "Step Count",
+					"value": "sc",
+					"capabilities": "HEALTH"
+				},
+				{
+					"label": "Heart Rate",
+					"value": "hr",
+					"capabilities": ["PLATFORM_DIORITE","PLATFORM_EMERY","PLATFORM_FLINT","PLATFROM_GABBRO"]
+				}
+			]
+		  }
+		]
   },
   {
     "type": "submit",
