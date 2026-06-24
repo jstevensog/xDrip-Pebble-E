@@ -38,7 +38,7 @@ The above settings are stored in the watch, and persist between watch face trans
 Build Environment:
 * Pebble Tool: latest 
 * SDK: latest  
-* Clay: @rebble/clay latest v1.0 or later
+* Clay: @rebble/clay latest v1.0.10 or later
 
 Plan for Multiple Apps.
  * Apps will be identified in xDrip settings as their name/version.  This will set a string that matches the PBL_APP_VER key that is sent when the Pebble requests an update or responds to xDrip.  The xDrip Pebble watch face settings will also set the watch face/app UUID in settings.  No two watch faces can have the same UUID.
