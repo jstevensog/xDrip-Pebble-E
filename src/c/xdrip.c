@@ -4,7 +4,7 @@
 /* The line below will set the debug message level.
 Make sure you set this to 0 or DEBUG_APP_NONE before building a release. */
 
-/* #define DEBUG_LEVEL DEBUG_APP_TRACE  */
+//#define DEBUG_LEVEL DEBUG_APP_TRACE 
 
 /* The line below, if defined, will only indicate test values on the display.
 this is for testing purposes only until I can get the PebbleKit.JS code operating with the emulator.
@@ -374,18 +374,39 @@ static void health_handler(HealthEventType event, void *context) {
 
 // update_health_metric_displays - Updates the bottom left and right metrics displays if they are displaying health metrics
 static void update_health_metric_displays() {
-	
-	if(bottom_left_metric == 3) {
+	static char step_count_text[9];
+	int step_count;
+
+	if(bottom_left_metric == METRIC_STEPS) {
 		step_count_text_layer = bottom_left_text_layer;
 	}
-	if(bottom_right_metric == 3) {
+	if(bottom_right_metric == METRIC_STEPS) {
 		step_count_text_layer = bottom_right_text_layer;
 	}
+	if(step_count_text_layer) {
+		HealthMetric metric = HealthMetricStepCount;
+		time_t start = time_start_of_today();
+		time_t end = time(NULL);
+
+		// Check the metric has data available for today
+		HealthServiceAccessibilityMask mask = health_service_metric_accessible(metric,start, end);
+
+		if(mask & HealthServiceAccessibilityMaskAvailable) {
+			// Data is available!
+			step_count = health_service_sum_today(metric);
+  			LOG("Steps today: %d", step_count);
+			snprintf(step_count_text,8, "%i", step_count);
+         	 	text_layer_set_text(step_count_text_layer, step_count_text);
+		} else {
+			// No data recorded yet today
+			LOG("Data unavailable!");
+		}
+	}	
 #if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_FLINT) || defined(PBL_PLATFORM_GABBRO)
-	if(bottom_left_metric == 4) {
+	if(bottom_left_metric == METRIC_HEARTRATE) {
 		heart_rate_text_layer = bottom_left_text_layer;
 	}
-	if(bottom_right_metric == 4) {
+	if(bottom_right_metric == METRIC_HEARTRATE) {
 		heart_rate_text_layer = bottom_right_text_layer;
 	}
 #endif
@@ -399,10 +420,10 @@ static void battery_handler(BatteryChargeState charge_state)
 
 	static char watch_battlevel_percent[9];
 	// determine which metric layer we need to update, and exit of none.
-	if(bottom_left_metric == 2) {
+	if(bottom_left_metric == METRIC_WATCHBATT) {
 		phone_battery_text_layer = bottom_left_text_layer;
 	}
-	else if(bottom_right_metric == 2) {
+	else if(bottom_right_metric == METRIC_WATCHBATT) {
 		phone_battery_text_layer = bottom_right_text_layer;
 	}
 	else return;
@@ -1366,14 +1387,23 @@ static void load_battlevel()
 	// NOTE: buffers have to be static and hardcoded
 	int current_battlevel = 0;
 	static char battlevel_percent[9];
+	//pointer to the uploader/phone battery metric text layer
+	TextLayer *phone_batt_level_layer = NULL;
 
 	// CODE START
-
+	//Deterime if a metric text layer is configured for phone battery
+	if(bottom_left_metric == METRIC_PHONEBATT) {
+		phone_batt_level_layer = bottom_left_text_layer;
+	} else if(bottom_right_metric == METRIC_PHONEBATT) {
+		phone_batt_level_layer == bottom_right_text_layer;
+	} else {
+		return;
+	}
 	LOG("LOAD BATTLEVEL, LAST BATTLEVEL: %s", last_battlevel);
 	if (strcmp(last_battlevel, " ") == 0)
 	{
 		// Init code or no battery, can't do battery; set text layer & icon to empty value
-	INFO("LOAD BATTLEVEL, NO BATTERY");
+		INFO("LOAD BATTLEVEL, NO BATTERY");
 		text_layer_set_text(bottom_left_text_layer, "");
 		LowBatteryAlert = false;
 		return;
@@ -1382,11 +1412,11 @@ static void load_battlevel()
 	if (strcmp(last_battlevel, "0") == 0)
 	{
 		// Zero battery level; set here, so if we get zero later we know we have an error instead
-	INFO("LOAD BATTLEVEL, ZERO BATTERY, SET STRING");
+		INFO("LOAD BATTLEVEL, ZERO BATTERY, SET STRING");
 		text_layer_set_text(bottom_left_text_layer, "0%");
 		if (!LowBatteryAlert)
 		{
-	INFO("LOAD BATTLEVEL, ZERO BATTERY, VIBRATE");
+		INFO("LOAD BATTLEVEL, ZERO BATTERY, VIBRATE");
 			alert_handler_cgm(LOWBATTERY_VIBE);
 			LowBatteryAlert = true;
 		}
@@ -1400,7 +1430,7 @@ static void load_battlevel()
 	if ((current_battlevel <= 0) || (current_battlevel > 100) || (last_battlevel[0] == '-'))
 	{
 		// got a negative or out of bounds or error battery level
-	INFO("LOAD BATTLEVEL, UNKNOWN, ERROR BATTERY");
+		INFO("LOAD BATTLEVEL, UNKNOWN, ERROR BATTERY");
 		text_layer_set_text(bottom_left_text_layer, "ERR");
 		return;
 	}
@@ -1423,7 +1453,7 @@ static void load_battlevel()
 		text_layer_set_text_color(bottom_left_text_layer, GColorRed);
 		if (!LowBatteryAlert)
 		{
-	INFO("LOAD BATTLEVEL, LOW BATTERY, 5 OR LESS, VIBRATE");
+			INFO("LOAD BATTLEVEL, LOW BATTERY, 5 OR LESS, VIBRATE");
 			alert_handler_cgm(LOWBATTERY_VIBE);
 			LowBatteryAlert = true;
 		}
@@ -1875,6 +1905,9 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 				LOG("Got bottom_left_metric message is \"%lx\"", data->value->uint32);
 				bottom_left_metric = data->value->uint32 && 0xff;
 				persist_write_int(SET_BOTTOM_LEFT_TEXT, bottom_left_metric);
+				if(bottom_left_metric == METRIC_NONE) {
+					text_layer_set_text(bottom_left_text_layer, "");
+				}
 			break;
 
 			//Bottom right metric to display
@@ -1882,6 +1915,9 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 				LOG("Got bottom_right_metric message is \"%lx\"", data->value->uint32);
 				bottom_right_metric = data->value->uint32 && 0xff;
 				persist_write_int(SET_BOTTOM_RIGHT_TEXT, bottom_right_metric);
+				if(bottom_right_metric == METRIC_NONE) {
+					text_layer_set_text(bottom_right_text_layer, "");
+				}
 			break;
 
 			default:
