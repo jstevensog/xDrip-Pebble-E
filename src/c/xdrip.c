@@ -377,13 +377,10 @@ static void update_health_metric_displays() {
 	static char step_count_text[9];
 	int step_count;
 
-	if(bottom_left_metric == METRIC_STEPS) {
-		step_count_text_layer = bottom_left_text_layer;
-	}
-	if(bottom_right_metric == METRIC_STEPS) {
-		step_count_text_layer = bottom_right_text_layer;
-	}
-	if(step_count_text_layer) {
+	// If there are no health metrics to display, do nothing and return.
+	if(bottom_left_metric != METRIC_STEPS && bottom_right_metric != METRIC_STEPS && bottom_left_metric != METRIC_HEARTRATE && bottom_right_metric != METRIC_HEARTRATE) return;
+
+	if(bottom_left_metric == METRIC_STEPS || bottom_right_metric == METRIC_STEPS) {
 		HealthMetric metric = HealthMetricStepCount;
 		time_t start = time_start_of_today();
 		time_t end = time(NULL);
@@ -396,18 +393,34 @@ static void update_health_metric_displays() {
 			step_count = health_service_sum_today(metric);
   			LOG("Steps today: %d", step_count);
 			snprintf(step_count_text,8, "%i", step_count);
-         	 	text_layer_set_text(step_count_text_layer, step_count_text);
 		} else {
 			// No data recorded yet today
 			LOG("Data unavailable!");
 		}
+		if(bottom_left_metric == METRIC_STEPS) {
+         	 	text_layer_set_text(bottom_left_text_layer, step_count_text);
+		}
+		if(bottom_right_metric == METRIC_STEPS) {
+         	 	text_layer_set_text(bottom_right_text_layer, step_count_text);
+		}
 	}	
 #if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_FLINT) || defined(PBL_PLATFORM_GABBRO)
-	if(bottom_left_metric == METRIC_HEARTRATE) {
-		heart_rate_text_layer = bottom_left_text_layer;
-	}
-	if(bottom_right_metric == METRIC_HEARTRATE) {
-		heart_rate_text_layer = bottom_right_text_layer;
+	if(bottom_left_metric == METRIC_HEARTRATE || bottom_right_metric == METRIC_HEARTRATE) {
+		static char s_hrm_buffer[16];
+		HealthServiceAccessibilityMask hr = health_service_metric_accessible(HealthMetricHeartRateBPM, time(NULL), time(NULL));
+		if (hr & HealthServiceAccessibilityMaskAvailable) {
+			HealthValue val = health_service_peek_current_value(HealthMetricHeartRateBPM);
+			if(val > 0) {
+			    // Display HRM value
+			    snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "%lu BPM", (uint32_t)val);
+			}
+		}
+		if(bottom_left_metric == METRIC_HEARTRATE) {
+			text_layer_set_text(bottom_left_text_layer, s_hrm_buffer);
+		}
+		if(bottom_right_metric == METRIC_HEARTRATE) {
+			text_layer_set_text(bottom_right_text_layer, s_hrm_buffer);
+		}
 	}
 #endif
 
@@ -419,14 +432,9 @@ static void battery_handler(BatteryChargeState charge_state)
 {
 
 	static char watch_battlevel_percent[9];
-	// determine which metric layer we need to update, and exit of none.
-	if(bottom_left_metric == METRIC_WATCHBATT) {
-		phone_battery_text_layer = bottom_left_text_layer;
-	}
-	else if(bottom_right_metric == METRIC_WATCHBATT) {
-		phone_battery_text_layer = bottom_right_text_layer;
-	}
-	else return;
+	// If there are no battery level metric display elements, exit
+	if(bottom_left_metric != METRIC_WATCHBATT && bottom_right_metric != METRIC_WATCHBATT) return;
+
 #ifdef PBL_COLOR 
 	#ifdef PBL_ROUND
 	snprintf(watch_battlevel_percent, BATTLEVEL_FORMATTED_SIZE, "%i%% ", charge_state.charge_percent);
@@ -455,45 +463,89 @@ static void battery_handler(BatteryChargeState charge_state)
 			
 	if(charge_state.is_charging)
 	{
-	LOG("Charging.  BacklightOnCharge:%u", BacklightOnCharge);
+		LOG("Charging.  BacklightOnCharge:%u", BacklightOnCharge);
+		if(bottom_left_metric == METRIC_WATCHBATT) {
 #ifdef PBL_COLOR
-		TRACE("COLOR DETECTED");
-		text_layer_set_text_color(phone_battery_text_layer, GColorDukeBlue);
-		text_layer_set_background_color(phone_battery_text_layer, GColorGreen);
+			TRACE("COLOR DETECTED");
+			text_layer_set_text_color(bottom_left_text_layer, GColorDukeBlue);
+			text_layer_set_background_color(bottom_left_text_layer, GColorGreen);
 #else
-		TRACE("BW DETECTED");
-		text_layer_set_text_color(phone_battery_text_layer, bg_colour);
-		text_layer_set_background_color(phone_battery_text_layer, fg_colour);
+			TRACE("BW DETECTED");
+			text_layer_set_text_color(bottom_left_text_layer, bg_colour);
+			text_layer_set_background_color(bottom_left_text_layer, fg_colour);
 #endif
+		}
+		if(bottom_right_metric == METRIC_WATCHBATT) {
+#ifdef PBL_COLOR
+			TRACE("COLOR DETECTED");
+			text_layer_set_text_color(bottom_right_text_layer, GColorDukeBlue);
+			text_layer_set_background_color(bottom_right_text_layer, GColorGreen);
+#else
+			TRACE("BW DETECTED");
+			text_layer_set_text_color(bottom_right_text_layer, bg_colour);
+			text_layer_set_background_color(bottom_right_text_layer, fg_colour);
+#endif
+		}
 	}
 	else
 	{
-	LOG("Not Charging.  BacklightOnCharge:%u", BacklightOnCharge);
+		LOG("Not Charging.  BacklightOnCharge:%u", BacklightOnCharge);
 #ifdef PBL_COLOR
 		TRACE("COLOR DETECTED");
 		if(charge_state.charge_percent > 40)
 		{
 			TRACE("BATTERY > 40");
-			text_layer_set_text_color(phone_battery_text_layer, GColorGreen);
+			if(bottom_left_metric == METRIC_WATCHBATT) {
+				text_layer_set_text_color(bottom_left_text_layer, GColorGreen);
+			}
+			if(bottom_right_metric == METRIC_WATCHBATT) {
+				text_layer_set_text_color(bottom_right_text_layer, GColorGreen);
+			}
 		}
 		else if (charge_state.charge_percent > 20)
 		{
 			TRACE("BATTERY > 20");
-			text_layer_set_text_color(phone_battery_text_layer, GColorYellow);
+			if(bottom_left_metric == METRIC_WATCHBATT) {
+				text_layer_set_text_color(bottom_left_text_layer, GColorYellow);
+			}
+			if(bottom_right_metric == METRIC_WATCHBATT) {
+				text_layer_set_text_color(bottom_right_text_layer, GColorYellow);
+			}
 		}
 		else
 		{
 			TRACE("BATTERY <= 20");
-			text_layer_set_text_color(phone_battery_text_layer, GColorRed);
+			if(bottom_left_metric == METRIC_WATCHBATT) {
+				text_layer_set_text_color(bottom_left_text_layer, GColorRed);
+			}
+			if(bottom_right_metric == METRIC_WATCHBATT) {
+				text_layer_set_text_color(bottom_right_text_layer, GColorRed);
+			}
 		}
-		text_layer_set_background_color(phone_battery_text_layer, GColorClear);
+		if(bottom_left_metric == METRIC_WATCHBATT) {
+			text_layer_set_background_color(bottom_left_text_layer, GColorClear);
+		}
+		if(bottom_right_metric == METRIC_WATCHBATT) {
+			text_layer_set_text_color(bottom_right_text_layer, GColorClear);
+		}
 #else
 		TRACE("BW DETECTED");
-		text_layer_set_text_color(phone_battery_text_layer, GColorWhite);
-		text_layer_set_background_color(phone_battery_text_layer, GColorBlack);
+		if(bottom_left_metric == METRIC_WATCHBATT) {
+			text_layer_set_text_color(bottom_left_text_layer, GColorWhite);
+			text_layer_set_background_color(bottom_left_text_layer, GColorBlack);
+		}
+		if(bottom_right_metric == METRIC_WATCHBATT) {
+			text_layer_set_text_color(bottom_right_text_layer, GColorWhite);
+			text_layer_set_background_color(bottom_right_text_layer, GColorBlack);
+		}
 #endif
 	}
-	text_layer_set_text(phone_battery_text_layer, watch_battlevel_percent);
+	if(bottom_left_metric == METRIC_WATCHBATT) {
+		text_layer_set_text(bottom_left_text_layer, watch_battlevel_percent);
+	}
+	if(bottom_right_metric == METRIC_WATCHBATT) {
+		text_layer_set_text(bottom_right_text_layer, watch_battlevel_percent);
+	}
 
 
 } // end battery_handler
@@ -1387,16 +1439,11 @@ static void load_battlevel()
 	// NOTE: buffers have to be static and hardcoded
 	int current_battlevel = 0;
 	static char battlevel_percent[9];
-	//pointer to the uploader/phone battery metric text layer
-	TextLayer *phone_batt_level_layer = NULL;
 
 	// CODE START
 	//Deterime if a metric text layer is configured for phone battery
-	if(bottom_left_metric == METRIC_PHONEBATT) {
-		phone_batt_level_layer = bottom_left_text_layer;
-	} else if(bottom_right_metric == METRIC_PHONEBATT) {
-		phone_batt_level_layer == bottom_right_text_layer;
-	} else {
+	if(bottom_left_metric != METRIC_PHONEBATT && bottom_right_metric == METRIC_PHONEBATT) {
+		LOG("LOAD BATTLEVEL, Nothing to update, exiting.");
 		return;
 	}
 	LOG("LOAD BATTLEVEL, LAST BATTLEVEL: %s", last_battlevel);
@@ -1907,6 +1954,12 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 				persist_write_int(SET_BOTTOM_LEFT_TEXT, bottom_left_metric);
 				if(bottom_left_metric == METRIC_NONE) {
 					text_layer_set_text(bottom_left_text_layer, "");
+				} else {
+#ifdef PBL_HEALTH
+					update_health_metric_displays();
+#endif
+					battery_handler(battery_state_service_peek());
+					load_battlevel();
 				}
 			break;
 
@@ -1917,6 +1970,12 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 				persist_write_int(SET_BOTTOM_RIGHT_TEXT, bottom_right_metric);
 				if(bottom_right_metric == METRIC_NONE) {
 					text_layer_set_text(bottom_right_text_layer, "");
+				} else {
+#ifdef PBL_HEALTH
+					update_health_metric_displays();
+#endif
+					battery_handler(battery_state_service_peek());
+					load_battlevel();
 				}
 			break;
 
