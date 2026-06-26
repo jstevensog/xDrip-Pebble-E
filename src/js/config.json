@@ -103,7 +103,7 @@
 			"id": "bottomLeft",
 			"messageKey": "bottomlefttext",
 			"label": "Bottom Left Metric",
-			"defaultValue": 2,
+			"defaultValue": 1,
 			"capabilities": ["HEALTH","NOT_PLATFORM_DIORITE", "NOT_PLATFORM_EMERY"],
 			"options": [
 				{
@@ -129,7 +129,7 @@
 			"id": "bottomLeft",
 			"messageKey": "bottomlefttext",
 			"label": "Bottom Left Metric",
-			"defaultValue": 2,
+			"defaultValue": 1,
 			"capabilities": ["PLATFORM_EMERY","PLATFORM_FLINT","PLATFROM_GABBRO"],
 			"options": [
 				{
