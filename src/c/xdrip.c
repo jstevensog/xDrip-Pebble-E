@@ -350,33 +350,48 @@ static void health_handler(HealthEventType event, void *context) {
 	// Which type of event occurred?
 	switch(event) {
 		case HealthEventSignificantUpdate:
-			APP_LOG(APP_LOG_LEVEL_INFO, "New HealthService HealthEventSignificantUpdate event");
+			LOG("New HealthService HealthEventSignificantUpdate event");
 		break;
 
 		case HealthEventMovementUpdate:
- 			APP_LOG(APP_LOG_LEVEL_INFO, "New HealthService HealthEventMovementUpdate event");
+ 			LOG("New HealthService HealthEventMovementUpdate event");
 		break;
 
 		case HealthEventMetricAlert:
- 			APP_LOG(APP_LOG_LEVEL_INFO, "New HealthService HealthEventMetricAlert event");
+ 			LOG("New HealthService HealthEventMetricAlert event");
 		break;
 
 		case HealthEventSleepUpdate:
-			APP_LOG(APP_LOG_LEVEL_INFO, "New HealthService HealthEventSleepUpdate event");
+			LOG("New HealthService HealthEventSleepUpdate event");
 		break;
 		
 		case HealthEventHeartRateUpdate:
-			APP_LOG(APP_LOG_LEVEL_INFO, "New HealthService HealthEventHeartRateUpdate event");
+			LOG("New HealthService HealthEventHeartRateUpdate event");
 		break;
 	}
-	update_metric_displays();
+	update_health_metric_displays();
 } //end health_handler
+
+// update_health_metric_displays - Updates the bottom left and right metrics displays if they are displaying health metrics
+static void update_health_metric_displays() {
+	
+	if(bottom_left_metric == 3) {
+		step_count_text_layer = bottom_left_text_layer;
+	}
+	if(bottom_right_metric == 3) {
+		step_count_text_layer = bottom_right_text_layer;
+	}
+#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_FLINT) || defined(PBL_PLATFORM_GABBRO)
+	if(bottom_left_metric == 4) {
+		heart_rate_text_layer = bottom_left_text_layer;
+	}
+	if(bottom_right_metric == 4) {
+		heart_rate_text_layer = bottom_right_text_layer;
+	}
 #endif
 
-// update_metric_displays - Updates the bottom left and right metrics displays
-static void update_metric_displays() {
-	
 }
+#endif
 
 // battery_handler - updates the pebble battery percentage.
 static void battery_handler(BatteryChargeState charge_state)
@@ -2680,6 +2695,12 @@ static void init_cgm(void)
 	//subscribe to the battery handler
 	battery_state_service_subscribe(battery_handler);
 
+#ifdef PBL_HEALTH
+	//subscribe to the health service
+	if(!health_service_events_subscribe(health_handler, NULL)) {
+		LOG("Error subscribing to Health");
+	}
+#endif
 	// init the window pointer to NULL if it needs it
 	if (window_cgm != NULL)
 	{
@@ -2731,6 +2752,9 @@ static void deinit_cgm(void)
 	bluetooth_connection_service_unsubscribe();
 
 	battery_state_service_unsubscribe();
+#ifdef PBL_HEALTH
+	health_service_events_unsubscribe();
+#endif
 
 	// cancel timers if they exist
 	TRACE("DEINIT, CANCEL APP TIMER");

@@ -185,9 +185,9 @@ static uint8_t bottom_right_metric = 2;
 TextLayer *phone_battery_text_layer = NULL;
 TextLayer *watch_battery_text_layer = NULL;
 #ifdef PBL_HEALTH
-TextLayer *step_count_layer = NULL;
+TextLayer *step_count_text_layer = NULL;
 #if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_FLINT) || defined(PBL_PLATFORM_GABBRO)
-TextLayer *heart_rate_layer = NULL;
+TextLayer *heart_rate_text_layer = NULL;
 #endif
 #endif
 
@@ -212,7 +212,8 @@ time_t get_UTC_offset(struct tm *t);
 void updateColours();
 
 //Health and Metric Display functions
-static void update_metric_displays();
-
+#ifdef PBL_HEALTH
+static void update_health_metric_displays();
 static void health_handler(HealthEventType event, void *context);
+#endif
 
