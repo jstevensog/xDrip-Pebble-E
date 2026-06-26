@@ -1,129 +1,22 @@
 #include "pebble.h"
-
-
-
-// Scope debug to cleanup debug ifdefs
-
-#define DEBUG_APP_TRACE 3
-#define DEBUG_APP_DEBUG 2
-#define DEBUG_APP_INFO 1
-#define DEBUG_APP_NONE 0
+#include "xdrip.h"
 
 /* The line below will set the debug message level.
 Make sure you set this to 0 or DEBUG_APP_NONE before building a release. */
 
 /* #define DEBUG_LEVEL DEBUG_APP_TRACE  */
 
-#if DEBUG_LEVEL >= 3
-#define TRACE(...)  APP_LOG(APP_LOG_LEVEL_DEBUG, __VA_ARGS__)
-#else 
-#define TRACE(...)
-#endif
-#if DEBUG_LEVEL >= 2
-#define DEBUG(...) APP_LOG(APP_LOG_LEVEL_DEBUG, __VA_ARGS__)
-#else
-#define DEBUG(...)
-#endif
-#if DEBUG_LEVEL >= 1
-#define INFO(...) APP_LOG(APP_LOG_LEVEL_INFO, __VA_ARGS__)
-#else
-#define INFO(...)
-#endif
-#if defined(DEBUG_LEVEL)
-#define LOG(...) APP_LOG(APP_LOG_LEVEL_INFO, __VA_ARGS__)
-#else
-#define LOG(...)
-#endif
-
 /* The line below, if defined, will only indicate test values on the display.
 this is for testing purposes only until I can get the PebbleKit.JS code operating with the emulator.
 Make sure you udefine this before building a release.
 */
 //#define TEST_MODE
-// global window variables
-// ANYTHING THAT IS CALLED BY PEBBLE API HAS TO BE NOT STATIC
-
-const char FACE_VERSION[] = "xDrip-Pebble2";
-
-// windows definition.
-Window *window_cgm = NULL;
-
-// text layer definitions.
-TextLayer *bg_layer = NULL;
-TextLayer *cgmtime_layer = NULL;
-TextLayer *delta_layer = NULL;		// BG DELTA LAYER
-TextLayer *message_layer = NULL;	// MESSAGE LAYER
-TextLayer *bottom_left_text_layer = NULL;
-TextLayer *bottom_right_text_layer = NULL;
-TextLayer *time_watch_layer = NULL;
-TextLayer *date_app_layer = NULL;
-
-// bitmap layer definitions
-BitmapLayer *icon_layer = NULL;
-BitmapLayer *bg_trend_layer = NULL;
-BitmapLayer *upper_face_layer = NULL;
-BitmapLayer *lower_face_layer = NULL;
-
-#ifdef PBL_COLOR
-static GColor8 fg_colour;
-static GColor8 bg_colour;
-#else
-static GColor fg_colour;
-static GColor bg_colour;
-#endif
-//Set up Platform specific values and global variables.
-#ifdef PBL_PLATFORM_APLITE
-const uint8_t PLATFORM = 0;
-#elif PBL_PLATFORM_BASALT
-const uint8_t PLATFORM = 1;
-#elif PBL_PLATFORM_CHALK
-const uint8_t PLATFORM = 2;
-#elif PBL_PLATFORM_DIORITE
-const uint8_t PLATFORM = 3;
-#elif PBL_PLATFORM_EMERY
-const uint8_t PLATFORM = 4;
-#elif PBL_PLATFORM_FLINT
-const uint8_t PLATFORM = 5;
-#elif PBL_PLATFORM_GABBRO
-const uint8_t PLATFORM = 6;
-#endif
-
-#define HIGH_RES() (PBL_PLATFORM_TYPE_CURRENT >= PlatformTypeEmery)
-
-
-GBitmap *icon_bitmap = NULL;
-GBitmap *appicon_bitmap = NULL;
-GBitmap *specialvalue_bitmap = NULL;
-GBitmap *bg_trend_bitmap = NULL;
-
-
-// Defines to do with Time display
-#define TIME_24H_FORMAT "%H:%M"
-#define TIME_12H_FORMAT "%l:%M"
-#define TIME_24HS_FORMAT "%H:%M:%S"
-#define TIME_12HS_FORMAT "%l:%M:%S"
-static char time_watch_format[9] = TIME_24H_FORMAT;
-static char time_watch_text[] = "00:00:00";
-static char date_app_text[] = "Wed 13 Jan";
-static char message_layer_text[13];
-static GFont time_font;
-static char message_layer_text[13];
-static GFont time_font_small;
-static GFont time_font_normal;
 
 // Boolean to allow/prevent re-raise of NO BLUETOOTH vibration
 static bool vibe_repeat = false;
 // variables for AppSync
 AppSync sync_cgm;
 
-#ifndef PBL_COLOR
-// Boolean to allow/prevent re-raise of NO BLUETOOTH vibration
-#define CHUNK_SIZE 256
-
-// function definietion to update monochrome bitmap layers
-static void bitmapLayerUpdate(struct Layer *layer, GContext *ctx);
-#else
-	
 // From jamorhams version.  Enables Health stuff.
 /* #if defined(PBL_HEALTH)
 void health_handler(HealthEventType event, void *context);
@@ -141,14 +34,6 @@ static time_t last_movement_time = 0;
 static void health_subscribe();
 static void health_unsubscribe();
 */
-#define CHUNK_SIZE 1024
-#endif
-// CGM message is 57 bytes
-// Pebble needs additional 62 Bytes?!? Pad with additional 20 bytes
-//#define SYNC_BUFFER_SIZE 1024
-//static uint8_t *sync_buffer_cgm;
-//static uint8_t sync_buffer_cgm[CHUNK_SIZE];
-//static uint8_t trend_buffer[4096];
 static bool handling_second = false;
 static bool doing_trend = false;
 static bool global_lock = false;
@@ -160,8 +45,6 @@ static uint16_t expected_trend_buffer_length = 0;
 bool display_message = false;
 
 // variables for settings from Pebble Phone App.
-//static GColor8 background_colour = 0;
-//static GColor8 foreground_color = 0;
 static bool display_seconds = false;
 // variables for timers and time
 AppTimer *timer_cgm = NULL;
@@ -183,7 +66,6 @@ static char last_battlevel[5];
 static uint32_t current_cgm_time = 0;
 static uint32_t current_app_time = 0;
 static char current_bg_delta[14];
-//static int converted_bgDelta = 0;
 
 // global BG snooze timer
 static uint8_t lastAlertTime = 0;
@@ -222,53 +104,17 @@ static const uint8_t TIMEAGO_BUFFER_SIZE = 10;
 // * FOR MMOL, ALL VALUES ARE STORED AS INTEGER; LAST DIGIT IS USED AS DECIMAL **
 // * BE EXTRA CAREFUL OF CHANGING SPECIAL VALUES OR TIMERS; DO NOT CHANGE WITHOUT EXPERT HELP **
 
-// FOR BG RANGES
-// DO NOT SET ANY BG RANGES EQUAL TO ANOTHER; LOW CAN NOT EQUAL MIDLOW
-// LOW BG RANGES MUST BE IN ASCENDING ORDER; SPECVALUE < HYPOLOW < BIGLOW < MIDLOW < LOW
-// HIGH BG RANGES MUST BE IN ASCENDING ORDER; HIGH < MIDHIGH < BIGHIGH
-// DO NOT ADJUST SPECVALUE UNLESS YOU HAVE A VERY GOOD REASON
-// DO NOT USE NEGATIVE NUMBERS OR DECIMAL POINTS OR ANYTHING OTHER THAN A NUMBER
-
-// BG Ranges, MG/DL
-//static const uint16_t SPECVALUE_BG_MGDL = 20;
-//static const uint16_t SHOWLOW_BG_MGDL = 40;
-//static const uint16_t SHOWHIGH_BG_MGDL = 400;
-
-// BG Ranges, MMOL
-// VALUES ARE IN INT, NOT FLOATING POINT, LAST DIGIT IS DECIMAL
-// FOR EXAMPLE : SPECVALUE IS 1.1, BIGHIGH IS 16.6
-// ALWAYS USE ONE AND ONLY ONE DECIMAL POINT FOR LAST DIGIT
-// GOOD : 5.0, 12.2 // BAD : 7 , 14.44
-//static const uint16_t SPECVALUE_BG_MMOL = 11;
-//static const uint16_t SHOWLOW_BG_MMOL = 22;
-//static const uint16_t SHOWHIGH_BG_MMOL = 220;
-
-// BG Snooze Times, in Minutes; controls when vibrate again
-// RANGE 0-240
-//static const uint8_t SPECVALUE_SNZ_MIN = 30;
-
 // Vibration Levels; 0 = NONE; 1 = LOW; 2 = MEDIUM; 3 = HIGH
 // IF YOU DO NOT WANT A SPECIFIC VIBRATION, SET TO 0
-//static const uint8_t SPECVALUE_VIBE = 2;
-//static const uint8_t DOUBLEDOWN_VIBE = 3;
 static const uint8_t APPSYNC_ERR_VIBE = 1;
 static const uint8_t APPMSG_INDROP_VIBE = 1;
 static const uint8_t APPMSG_OUTFAIL_VIBE = 1;
 static const uint8_t BTOUT_VIBE = 1;
-//static const uint8_t CGMOUT_VIBE = 1;
-//static const uint8_t PHONEOUT_VIBE = 1;
 static const uint8_t LOWBATTERY_VIBE = 1;
-
-// Icon Cross Out & Vibrate Once Wait Times, in Minutes
-// RANGE 0-240
-// IF YOU WANT TO WAIT LONGER TO GET CONDITION, INCREASE NUMBER
-//static const uint8_t CGMOUT_WAIT_MIN = 15;
-//static const uint8_t PHONEOUT_WAIT_MIN = 8;
 
 // Control Messages
 // IF YOU DO NOT WANT A SPECIFIC MESSAGE, SET TO true
 static const bool TurnOff_NOBLUETOOTH_Msg = false;
-//static const bool TurnOff_CHECKCGM_Msg = false;
 static const bool TurnOff_CHECKPHONE_Msg = false;
 
 // Control Vibrations
@@ -295,95 +141,10 @@ static AppTimer *message_tick_timer = NULL;
 
 // * END OF CONSTANTS THAT CAN BE CHANGED; DO NOT CHANGE IF YOU DO NOT KNOW WHAT YOU ARE DOING **
 
-// Message Timer Wait Times, in Seconds
-static const uint16_t WATCH_MSGSEND_SECS = 60;
-static const uint8_t LOADING_MSGSEND_SECS = 2;
-static uint8_t minutes_cgm = 0;
-
-
-#define	CGM_ICON_KEY			0	// TUPLE_CSTRING, MAX 2 BYTES (10)
-#define	CGM_BG_KEY			1	// TUPLE_CSTRING, MAX 4 BYTES (253 OR 22.2)
-#define	CGM_TCGM_KEY			2	// TUPLE_INT, 4 BYTES (CGM TIME)
-#define	CGM_TAPP_KEY			3	// TUPLE_INT, 4 BYTES (APP / PHONE TIME)
-#define	CGM_DLTA_KEY			4	// TUPLE_CSTRING, MAX 5 BYTES (BG DELTA, -100 or -10.0)
-#define	CGM_UBAT_KEY			5	// TUPLE_CSTRING, MAX 3 BYTES (UPLOADER BATTERY, 100)
-#define	CGM_NAME_KEY			6	// TUPLE_CSTRING, MAX 9 BYTES (Christine)
-#define	CGM_TREND_BEGIN_KEY 	7		// TUPLE_INT, 4 BYTES (length of CGM_TREND_DATA_KEY
-#define	CGM_TREND_DATA_KEY		8	// TUPLE_BYTE[], No Maximum, based on value found in CGM_TREND_DATA_KEY
-#define	CGM_TREND_END_KEY 		9	// TUPLE_INT, always 0.
-#define CGM_MESSAGE_KEY			10	// TUPLE_CSTRING, Message to display flashing in mid screen
-#define CGM_VIBE_KEY			11	// TUPLE_INT, Vibe pattern to alert with
-#define SET_DISP_SECS			100	// Setting key - Display Seconds
-#define SET_FG_COLOUR			101	// Setting key - Foreground Colour
-#define SET_BG_COLOUR			102	// Setting key - Background Colour 
-#define SET_VIBE_REPEAT			103	// Setting key - Vibration Repeat
-#define SET_NO_VIBE			104	// Setting key - No Vibrations
-#define SET_LIGHT_ON_CHG		105	// Setting key - Backlight on when charging
-#define SET_SAMECOLOUR			106	// Setting key - Same Colours top and bottom
-#define SET_NO_DELTA			107	// Setting key - Do not display the Delta value
-#define SET_NO_ARROWS			108	// Setting key - Do not show arrows
-#define SET_HIGH_LINE			110	// Setting key - Enable High line on graph.
-#define SET_LOW_LINE			111	// Setting key - Enable Low line on graph.
-#define SET_MESSAGE_TIMEOUT     	113     // Setting key - Message timeout
-#define SET_BOLD_TIMEAGO		114	// Setting key - Meke the TimeAgo text bold if true
-#define SET_BOTTOM_LEFT_TEXT		115	// Setting key - What to display in the bottom left text field
-#define SET_BOTTOM_RIGHT_TEXT		116	// Setting key - What to display in the bottom right text field
-#define CGM_SYNC_KEY			1000	// key pebble will use to request an update.  This should probably include the "capabilities" bits
-#define PBL_PLATFORM			1001	// key pebble will use to send it's platform  This is probably not required under the new famework.
-#define PBL_APP_VER			1002	// key pebble will use to send the face/app version.  This is probably not required under the new framework.
-#define PBL_TREND_SIZE			1003	// key pebble will use to send trend image size.
-#define PBL_TREND_LINES			1004	// key pebble will use to send trend line options.
-#define PBL_DISP_OPTS			1005	// key pebble will use to send display options (delta/arrows).
-
-// TOTAL MESSAGE DATA 4x3+2+5+3+9 = 31 BYTES
-// TOTAL KEY HEADER DATA (STRINGS) 4x6+2 = 26 BYTES
-// TOTAL MESSAGE 57 BYTES
-
-// ARRAY OF SPECIAL VALUE ICONS
-static const uint8_t SPECIAL_VALUE_ICONS[] =
-{
-	RESOURCE_ID_IMAGE_NONE,				//0
-	RESOURCE_ID_IMAGE_BROKEN_ANTENNA,	//1
-	RESOURCE_ID_IMAGE_BLOOD_DROP,		//2
-	RESOURCE_ID_IMAGE_STOP_LIGHT,		//3
-	RESOURCE_ID_IMAGE_HOURGLASS,		//4
-	RESOURCE_ID_IMAGE_QUESTION_MARKS,	//5
-	RESOURCE_ID_IMAGE_LOGO,				//6
-	RESOURCE_ID_IMAGE_ERR				//7
-};
-
-// INDEX FOR ARRAY OF SPECIAL VALUE ICONS
-static const uint8_t NONE_SPECVALUE_ICON_INDX = 0;
-static const uint8_t BROKEN_ANTENNA_ICON_INDX = 1;
-static const uint8_t BLOOD_DROP_ICON_INDX = 2;
-static const uint8_t STOP_LIGHT_ICON_INDX = 3;
-static const uint8_t HOURGLASS_ICON_INDX = 4;
-static const uint8_t QUESTION_MARKS_ICON_INDX = 5;
-static const uint8_t LOGO_SPECVALUE_ICON_INDX = 6;
-//static const uint8_t ERR_SPECVALUE_ICON_INDX = 7;
-
-/*
-// ARRAY OF TIMEAGO ICONS
-static const uint8_t TIMEAGO_ICONS[] = {
-	RESOURCE_ID_IMAGE_NONE,			//0
-	RESOURCE_ID_IMAGE_PHONEON,		//1
-	RESOURCE_ID_IMAGE_PHONEOFF,	 	//2
-};
-
-// INDEX FOR ARRAY OF TIMEAGO ICONS
-static const uint8_t NONE_TIMEAGO_ICON_INDX = 0;
-static const uint8_t PHONEON_ICON_INDX = 1;
-static const uint8_t PHONEOFF_ICON_INDX = 2;
-*/
-
 /**
  * predefines
  */
-
-void handle_second_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cgm);
-void handle_minute_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cgm);
-void handle_message_tick(void *data);
-
+#ifdef DEBUG_LEVEL
 static char *translate_app_error(AppMessageResult result)
 {
 	switch (result)
@@ -439,6 +200,7 @@ static char *translate_dict_error(DictionaryResult result)
 			return "DICT UNKNOWN ERROR";
 	}
 }
+#endif
 
 int myAtoi(char *str)
 {
@@ -582,12 +344,53 @@ static void create_update_bitmap(GBitmap **bmp_image, BitmapLayer *bmp_layer, co
 	TRACE(" CREATE UPDATE BITMAP: EXIT CODE");
 } // end create_update_bitmap
 
+#ifdef PBL_HEALTH
+// health_handler - handler to deal with health events
+static void health_handler(HealthEventType event, void *context) {
+	// Which type of event occurred?
+	switch(event) {
+		case HealthEventSignificantUpdate:
+			APP_LOG(APP_LOG_LEVEL_INFO, "New HealthService HealthEventSignificantUpdate event");
+		break;
+
+		case HealthEventMovementUpdate:
+ 			APP_LOG(APP_LOG_LEVEL_INFO, "New HealthService HealthEventMovementUpdate event");
+		break;
+
+		case HealthEventMetricAlert:
+ 			APP_LOG(APP_LOG_LEVEL_INFO, "New HealthService HealthEventMetricAlert event");
+		break;
+
+		case HealthEventSleepUpdate:
+			APP_LOG(APP_LOG_LEVEL_INFO, "New HealthService HealthEventSleepUpdate event");
+		break;
+		
+		case HealthEventHeartRateUpdate:
+			APP_LOG(APP_LOG_LEVEL_INFO, "New HealthService HealthEventHeartRateUpdate event");
+		break;
+	}
+	update_metric_displays();
+} //end health_handler
+#endif
+
+// update_metric_displays - Updates the bottom left and right metrics displays
+static void update_metric_displays() {
+	
+}
 
 // battery_handler - updates the pebble battery percentage.
 static void battery_handler(BatteryChargeState charge_state)
 {
 
 	static char watch_battlevel_percent[9];
+	// determine which metric layer we need to update, and exit of none.
+	if(bottom_left_metric == 2) {
+		phone_battery_text_layer = bottom_left_text_layer;
+	}
+	else if(bottom_right_metric == 2) {
+		phone_battery_text_layer = bottom_right_text_layer;
+	}
+	else return;
 #ifdef PBL_COLOR 
 	#ifdef PBL_ROUND
 	snprintf(watch_battlevel_percent, BATTLEVEL_FORMATTED_SIZE, "%i%% ", charge_state.charge_percent);
@@ -619,12 +422,12 @@ static void battery_handler(BatteryChargeState charge_state)
 	LOG("Charging.  BacklightOnCharge:%u", BacklightOnCharge);
 #ifdef PBL_COLOR
 		TRACE("COLOR DETECTED");
-		text_layer_set_text_color(bottom_right_text_layer, GColorDukeBlue);
-		text_layer_set_background_color(bottom_right_text_layer, GColorGreen);
+		text_layer_set_text_color(phone_battery_text_layer, GColorDukeBlue);
+		text_layer_set_background_color(phone_battery_text_layer, GColorGreen);
 #else
 		TRACE("BW DETECTED");
-		text_layer_set_text_color(bottom_right_text_layer, bg_colour);
-		text_layer_set_background_color(bottom_right_text_layer, fg_colour);
+		text_layer_set_text_color(phone_battery_text_layer, bg_colour);
+		text_layer_set_background_color(phone_battery_text_layer, fg_colour);
 #endif
 	}
 	else
@@ -635,26 +438,26 @@ static void battery_handler(BatteryChargeState charge_state)
 		if(charge_state.charge_percent > 40)
 		{
 			TRACE("BATTERY > 40");
-			text_layer_set_text_color(bottom_right_text_layer, GColorGreen);
+			text_layer_set_text_color(phone_battery_text_layer, GColorGreen);
 		}
 		else if (charge_state.charge_percent > 20)
 		{
 			TRACE("BATTERY > 20");
-			text_layer_set_text_color(bottom_right_text_layer, GColorYellow);
+			text_layer_set_text_color(phone_battery_text_layer, GColorYellow);
 		}
 		else
 		{
 			TRACE("BATTERY <= 20");
-			text_layer_set_text_color(bottom_right_text_layer, GColorRed);
+			text_layer_set_text_color(phone_battery_text_layer, GColorRed);
 		}
-		text_layer_set_background_color(bottom_right_text_layer, GColorClear);
+		text_layer_set_background_color(phone_battery_text_layer, GColorClear);
 #else
 		TRACE("BW DETECTED");
-		text_layer_set_text_color(bottom_right_text_layer, GColorWhite);
-		text_layer_set_background_color(bottom_right_text_layer, GColorBlack);
+		text_layer_set_text_color(phone_battery_text_layer, GColorWhite);
+		text_layer_set_background_color(phone_battery_text_layer, GColorBlack);
 #endif
 	}
-	text_layer_set_text(bottom_right_text_layer, watch_battlevel_percent);
+	text_layer_set_text(phone_battery_text_layer, watch_battlevel_percent);
 
 
 } // end battery_handler
@@ -1195,12 +998,7 @@ static void load_icon()
 		}
 		else if (strcmp(current_icon, DOUBLEDOWN_ARROW) == 0)
 		{
-		/*				if (!DoubleDownAlert) {
-							INFO("LOAD ICON, ICON ARROW: DOUBLE DOWN");
-							alert_handler_cgm(DOUBLEDOWN_VIBE);
-							DoubleDownAlert = true;
-						}
-		*/				create_update_bitmap(&icon_bitmap,icon_layer,ARROW_ICONS[DOWNDOWN_ICON_INDX]);
+						create_update_bitmap(&icon_bitmap,icon_layer,ARROW_ICONS[DOWNDOWN_ICON_INDX]);
 		}
 		else
 		{
@@ -1233,49 +1031,6 @@ static void load_bg()
 {
 	TRACE("LOAD BG, FUNCTION START");
 
-	// CONSTANTS
-
-	// ARRAY OF BG CONSTANTS; MGDL
-	/*	uint16_t BG_MGDL[] = {
-			SPECVALUE_BG_MGDL,	//0
-			SHOWLOW_BG_MGDL,	//1
-			SHOWHIGH_BG_MGDL	//2
-		};
-
-		// ARRAY OF BG CONSTANTS; MMOL
-		uint16_t BG_MMOL[] = {
-			SPECVALUE_BG_MMOL,	//0
-			SHOWLOW_BG_MMOL,	//1
-			SHOWHIGH_BG_MMOL	//2
-		};
-	*/
-	// INDEX FOR ARRAYS OF BG CONSTANTS
-	/*	const uint8_t SPECVALUE_BG_INDX = 0;
-		const uint8_t SHOWLOW_BG_INDX = 1;
-		const uint8_t SHOWHIGH_BG_INDX = 2;
-	*/
-	// MG/DL SPECIAL VALUE CONSTANTS ACTUAL VALUES
-	// mg/dL = mmol / .0555 OR mg/dL = mmol * 18.0182
-	/*	const uint8_t SENSOR_NOT_ACTIVE_VALUE_MGDL = 1;		// show stop light, ?SN
-		const uint8_t MINIMAL_DEVIATION_VALUE_MGDL = 2; 		// show stop light, ?MD
-		const uint8_t NO_ANTENNA_VALUE_MGDL = 3; 			// show broken antenna, ?NA
-		const uint8_t SENSOR_NOT_CALIBRATED_VALUE_MGDL = 5;	// show blood drop, ?NC
-		const uint8_t STOP_LIGHT_VALUE_MGDL = 6;				// show stop light, ?CD
-		const uint8_t HOURGLASS_VALUE_MGDL = 9;				// show hourglass, hourglass
-		const uint8_t QUESTION_MARKS_VALUE_MGDL = 10;		// show ???, ???
-		const uint8_t BAD_RF_VALUE_MGDL = 12;				// show broken antenna, ?RF
-
-		// MMOL SPECIAL VALUE CONSTANTS ACTUAL VALUES
-		// mmol = mg/dL / 18.0182 OR mmol = mg/dL * .0555
-		const uint8_t SENSOR_NOT_ACTIVE_VALUE_MMOL = 1;		// show stop light, ?SN (.06 -> .1)
-		const uint8_t MINIMAL_DEVIATION_VALUE_MMOL = 1;		// show stop light, ?MD (.11 -> .1)
-		const uint8_t NO_ANTENNA_VALUE_MMOL = 2;				// show broken antenna, ?NA (.17 -> .2)
-		const uint8_t SENSOR_NOT_CALIBRATED_VALUE_MMOL = 3;	// show blood drop, ?NC (.28 -> .3)
-		const uint8_t STOP_LIGHT_VALUE_MMOL = 4;				// show stop light, ?CD (.33 -> .3, set to .4 here)
-		const uint8_t HOURGLASS_VALUE_MMOL = 5;				// show hourglass, hourglass (.50 -> .5)
-		const uint8_t QUESTION_MARKS_VALUE_MMOL = 6;			// show ???, ??? (.56 -> .6)
-		const uint8_t BAD_RF_VALUE_MMOL = 7;					// show broken antenna, ?RF (.67 -> .7)
-	*/
 #define SENSOR_NOT_ACTIVE_VALUE "?SN"
 #define MINIMAL_DEVIATION_VALUE	"?MD"
 #define NO_ANTENNA_VALUE "?NA"
@@ -1284,32 +1039,6 @@ static void load_bg()
 #define HOURGLASS_VALUE "hourglass"
 #define QUESTION_MARKS_VALUE "???"
 #define BAD_RF_VALUE "?RF"
-	// ARRAY OF SPECIAL VALUES CONSTANTS; MGDL
-	/*	static uint8_t SPECVALUE[] = {
-			SENSOR_NOT_ACTIVE_VALUE,		//0
-			MINIMAL_DEVIATION_VALUE,		//1
-			NO_ANTENNA_VALUE,			//2
-			SENSOR_NOT_CALIBRATED_VALUE,		//3
-			STOP_LIGHT_VALUE,			//4
-			HOURGLASS_VALUE,			//5
-			QUESTION_MARKS_VALUE,			//6
-			BAD_RF_VALUE				//7
-		};
-	*/
-	// INDEX FOR ARRAYS OF SPECIAL VALUES CONSTANTS
-	/*	const uint8_t SENSOR_NOT_ACTIVE_VALUE_INDX = 0;
-		const uint8_t MINIMAL_DEVIATION_VALUE_INDX = 1;
-		const uint8_t NO_ANTENNA_VALUE_INDX = 2;
-		const uint8_t SENSOR_NOT_CALIBRATED_VALUE_INDX = 3;
-		const uint8_t STOP_LIGHT_VALUE_INDX = 4;
-		const uint8_t HOURGLASS_VALUE_INDX = 5;
-		const uint8_t QUESTION_MARKS_VALUE_INDX = 6;
-		const uint8_t BAD_RF_VALUE_INDX = 7;
-	*/
-	// VARIABLES
-
-	// pointers to be used to MGDL or MMOL values for parsing
-
 	// CODE START
 
 	// if special value set, erase anything in the icon field
@@ -1346,7 +1075,7 @@ static void load_bg()
 			{
 				text_layer_set_text(delta_layer, "NO BLUETOOTH");
 			} // if turnoff nobluetooth msg
-		}// if !bluetooth connected
+		}
 		else
 		{
 			// if init code, we will set it right in message layer
@@ -1356,7 +1085,8 @@ static void load_bg()
 			specvalue_alert = true;
 		}
 
-	} // if current_bg <= 0
+	} 
+	// if current_bg <= 0
 
 	else
 	{
@@ -2125,6 +1855,20 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 				}
 			break;
 
+			//Bottom left metric to display
+			case SET_BOTTOM_LEFT_TEXT:
+				LOG("Got bottom_left_metric message is \"%lx\"", data->value->uint32);
+				bottom_left_metric = data->value->uint32 && 0xff;
+				persist_write_int(SET_BOTTOM_LEFT_TEXT, bottom_left_metric);
+			break;
+
+			//Bottom right metric to display
+			case SET_BOTTOM_RIGHT_TEXT:
+				LOG("Got bottom_right_metric message is \"%lx\"", data->value->uint32);
+				bottom_right_metric = data->value->uint32 && 0xff;
+				persist_write_int(SET_BOTTOM_RIGHT_TEXT, bottom_right_metric);
+			break;
+
 			default:
 				LOG("sync_tuple_cgm_callback: Dictionary Key not recognised");
 			break;
@@ -2174,7 +1918,8 @@ void timer_callback_cgm(void *data)
 //
 
 // message/delta tick layer
-void handle_message_tick(void *data) {
+void handle_message_tick(void *data) 
+{
 	INFO("Handling alert tick, display_message is %i", display_message);
 	if(display_message)
 	{
@@ -2770,13 +2515,6 @@ void window_load_cgm(Window *window_cgm)
 	LOG("Creating Watch Battery Text layer");
 	BatteryChargeState charge_state=battery_state_service_peek();
 	text_layer_set_font(bottom_right_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
-/*
-#ifdef PBL_ROUND
-	text_layer_set_text_alignment(bottom_right_text_layer, GTextAlignmentCenter);
-#else
-	text_layer_set_text_alignment(bottom_right_text_layer, GTextAlignmentRight);
-#endif
-*/
 #ifdef PBL_COLOR
 	if(charge_state.is_charging)
 	{
@@ -3011,11 +2749,6 @@ static void deinit_cgm(void)
 
 	// destroy the window if it exists
 	TRACE("DEINIT, CHECK WINDOW POINTER FOR DESTROY");
-/*	if (window_cgm != NULL)
-	{
-		TRACE("DEINIT, WINDOW POINTER NOT NULL, DESTROY");
-		window_destroy(window_cgm);
-	}*/
 	TRACE("DEINIT, CHECK WINDOW POINTER FOR NULL");
 	if (window_cgm != NULL)
 	{
