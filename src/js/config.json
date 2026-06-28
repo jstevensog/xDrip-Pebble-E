@@ -62,7 +62,7 @@
   {
       "type": "slider",
       "messageKey": "messagetimeout",
-      "defaultValue": 15,
+      "defaultValue": 5,
       "label": "Process messages every",
       "min": 5,
       "max": 60,
@@ -78,157 +78,151 @@
 		  },
 		  { 
 			"type": "select",
-			"id": "bottomLeft",
 			"messageKey": "bottomlefttext",
 			"label": "Bottom Left Metric",
-			"defaultValue": 1,
+			"defaultValue": "pb",
 			"capabilities": ["NOT_HEALTH"],
 			"options": [
 				{
 					"label": "None",
-					"value": 0
+					"value": "no"
 				},
 				{
 					"label": "Phone Battery",
-					"value": "1"
+					"value": "pb"
 				},
 				{
 					"label": "Watch Battery",
-					"value": "2"
+					"value": "wb"
 				}
 			]
 		  },
 		  { 
 			"type": "select",
-			"id": "bottomLeft",
 			"messageKey": "bottomlefttext",
 			"label": "Bottom Left Metric",
-			"defaultValue": 1,
+			"defaultValue": "pb",
 			"capabilities": ["HEALTH","NOT_PLATFORM_DIORITE", "NOT_PLATFORM_EMERY"],
 			"options": [
 				{
 					"label": "None",
-					"value": 0
+					"vvalue":"no"
 				},
 				{
 					"label": "Phone Battery",
-					"value": 1
+					"vvalue":"pb"
 				},
 				{
 					"label": "Watch Battery",
-					"value": 2
+					"value":"wb"
 				},
 				{
 					"label": "Step Count",
-					"value": 3
+					"value":"sc"
 				}
 			]
 		  },
 		  { 
 			"type": "select",
-			"id": "bottomLeft",
 			"messageKey": "bottomlefttext",
 			"label": "Bottom Left Metric",
-			"defaultValue": 1,
+			"defaultValue": "pb",
 			"capabilities": ["PLATFORM_EMERY","PLATFORM_FLINT","PLATFROM_GABBRO"],
 			"options": [
 				{
 					"label": "None",
-					"value": 0
+					"vvalue":"no"
 				},
 				{
 					"label": "Phone Battery",
-					"value": 1
+					"vvalue":"pb"
 				},
 				{
 					"label": "Watch Battery",
-					"value": 2
+					"value":"wb"
 				},
 				{
 					"label": "Step Count",
-					"value": 3
+					"value":"sc"
 				},
 				{
 					"label": "Heart Rate",
-					"value": 4
+					"value":"hr"
 				}
 			]
 		  },
 		  {
 			"type": "select",
-			"id": "bottomRight",
 			"messageKey": "bottomrighttext",
-			"defaultValue": 2,
+			"defaultValue": "wb",
 			"label": "Bottom Right Metric",
 			"capabilities": ["NOT_HEALTH"],
 			"options": [
 				{
 					"label": "None",
-					"value": 0
+					"vvalue":"no"
 				},
 				{
 					"label": "Phone Battery",
-					"value": 1
+					"vvalue":"pb"
 				},
 				{
 					"label": "Watch Battery",
-					"value": 2
+					"value":"wb"
 				}
 			]
 		  },
 		  {
 			"type": "select",
-			"id": "bottomRight",
 			"messageKey": "bottomrighttext",
-			"defaultValue": 2,
+			"defaultValue": "wb",
 			"label": "Bottom Right Metric",
 			"capabilities": ["HEALTH","NOT_PLATFORM_DIORITE", "NOT_PLATFORM_EMERY"],
 			"options": [
 				{
 					"label": "None",
-					"value": 0
+					"vvalue":"no"
 				},
 				{
 					"label": "Phone Battery",
-					"value": 1
+					"vvalue":"pb"
 				},
 				{
 					"label": "Watch Battery",
-					"value": 2
+					"value":"wb"
 				},
 				{
 					"label": "Step Count",
-					"value": 3
+					"value":"sc"
 				}
 			]
 		  },
 		  {
 			"type": "select",
-			"id": "bottomRight",
 			"messageKey": "bottomrighttext",
-			"defaultValue": 2,
+			"defaultValue": "wb",
 			"label": "Bottom Right Metric",
 			"capabilities": ["PLATFORM_EMERY","PLATFORM_FLINT","PLATFROM_GABBRO"],
 			"options": [
 				{
 					"label": "None",
-					"value": 0
+					"vvalue":"no"
 				},
 				{
 					"label": "Phone Battery",
-					"value": 1
+					"vvalue":"pb"
 				},
 				{
 					"label": "Watch Battery",
-					"value": 2
+					"value":"wb"
 				},
 				{
 					"label": "Step Count",
-					"value": 3
+					"value":"sc"
 				},
 				{
 					"label": "Heart Rate",
-					"value": 4
+					"value":"hr"
 				}
 			]
 		  }

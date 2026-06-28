@@ -128,6 +128,8 @@
       "t_beg": 7,
       "t_dat": 8,
       "t_end": 9,
+      "cgmmessage": 10,
+      "vibepattern": 11,
       "displaysecs": 100,
       "foreground": 101,
       "background": 102,
@@ -137,9 +139,8 @@
       "monochrome": 106,
       "nodelta": 107,
       "noarrows": 108,
-      "nohighline": 109,
-      "nolowline": 110,
-      "health": 112,
+      "nohighline": 110,
+      "nolowline": 111,
       "messagetimeout": 113,
       "boldtimeago": 114,
       "bottomlefttext": 115,
@@ -149,7 +150,7 @@
       "version": 1002,
       "trend_size": 1003,
       "trend_lines": 1004,
-      "data_options": 1005
+      "display_options": 1005
     },
     "displayName": "xDrip Watch Face",
     "watchapp": {

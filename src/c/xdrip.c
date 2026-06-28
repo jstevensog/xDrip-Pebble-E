@@ -1,10 +1,38 @@
 #include "pebble.h"
 #include "xdrip.h"
 
+// Scope debug to cleanup debug ifdefs
+
+#define DEBUG_APP_TRACE 3
+#define DEBUG_APP_DEBUG 2
+#define DEBUG_APP_INFO 1
+#define DEBUG_APP_NONE 0
+
 /* The line below will set the debug message level.
 Make sure you set this to 0 or DEBUG_APP_NONE before building a release. */
 
 //#define DEBUG_LEVEL DEBUG_APP_TRACE 
+
+#if DEBUG_LEVEL >= 3
+#define TRACE(...)  APP_LOG(APP_LOG_LEVEL_DEBUG, __VA_ARGS__)
+#else
+#define TRACE(...)
+#endif
+#if DEBUG_LEVEL >= 2
+#define DEBUG(...) APP_LOG(APP_LOG_LEVEL_DEBUG, __VA_ARGS__)
+#else
+#define DEBUG(...)
+#endif
+#if DEBUG_LEVEL >= 1
+#define INFO(...) APP_LOG(APP_LOG_LEVEL_INFO, __VA_ARGS__)
+#else
+#define INFO(...)
+#endif
+#if defined(DEBUG_LEVEL)
+#define LOG(...) APP_LOG(APP_LOG_LEVEL_INFO, __VA_ARGS__)
+#else
+#define LOG(...)
+#endif
 
 /* The line below, if defined, will only indicate test values on the display.
 this is for testing purposes only until I can get the PebbleKit.JS code operating with the emulator.
@@ -433,7 +461,10 @@ static void battery_handler(BatteryChargeState charge_state)
 
 	static char watch_battlevel_percent[9];
 	// If there are no battery level metric display elements, exit
-	if(bottom_left_metric != METRIC_WATCHBATT && bottom_right_metric != METRIC_WATCHBATT) return;
+	if(bottom_left_metric != METRIC_WATCHBATT && bottom_right_metric != METRIC_WATCHBATT) {
+		LOG(" battery_handler: no watch battery metrics set.  Exiting.");
+		return;
+	}
 
 #ifdef PBL_COLOR 
 	#ifdef PBL_ROUND
@@ -447,6 +478,7 @@ static void battery_handler(BatteryChargeState charge_state)
 	LOG(" battery_handler: watch_battlevel_percent: %s", watch_battlevel_percent);
 	if(BacklightOnCharge)
 	{
+		LOG(" battery_handler: BackLightOnCharge: %u", BacklightOnCharge);
 		if(charge_state.is_plugged)
 		{
 			light_enable(true);
@@ -465,6 +497,7 @@ static void battery_handler(BatteryChargeState charge_state)
 	{
 		LOG("Charging.  BacklightOnCharge:%u", BacklightOnCharge);
 		if(bottom_left_metric == METRIC_WATCHBATT) {
+			LOG("Charging.  Processing bottom_left_text_layer:");
 #ifdef PBL_COLOR
 			TRACE("COLOR DETECTED");
 			text_layer_set_text_color(bottom_left_text_layer, GColorDukeBlue);
@@ -476,6 +509,7 @@ static void battery_handler(BatteryChargeState charge_state)
 #endif
 		}
 		if(bottom_right_metric == METRIC_WATCHBATT) {
+			LOG("Charging.  Processing bottom_right_text_layer:");
 #ifdef PBL_COLOR
 			TRACE("COLOR DETECTED");
 			text_layer_set_text_color(bottom_right_text_layer, GColorDukeBlue);
@@ -496,9 +530,11 @@ static void battery_handler(BatteryChargeState charge_state)
 		{
 			TRACE("BATTERY > 40");
 			if(bottom_left_metric == METRIC_WATCHBATT) {
+				LOG("Charging.  Processing >40%% bottom_left_text_layer: GColorGreen");
 				text_layer_set_text_color(bottom_left_text_layer, GColorGreen);
 			}
 			if(bottom_right_metric == METRIC_WATCHBATT) {
+				LOG("Charging.  Processing >40%% bottom_right_text_layer: GColorGreen");
 				text_layer_set_text_color(bottom_right_text_layer, GColorGreen);
 			}
 		}
@@ -506,9 +542,11 @@ static void battery_handler(BatteryChargeState charge_state)
 		{
 			TRACE("BATTERY > 20");
 			if(bottom_left_metric == METRIC_WATCHBATT) {
+				LOG("Charging.  Processing >20%% bottom_left_text_layer: GColorYellow");
 				text_layer_set_text_color(bottom_left_text_layer, GColorYellow);
 			}
 			if(bottom_right_metric == METRIC_WATCHBATT) {
+				LOG("Charging.  Processing >20%% bottom_right_text_layer: GColorYellow");
 				text_layer_set_text_color(bottom_right_text_layer, GColorYellow);
 			}
 		}
@@ -516,17 +554,21 @@ static void battery_handler(BatteryChargeState charge_state)
 		{
 			TRACE("BATTERY <= 20");
 			if(bottom_left_metric == METRIC_WATCHBATT) {
+				LOG("Charging.  Processing <=20%% bottom_left_text_layer: GColorRed");
 				text_layer_set_text_color(bottom_left_text_layer, GColorRed);
 			}
 			if(bottom_right_metric == METRIC_WATCHBATT) {
+				LOG("Charging.  Processing <=20%% bottom_right_text_layer: GColorRed");
 				text_layer_set_text_color(bottom_right_text_layer, GColorRed);
 			}
 		}
 		if(bottom_left_metric == METRIC_WATCHBATT) {
+			LOG("Charging.  Normal, setting bottom_left_text_layer background: GColorClear");
 			text_layer_set_background_color(bottom_left_text_layer, GColorClear);
 		}
 		if(bottom_right_metric == METRIC_WATCHBATT) {
-			text_layer_set_text_color(bottom_right_text_layer, GColorClear);
+			LOG("Charging.  Normal, setting bottom_right_text_layer background: GColorClear");
+			text_layer_set_background_color(bottom_right_text_layer, GColorClear);
 		}
 #else
 		TRACE("BW DETECTED");
@@ -1949,8 +1991,14 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 
 			//Bottom left metric to display
 			case SET_BOTTOM_LEFT_TEXT:
-				LOG("Got bottom_left_metric message is \"%lx\"", data->value->uint32);
-				bottom_left_metric = data->value->uint32 && 0xff;
+				LOG("Got bottom_left_metric message is \"%s\"", data->value->cstring);
+				bottom_left_metric = METRIC_PHONEBATT;
+//				if(strcmp(data->value->cstring,METRIC_NONE_STR)) bottom_left_metric = METRIC_NONE;
+//				if(strcmp(data->value->cstring,METRIC_PHONEBATT_STR)) bottom_left_metric = METRIC_PHONEBATT;
+//				if(strcmp(data->value->cstring,METRIC_WATCHBATT_STR)) bottom_left_metric = METRIC_WATCHBATT;
+//				if(strcmp(data->value->cstring,METRIC_STEPS_STR)) bottom_left_metric = METRIC_STEPS;
+//				if(strcmp(data->value->cstring,METRIC_HEARTRATE_STR)) bottom_left_metric = METRIC_HEARTRATE;
+				LOG("Set bottom_left_metric to \"%u\"", bottom_left_metric);
 				persist_write_int(SET_BOTTOM_LEFT_TEXT, bottom_left_metric);
 				if(bottom_left_metric == METRIC_NONE) {
 					text_layer_set_text(bottom_left_text_layer, "");
@@ -1965,8 +2013,14 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 
 			//Bottom right metric to display
 			case SET_BOTTOM_RIGHT_TEXT:
-				LOG("Got bottom_right_metric message is \"%lx\"", data->value->uint32);
-				bottom_right_metric = data->value->uint32 && 0xff;
+				LOG("Got bottom_right_metric message is \"%s\"", data->value->cstring);
+				bottom_right_metric = METRIC_WATCHBATT;
+//				if(strcmp(data->value->cstring,METRIC_NONE_STR)) bottom_right_metric = METRIC_NONE;
+//				if(strcmp(data->value->cstring,METRIC_PHONEBATT_STR)) bottom_right_metric = METRIC_PHONEBATT;
+//				if(strcmp(data->value->cstring,METRIC_WATCHBATT_STR)) bottom_right_metric = METRIC_WATCHBATT;
+//				if(strcmp(data->value->cstring,METRIC_STEPS_STR)) bottom_right_metric = METRIC_STEPS;
+//				if(strcmp(data->value->cstring,METRIC_HEARTRATE_STR)) bottom_right_metric = METRIC_HEARTRATE;
+				LOG("Set bottom_right_metric to \"%u\"", bottom_right_metric);
 				persist_write_int(SET_BOTTOM_RIGHT_TEXT, bottom_right_metric);
 				if(bottom_right_metric == METRIC_NONE) {
 					text_layer_set_text(bottom_right_text_layer, "");
@@ -2729,15 +2783,28 @@ static void init_cgm(void)
 	LOG("init_cgm");
 	//Load persistent settings
 	display_seconds = persist_exists(SET_DISP_SECS)? persist_read_bool(SET_DISP_SECS) : false;
+	LOG("init_cgm: display_seccongs \"%u\".", display_seconds);
 	vibe_repeat = persist_exists(SET_VIBE_REPEAT)? persist_read_bool(SET_VIBE_REPEAT) : true;
+	LOG("init_cgm: vibe_repeat \"%u\".", vibe_repeat);
 	SameColourTopAndBottom = persist_exists(SET_SAMECOLOUR)? persist_read_bool(SET_SAMECOLOUR) : false;
+	LOG("init_cgm: SameColourTopAndBottom \"%u\".", SameColourTopAndBottom);
 	message_tick_timeout = persist_exists(SET_MESSAGE_TIMEOUT) ? persist_read_int(SET_MESSAGE_TIMEOUT) * 1000 : 15000;
+	LOG("init_cgm:  message_tick_timeout \"%u\".", message_tick_timeout);
 #ifdef PBL_COLOR
 	fg_colour = persist_exists(SET_FG_COLOUR)? GColorFromHEX(persist_read_int(SET_FG_COLOUR)) : COLOR_FALLBACK(GColorWhite,GColorWhite);
 	bg_colour = persist_exists(SET_BG_COLOUR)? GColorFromHEX(persist_read_int(SET_BG_COLOUR)) : COLOR_FALLBACK(GColorDukeBlue,GColorBlack);
 #endif
 	TurnOffAllVibrations = persist_exists(SET_NO_VIBE)? persist_read_bool(SET_NO_VIBE) : true;
+	LOG("init_cgm: TurnOffAllVibrations \"%u\".", TurnOffAllVibrations);
 	BacklightOnCharge = persist_exists(SET_LIGHT_ON_CHG)? persist_read_bool(SET_LIGHT_ON_CHG) : false;
+	LOG("init_cgm: BacklightOnCharge \"%u\".", BacklightOnCharge);
+	TimeAgoBold = persist_exists(SET_BOLD_TIMEAGO)? persist_read_bool(SET_BOLD_TIMEAGO) : false;
+	LOG("init_cgm: TimeAgoBold \"%u\".", TimeAgoBold);
+	bottom_left_metric = persist_exists(SET_BOTTOM_LEFT_TEXT)? persist_read_int(SET_BOTTOM_LEFT_TEXT) : METRIC_PHONEBATT;
+	LOG("init_cgm: bottom_left_metric \"%u\".", bottom_left_metric);
+	bottom_right_metric = persist_exists(SET_BOTTOM_RIGHT_TEXT)? persist_read_int(SET_BOTTOM_RIGHT_TEXT) : METRIC_WATCHBATT;
+	LOG("init_cgm: bottom_right_metric \"%u\".", bottom_right_metric);
+	
 	LOG("display_seconds: %i", display_seconds);
 	//initialise the Time Fonts
 	if (HIGH_RES()) {
