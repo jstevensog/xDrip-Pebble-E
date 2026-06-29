@@ -1463,10 +1463,31 @@ static void load_cgmtime()
 		//create_update_bitmap(&cgmicon_bitmap,cgmicon_layer,TIMEAGO_ICONS[RCVRON_ICON_INDX]);
 
 		time_now = time(NULL);
-		time_now = abs(time_now + get_UTC_offset(localtime(&time_now)));
+		/*
+		* Since 4.17 (or maybe 4.16) get_UTC_offset accepts isdst in addition
+		* to CEST/CEDT and adds 3600s.
+		* This results in 1h offset.
+		* Note: Setting isdst should not offset time. It's indicative only.
+		*
+		* To avoid this issue we use the tm_gmtoff which should always be the
+		* local offset from UTC.
+		* Thanks Tristan for the fix.
+		*/
+		// Leaving this as per Tristan's work.  Should probably be #if defined, to reduce code on older pebbles, but this is easier while it works.
+		if (watch_info_get_model() > WATCH_INFO_MODEL_PEBBLE_TIME_2) {
+			//this code should only run on core devices models.  Hopefully this will not change.
+			struct tm *lc_tm = localtime(&time_now);
+			time_now = abs(time_now + lc_tm->tm_gmtoff);
+			TRACE("LOAD CGMTIME, UTC OFFSET: %lu", lc_tm->tm_gmtoff);
+		} else {
+			// old models can use get_UTC_offset
+			time_now = abs(time_now + get_UTC_offset(localtime(&time_now)));
+		}
+
+
 
 		TRACE("LOAD CGMTIME, CURRENT CGM TIME: %lu", current_cgm_time);
-	LOG("LOAD CGMTIME, time_now: %lu, current_cgm_time: %lu", time_now, current_cgm_time);
+		LOG("LOAD CGMTIME, time_now: %lu, current_cgm_time: %lu", time_now, current_cgm_time);
 
 		//current_cgm_timeago = abs(time_now - current_cgm_time);
 		current_cgm_timeago = (time_now - current_cgm_time);
