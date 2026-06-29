@@ -1993,11 +1993,11 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 			case SET_BOTTOM_LEFT_TEXT:
 				LOG("Got bottom_left_metric message is \"%s\"", data->value->cstring);
 				bottom_left_metric = METRIC_PHONEBATT;
-//				if(strcmp(data->value->cstring,METRIC_NONE_STR)) bottom_left_metric = METRIC_NONE;
-//				if(strcmp(data->value->cstring,METRIC_PHONEBATT_STR)) bottom_left_metric = METRIC_PHONEBATT;
-//				if(strcmp(data->value->cstring,METRIC_WATCHBATT_STR)) bottom_left_metric = METRIC_WATCHBATT;
-//				if(strcmp(data->value->cstring,METRIC_STEPS_STR)) bottom_left_metric = METRIC_STEPS;
-//				if(strcmp(data->value->cstring,METRIC_HEARTRATE_STR)) bottom_left_metric = METRIC_HEARTRATE;
+				if(strcmp(data->value->cstring,METRIC_NONE_STR) == 0) bottom_left_metric = METRIC_NONE;
+				if(strcmp(data->value->cstring,METRIC_PHONEBATT_STR) == 0) bottom_left_metric = METRIC_PHONEBATT;
+				if(strcmp(data->value->cstring,METRIC_WATCHBATT_STR) == 0) bottom_left_metric = METRIC_WATCHBATT;
+				if(strcmp(data->value->cstring,METRIC_STEPS_STR) == 0) bottom_left_metric = METRIC_STEPS;
+				if(strcmp(data->value->cstring,METRIC_HEARTRATE_STR) == 0) bottom_left_metric = METRIC_HEARTRATE;
 				LOG("Set bottom_left_metric to \"%u\"", bottom_left_metric);
 				persist_write_string(SET_BOTTOM_LEFT_TEXT, data->value->cstring);
 				if(bottom_left_metric == METRIC_NONE) {
@@ -2015,11 +2015,11 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 			case SET_BOTTOM_RIGHT_TEXT:
 				LOG("Got bottom_right_metric message is \"%s\"", data->value->cstring);
 				bottom_right_metric = METRIC_WATCHBATT;
-//				if(strcmp(data->value->cstring,METRIC_NONE_STR)) bottom_right_metric = METRIC_NONE;
-//				if(strcmp(data->value->cstring,METRIC_PHONEBATT_STR)) bottom_right_metric = METRIC_PHONEBATT;
-//				if(strcmp(data->value->cstring,METRIC_WATCHBATT_STR)) bottom_right_metric = METRIC_WATCHBATT;
-//				if(strcmp(data->value->cstring,METRIC_STEPS_STR)) bottom_right_metric = METRIC_STEPS;
-//				if(strcmp(data->value->cstring,METRIC_HEARTRATE_STR)) bottom_right_metric = METRIC_HEARTRATE;
+				if(strcmp(data->value->cstring,METRIC_NONE_STR) == 0) bottom_right_metric = METRIC_NONE;
+				if(strcmp(data->value->cstring,METRIC_PHONEBATT_STR) == 0) bottom_right_metric = METRIC_PHONEBATT;
+				if(strcmp(data->value->cstring,METRIC_WATCHBATT_STR) == 0) bottom_right_metric = METRIC_WATCHBATT;
+				if(strcmp(data->value->cstring,METRIC_STEPS_STR) == 0) bottom_right_metric = METRIC_STEPS;
+				if(strcmp(data->value->cstring,METRIC_HEARTRATE_STR) == 0) bottom_right_metric = METRIC_HEARTRATE;
 				LOG("Set bottom_right_metric to \"%u\"", bottom_right_metric);
 				persist_write_string(SET_BOTTOM_RIGHT_TEXT, data->value->cstring);
 				if(bottom_right_metric == METRIC_NONE) {
@@ -2084,7 +2084,7 @@ void timer_callback_cgm(void *data)
 // message/delta tick layer
 void handle_message_tick(void *data) 
 {
-	INFO("Handling alert tick, display_message is %i", display_message);
+	INFO("handle_message_tick: Handling alert tick, display_message is %i", display_message);
 	if(display_message)
 	{
 	    layer_set_hidden((Layer *)message_layer, !(layer_get_hidden((Layer *)message_layer)));
@@ -2781,6 +2781,8 @@ void window_unload_cgm(Window *window_cgm)
 static void init_cgm(void)
 {
 	LOG("init_cgm");
+	//if(persist_exists(SET_BOTTOM_LEFT_TEXT)) persist_delete(SET_BOTTOM_LEFT_TEXT);
+	//if(persist_exists(SET_BOTTOM_RIGHT_TEXT)) persist_delete(SET_BOTTOM_RIGHT_TEXT);
 	//Load persistent settings
 	display_seconds = persist_exists(SET_DISP_SECS)? persist_read_bool(SET_DISP_SECS) : false;
 	LOG("init_cgm: display_seccongs \"%u\".", display_seconds);
@@ -2800,21 +2802,23 @@ static void init_cgm(void)
 	LOG("init_cgm: BacklightOnCharge \"%u\".", BacklightOnCharge);
 	TimeAgoBold = persist_exists(SET_BOLD_TIMEAGO)? persist_read_bool(SET_BOLD_TIMEAGO) : false;
 	LOG("init_cgm: TimeAgoBold \"%u\".", TimeAgoBold);
-	bottom_left_metric_str = persist_exists(SET_BOTTOM_LEFT_TEXT)? persist_read_string(SET_BOTTOM_LEFT_TEXT) : METRIC_PHONEBATT;
+	if(persist_exists(SET_BOTTOM_LEFT_TEXT)) persist_read_string(SET_BOTTOM_LEFT_TEXT,bottom_left_metric_str,sizeof(bottom_left_metric_str));
+	else persist_write_string(SET_BOTTOM_LEFT_TEXT, METRIC_PHONEBATT_STR);
 	LOG("init_cgm: bottom_left_metric_str \"%s\".", bottom_left_metric_str);
-	if(strcmp(bottom_left_metric_str, METRIC_NONE_STR)) bottom_left_metric = 0;
-	if(strcmp(bottom_left_metric_str, METRIC_PHONEBATT_STR)) bottom_left_metric = 1;
-	if(strcmp(bottom_left_metric_str, METRIC_WATCHBATT_STR)) bottom_left_metric = 2;
-	if(strcmp(bottom_left_metric_str, METRIC_STEPS_STR)) bottom_left_metric = 3;
-	if(strcmp(bottom_left_metric_str, METRIC_HEARTRATE_STR)) bottom_left_metric = 4;
+	if(strcmp(bottom_left_metric_str, METRIC_NONE_STR) == 0) bottom_left_metric = 0;
+	if(strcmp(bottom_left_metric_str, METRIC_PHONEBATT_STR) == 0) bottom_left_metric = 1;
+	if(strcmp(bottom_left_metric_str, METRIC_WATCHBATT_STR) == 0) bottom_left_metric = 2;
+	if(strcmp(bottom_left_metric_str, METRIC_STEPS_STR) == 0) bottom_left_metric = 3;
+	if(strcmp(bottom_left_metric_str, METRIC_HEARTRATE_STR) == 0) bottom_left_metric = 4;
 	LOG("init_cgm: bottom_left_metric \"%u\".", bottom_left_metric);
-	bottom_right_metric = persist_exists(SET_BOTTOM_RIGHT_TEXT)? persist_read_string(SET_BOTTOM_RIGHT_TEXT) : METRIC_WATCHBATT;
+	if(persist_exists(SET_BOTTOM_RIGHT_TEXT)) persist_read_string(SET_BOTTOM_RIGHT_TEXT,bottom_right_metric_str,sizeof(bottom_right_metric_str));
+	else persist_write_string(SET_BOTTOM_RIGHT_TEXT, METRIC_WATCHBATT_STR);
 	LOG("init_cgm: bottom_right_metric_str \"%s\".", bottom_right_metric_str);
-	if(strcmp(bottom_right_metric_str, METRIC_NONE_STR)) bottom_right_metric = 0;
-	if(strcmp(bottom_right_metric_str, METRIC_PHONEBATT_STR)) bottom_right_metric = 1;
-	if(strcmp(bottom_right_metric_str, METRIC_WATCHBATT_STR)) bottom_right_metric = 2;
-	if(strcmp(bottom_right_metric_str, METRIC_STEPS_STR)) bottom_right_metric = 3;
-	if(strcmp(bottom_right_metric_str, METRIC_HEARTRATE_STR)) bottom_right_metric = 4;
+	if(strcmp(bottom_right_metric_str, METRIC_NONE_STR) == 0) bottom_right_metric = 0;
+	if(strcmp(bottom_right_metric_str, METRIC_PHONEBATT_STR) == 0) bottom_right_metric = 1;
+	if(strcmp(bottom_right_metric_str, METRIC_WATCHBATT_STR) == 0) bottom_right_metric = 2;
+	if(strcmp(bottom_right_metric_str, METRIC_STEPS_STR) == 0) bottom_right_metric = 3;
+	if(strcmp(bottom_right_metric_str, METRIC_HEARTRATE_STR) == 0) bottom_right_metric = 4;
 	LOG("init_cgm: bottom_right_metric \"%u\".", bottom_right_metric);
 	
 	LOG("display_seconds: %i", display_seconds);

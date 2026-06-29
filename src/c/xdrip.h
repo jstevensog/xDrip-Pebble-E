@@ -1,33 +1,5 @@
 //xdrip.h - file for all common defines and function prototypes used in xdrip.c
 
-// Scope debug to cleanup debug ifdefs
-
-#define DEBUG_APP_TRACE 3
-#define DEBUG_APP_DEBUG 2
-#define DEBUG_APP_INFO 1
-#define DEBUG_APP_NONE 0
-
-#if DEBUG_LEVEL >= 3
-#define TRACE(...)  APP_LOG(APP_LOG_LEVEL_DEBUG, __VA_ARGS__)
-#else
-#define TRACE(...)
-#endif
-#if DEBUG_LEVEL >= 2
-#define DEBUG(...) APP_LOG(APP_LOG_LEVEL_DEBUG, __VA_ARGS__)
-#else
-#define DEBUG(...)
-#endif
-#if DEBUG_LEVEL >= 1
-#define INFO(...) APP_LOG(APP_LOG_LEVEL_INFO, __VA_ARGS__)
-#else
-#define INFO(...)
-#endif
-#if defined(DEBUG_LEVEL)
-#define LOG(...) APP_LOG(APP_LOG_LEVEL_INFO, __VA_ARGS__)
-#else
-#define LOG(...)
-#endif
-
 // global window variables
 // ANYTHING THAT IS CALLED BY PEBBLE API HAS TO BE NOT STATIC
 
@@ -173,6 +145,11 @@ static const uint8_t QUESTION_MARKS_ICON_INDX = 5;
 static const uint8_t LOGO_SPECVALUE_ICON_INDX = 6;
 
 // Metric Display defines
+#define METRIC_NONE_STR		"no"
+#define METRIC_PHONEBATT_STR	"pb"
+#define METRIC_WATCHBATT_STR	"wb"
+#define METRIC_STEPS_STR	"sc"
+#define METRIC_HEARTRATE_STR	"hr"
 #define METRIC_NONE		0
 #define METRIC_PHONEBATT	1
 #define METRIC_WATCHBATT	2
@@ -181,9 +158,9 @@ static const uint8_t LOGO_SPECVALUE_ICON_INDX = 6;
 
 //Metric Display Left/Right
 static uint8_t bottom_left_metric = 1;
-static uint8_t bottom_right_metric = 2;
-TextLayer *phone_battery_text_layer = NULL;
-TextLayer *watch_battery_text_layer = NULL;
+static uint8_t bottom_right_metric = 1;
+static char  bottom_left_metric_str[] = "pb";
+static char  bottom_right_metric_str[] = "wb";
 #ifdef PBL_HEALTH
 TextLayer *step_count_text_layer = NULL;
 #if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_FLINT) || defined(PBL_PLATFORM_GABBRO)
