@@ -102,7 +102,7 @@
 			"messageKey": "bottomlefttext",
 			"label": "Bottom Left Metric",
 			"defaultValue": "pb",
-			"capabilities": ["HEALTH","NOT_PLATFORM_DIORITE", "NOT_PLATFORM_EMERY"],
+			"capabilities": ["HEALTH","NOT_PLATFORM_DIORITE", "NOT_PLATFORM_EMERY","NOT_ROUND"],
 			"options": [
 				{
 					"label": "None",
@@ -127,7 +127,7 @@
 			"messageKey": "bottomlefttext",
 			"label": "Bottom Left Metric",
 			"defaultValue": "pb",
-			"capabilities": ["PLATFORM_EMERY","PLATFORM_FLINT","PLATFROM_GABBRO"],
+			"capabilities": ["PLATFORM_EMERY","PLATFORM_FLINT","PLATFROM_GABBRO","NOT_ROUND"],
 			"options": [
 				{
 					"label": "None",
