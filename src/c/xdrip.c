@@ -11,7 +11,7 @@
 /* The line below will set the debug message level.
 Make sure you set this to 0 or DEBUG_APP_NONE before building a release. */
 
-#define DEBUG_LEVEL DEBUG_APP_TRACE 
+//#define DEBUG_LEVEL DEBUG_APP_TRACE 
 
 #if DEBUG_LEVEL >= 3
 #define TRACE(...)  APP_LOG(APP_LOG_LEVEL_DEBUG, __VA_ARGS__)
