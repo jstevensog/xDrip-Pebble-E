@@ -102,15 +102,15 @@
 			"messageKey": "bottomlefttext",
 			"label": "Bottom Left Metric",
 			"defaultValue": "pb",
-			"capabilities": ["HEALTH","NOT_PLATFORM_DIORITE", "NOT_PLATFORM_EMERY"],
+			"capabilities": ["HEALTH","NOT_PLATFORM_DIORITE", "NOT_PLATFORM_EMERY","NOT_ROUND"],
 			"options": [
 				{
 					"label": "None",
-					"vvalue":"no"
+					"value":"no"
 				},
 				{
 					"label": "Phone Battery",
-					"vvalue":"pb"
+					"value":"pb"
 				},
 				{
 					"label": "Watch Battery",
@@ -131,11 +131,11 @@
 			"options": [
 				{
 					"label": "None",
-					"vvalue":"no"
+					"value":"no"
 				},
 				{
 					"label": "Phone Battery",
-					"vvalue":"pb"
+					"value":"pb"
 				},
 				{
 					"label": "Watch Battery",
@@ -160,11 +160,11 @@
 			"options": [
 				{
 					"label": "None",
-					"vvalue":"no"
+					"value":"no"
 				},
 				{
 					"label": "Phone Battery",
-					"vvalue":"pb"
+					"value":"pb"
 				},
 				{
 					"label": "Watch Battery",
@@ -177,15 +177,15 @@
 			"messageKey": "bottomrighttext",
 			"defaultValue": "wb",
 			"label": "Bottom Right Metric",
-			"capabilities": ["HEALTH","NOT_PLATFORM_DIORITE", "NOT_PLATFORM_EMERY"],
+			"capabilities": ["HEALTH","NOT_PLATFORM_DIORITE", "NOT_PLATFORM_EMERY","NOT_ROUND"],
 			"options": [
 				{
 					"label": "None",
-					"vvalue":"no"
+					"value":"no"
 				},
 				{
 					"label": "Phone Battery",
-					"vvalue":"pb"
+					"value":"pb"
 				},
 				{
 					"label": "Watch Battery",
@@ -206,11 +206,65 @@
 			"options": [
 				{
 					"label": "None",
-					"vvalue":"no"
+					"value":"no"
 				},
 				{
 					"label": "Phone Battery",
-					"vvalue":"pb"
+					"value":"pb"
+				},
+				{
+					"label": "Watch Battery",
+					"value":"wb"
+				},
+				{
+					"label": "Step Count",
+					"value":"sc"
+				},
+				{
+					"label": "Heart Rate",
+					"value":"hr"
+				}
+			]
+		  },
+		  {
+			  "type": "select",
+			  "messageKey": "bottomrighttext",
+			  "defaultValue": "wb",
+			  "label": "Bottom Metric",
+			  "capabilities":["PLATFORM_CHALK"],
+			  "options": [
+				{
+					"label": "None",
+					"value":"no"
+				},
+				{
+					"label": "Phone Battery",
+					"value":"pb"
+				},
+				{
+					"label": "Watch Battery",
+					"value":"wb"
+				},
+				{
+					"label": "Step Count",
+					"value":"sc"
+				}
+			  ]
+		  },
+		  {
+			  "type": "select",
+			  "messageKey": "bottomrighttext",
+			  "defaultValue": "wb",
+			  "label": "Bottom Metric",
+			  "capabilities":["PLATFORM_CHALK","PLATFORM_GABBRO"],
+			  "options": [
+				{
+					"label": "None",
+					"value":"no"
+				},
+				{
+					"label": "Phone Battery",
+					"value":"pb"
 				},
 				{
 					"label": "Watch Battery",

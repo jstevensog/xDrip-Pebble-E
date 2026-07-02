@@ -57,23 +57,6 @@ static bool vibe_repeat = false;
 // variables for AppSync
 AppSync sync_cgm;
 
-// From jamorhams version.  Enables Health stuff.
-/* #if defined(PBL_HEALTH)
-void health_handler(HealthEventType event, void *context);
-static void start_data_log();
-static void stop_data_log();
-static void restart_data_log();
-static DataLoggingSessionRef s_session_heartrate;
-static DataLoggingSessionRef s_session_movement;
-static HealthValue laststeps = 0;
-static HealthValue lastbpm = 0;
-static time_t last_movement_time = 0;
-#define HEARTRATE_LOG 101
-#define MOVEMENT_LOG 103
-#endif
-static void health_subscribe();
-static void health_unsubscribe();
-*/
 static bool handling_second = false;
 static bool doing_trend = false;
 static bool global_lock = false;
@@ -390,23 +373,23 @@ static void health_handler(HealthEventType event, void *context) {
 	// Which type of event occurred?
 	switch(event) {
 		case HealthEventSignificantUpdate:
-			LOG("New HealthService HealthEventSignificantUpdate event");
+			LOG("health_handler: Significant Update");
 		break;
 
 		case HealthEventMovementUpdate:
- 			LOG("New HealthService HealthEventMovementUpdate event");
+ 			LOG("health_handler: Movement Update");
 		break;
 
 		case HealthEventMetricAlert:
- 			LOG("New HealthService HealthEventMetricAlert event");
+ 			LOG("health_handler: Metric Alert");
 		break;
 
 		case HealthEventSleepUpdate:
-			LOG("New HealthService HealthEventSleepUpdate event");
+			//LOG("health_handler: Sleep Update");
 		break;
 		
 		case HealthEventHeartRateUpdate:
-			LOG("New HealthService HealthEventHeartRateUpdate event");
+			LOG("health_handler: Heart rate Update");
 		break;
 	}
 	update_health_metric_displays();
@@ -447,18 +430,22 @@ static void update_health_metric_displays() {
 #if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_FLINT) || defined(PBL_PLATFORM_GABBRO)
 	if(bottom_left_metric == METRIC_HEARTRATE || bottom_right_metric == METRIC_HEARTRATE) {
 		static char s_hrm_buffer[16];
+		HealthValue val = 0;
 		HealthServiceAccessibilityMask hr = health_service_metric_accessible(HealthMetricHeartRateBPM, time(NULL), time(NULL));
 		if (hr & HealthServiceAccessibilityMaskAvailable) {
-			HealthValue val = health_service_peek_current_value(HealthMetricHeartRateBPM);
+			val = health_service_peek_current_value(HealthMetricHeartRateBPM);
+			LOG("Heart Rate data is \"%lu\"", (uint32_t)val);
 			if(val > 0) {
 			    // Display HRM value
 			    snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "%lu BPM", (uint32_t)val);
 			}
 		}
 		if(bottom_left_metric == METRIC_HEARTRATE) {
+			LOG("Setting bottom left metric to \"%lu\"", (uint32_t)val);
 			text_layer_set_text(bottom_left_text_layer, s_hrm_buffer);
 		}
 		if(bottom_right_metric == METRIC_HEARTRATE) {
+			LOG("Setting bottom right metric to \"%lu\"", (uint32_t)val);
 			text_layer_set_text(bottom_right_text_layer, s_hrm_buffer);
 		}
 	}
@@ -474,7 +461,7 @@ static void battery_handler(BatteryChargeState charge_state)
 	static char watch_battlevel_percent[9];
 	// If there are no battery level metric display elements, exit
 	if(bottom_left_metric != METRIC_WATCHBATT && bottom_right_metric != METRIC_WATCHBATT) {
-		LOG(" battery_handler: no watch battery metrics set.  Exiting.");
+		//LOG(" battery_handler: no watch battery metrics set.  Exiting.");
 		return;
 	}
 
@@ -488,9 +475,9 @@ static void battery_handler(BatteryChargeState charge_state)
 	snprintf(watch_battlevel_percent, BATTLEVEL_FORMATTED_SIZE, "W:%i%%", charge_state.charge_percent);
 #endif
 	LOG(" battery_handler: watch_battlevel_percent: %s", watch_battlevel_percent);
+	LOG(" battery_handler: BackLightOnCharge: %u", BacklightOnCharge);
 	if(BacklightOnCharge)
 	{
-		LOG(" battery_handler: BackLightOnCharge: %u", BacklightOnCharge);
 		if(charge_state.is_plugged)
 		{
 			light_enable(true);
@@ -509,7 +496,7 @@ static void battery_handler(BatteryChargeState charge_state)
 	{
 		LOG("Charging.  BacklightOnCharge:%u", BacklightOnCharge);
 		if(bottom_left_metric == METRIC_WATCHBATT) {
-			LOG("Charging.  Processing bottom_left_text_layer:");
+//			LOG("Charging.  Processing bottom_left_text_layer:");
 #ifdef PBL_COLOR
 			TRACE("COLOR DETECTED");
 			text_layer_set_text_color(bottom_left_text_layer, GColorDukeBlue);
@@ -521,7 +508,7 @@ static void battery_handler(BatteryChargeState charge_state)
 #endif
 		}
 		if(bottom_right_metric == METRIC_WATCHBATT) {
-			LOG("Charging.  Processing bottom_right_text_layer:");
+//			LOG("Charging.  Processing bottom_right_text_layer:");
 #ifdef PBL_COLOR
 			TRACE("COLOR DETECTED");
 			text_layer_set_text_color(bottom_right_text_layer, GColorDukeBlue);
@@ -542,11 +529,11 @@ static void battery_handler(BatteryChargeState charge_state)
 		{
 			TRACE("BATTERY > 40");
 			if(bottom_left_metric == METRIC_WATCHBATT) {
-				LOG("Charging.  Processing >40%% bottom_left_text_layer: GColorGreen");
+//				LOG("Charging.  Processing >40%% bottom_left_text_layer: GColorGreen");
 				text_layer_set_text_color(bottom_left_text_layer, GColorGreen);
 			}
 			if(bottom_right_metric == METRIC_WATCHBATT) {
-				LOG("Charging.  Processing >40%% bottom_right_text_layer: GColorGreen");
+//				LOG("Charging.  Processing >40%% bottom_right_text_layer: GColorGreen");
 				text_layer_set_text_color(bottom_right_text_layer, GColorGreen);
 			}
 		}
@@ -554,11 +541,11 @@ static void battery_handler(BatteryChargeState charge_state)
 		{
 			TRACE("BATTERY > 20");
 			if(bottom_left_metric == METRIC_WATCHBATT) {
-				LOG("Charging.  Processing >20%% bottom_left_text_layer: GColorYellow");
+//				LOG("Charging.  Processing >20%% bottom_left_text_layer: GColorYellow");
 				text_layer_set_text_color(bottom_left_text_layer, GColorYellow);
 			}
 			if(bottom_right_metric == METRIC_WATCHBATT) {
-				LOG("Charging.  Processing >20%% bottom_right_text_layer: GColorYellow");
+//				LOG("Charging.  Processing >20%% bottom_right_text_layer: GColorYellow");
 				text_layer_set_text_color(bottom_right_text_layer, GColorYellow);
 			}
 		}
@@ -566,20 +553,20 @@ static void battery_handler(BatteryChargeState charge_state)
 		{
 			TRACE("BATTERY <= 20");
 			if(bottom_left_metric == METRIC_WATCHBATT) {
-				LOG("Charging.  Processing <=20%% bottom_left_text_layer: GColorRed");
+//				LOG("Charging.  Processing <=20%% bottom_left_text_layer: GColorRed");
 				text_layer_set_text_color(bottom_left_text_layer, GColorRed);
 			}
 			if(bottom_right_metric == METRIC_WATCHBATT) {
-				LOG("Charging.  Processing <=20%% bottom_right_text_layer: GColorRed");
+//				LOG("Charging.  Processing <=20%% bottom_right_text_layer: GColorRed");
 				text_layer_set_text_color(bottom_right_text_layer, GColorRed);
 			}
 		}
 		if(bottom_left_metric == METRIC_WATCHBATT) {
-			LOG("Charging.  Normal, setting bottom_left_text_layer background: GColorClear");
+//			LOG("Charging.  Normal, setting bottom_left_text_layer background: GColorClear");
 			text_layer_set_background_color(bottom_left_text_layer, GColorClear);
 		}
 		if(bottom_right_metric == METRIC_WATCHBATT) {
-			LOG("Charging.  Normal, setting bottom_right_text_layer background: GColorClear");
+//			LOG("Charging.  Normal, setting bottom_right_text_layer background: GColorClear");
 			text_layer_set_background_color(bottom_right_text_layer, GColorClear);
 		}
 #else
@@ -606,8 +593,8 @@ static void battery_handler(BatteryChargeState charge_state)
 
 static void alert_handler_cgm(uint8_t alertValue)
 {
-	TRACE("ALERT HANDLER");
-	LOG("ALERT CODE: %d", alertValue);
+//	TRACE("ALERT HANDLER");
+	LOG("alert_handler: alertValue: %d", alertValue);
 	// CONSTANTS
 	// constants for vibrations patterns; has to be uint32_t, measured in ms, maximum duration 10000ms
 	// Vibe pattern: ON, OFF, ON, OFF; ON for 500ms, OFF for 100ms, ON for 100ms;
@@ -645,7 +632,7 @@ static void alert_handler_cgm(uint8_t alertValue)
 		case 1:
 			;
 			//Low
-	        LOG("ALERT HANDLER: LOW ALERT");
+	        LOG("alert_handler: LOW ALERT");
 			VibePattern low_alert_pat =
 			{
 				.durations = lowalert_beebuzz,
@@ -661,7 +648,7 @@ static void alert_handler_cgm(uint8_t alertValue)
 		case 2:
 		;
 			// Medium Alert
-	        LOG("ALERT HANDLER: MEDIUM ALERT");
+	        LOG("alert_handler: MEDIUM ALERT");
 			VibePattern med_alert_pat =
 			{
 				.durations = medalert_long,
@@ -677,7 +664,7 @@ static void alert_handler_cgm(uint8_t alertValue)
 		case 3:
 		;
 		// High Alert
-	        LOG("ALERT HANDLER: HIGH ALERT");
+	        LOG("alert_handler: HIGH ALERT");
 			VibePattern high_alert_pat =
 			{
 				.durations = highalert_fast,
@@ -730,7 +717,7 @@ void handle_bluetooth_cgm(bool bt_connected)
 
 		// timer has popped
 		// Vibrate; BluetoothAlert takes over until Bluetooth connection comes back on
-	    LOG("BT HANDLER: TIMER POP, NO BLUETOOTH");
+		LOG("BT HANDLER: TIMER POP, NO BLUETOOTH");
 		alert_handler_cgm(BTOUT_VIBE);
 		BluetoothAlert = true;
 
@@ -867,7 +854,7 @@ void sync_error_callback_cgm(DictionaryResult appsync_dict_error, AppMessageResu
 		}
 	}
 
-	INFO("APP SYNC RESEND ERROR");
+//	INFO("APP SYNC RESEND ERROR");
 	DEBUG("APP SYNC RESEND ERR CODE: %i RES: %s", appsync_err_openerr, translate_app_error(appsync_err_openerr));
 	DEBUG("AppSyncErrAlert:	%i", AppSyncErrAlert);
 
@@ -899,7 +886,7 @@ void sync_error_callback_cgm(DictionaryResult appsync_dict_error, AppMessageResu
 	// check if need to vibrate
 	if (!AppSyncErrAlert)
 	{
-	LOG("APPSYNC ERROR: VIBRATE");
+		LOG("APPSYNC ERROR: VIBRATE");
 		alert_handler_cgm(APPSYNC_ERR_VIBE);
 		AppSyncErrAlert = true;
 	}
@@ -918,7 +905,7 @@ void inbox_dropped_handler_cgm(AppMessageResult appmsg_indrop_error, void *conte
 	// CODE START
 
 	// APPMSG IN DROP debug logs
-	INFO("APPMSG IN DROP ERROR");
+	INFO("inbox_dropped_handler_cgm");
 	DEBUG("APPMSG IN DROP ERR CODE: %i RES: %s", appmsg_indrop_error, translate_app_error(appmsg_indrop_error));
 	
 	bluetooth_connected_cgm = bluetooth_connection_service_peek();
@@ -940,16 +927,16 @@ void inbox_dropped_handler_cgm(AppMessageResult appmsg_indrop_error, void *conte
 		appmsg_indrop_senderr = app_message_outbox_send();
 		if (appmsg_indrop_senderr != APP_MSG_OK || appmsg_indrop_senderr == APP_MSG_BUSY || appmsg_indrop_senderr == APP_MSG_SEND_REJECTED)
 		{
-			INFO("APPMSG IN DROP SEND ERROR");
-			DEBUG("APPMSG IN DROP SEND ERR CODE: %i RES: %s", appmsg_indrop_senderr, translate_app_error(appmsg_indrop_senderr));
+//			INFO("inbox_drepped_handler_cgm: SEND ERROR");
+			DEBUG("inbox_drepped_handler_cgm: SEND ERROR : %i RES: %s", appmsg_indrop_senderr, translate_app_error(appmsg_indrop_senderr));
 		}
 		else
 		{
 			return;
 		}
 	}
-	INFO("APPMSG IN DROP RESEND ERROR");
-	DEBUG("APPMSG IN DROP RESEND ERR CODE: %i RES: %s", appmsg_indrop_openerr, translate_app_error(appmsg_indrop_openerr));
+//	INFO("APPMSG IN DROP RESEND ERROR");
+	DEBUG("inbox_drepped_handler_cgm: RESEND ERR CODE: %i RES: %s", appmsg_indrop_openerr, translate_app_error(appmsg_indrop_openerr));
 	DEBUG("AppMsgInDropAlert:	%i", AppMsgInDropAlert);
 
 	bluetooth_connected_cgm = bluetooth_connection_service_peek();
@@ -976,7 +963,7 @@ void inbox_dropped_handler_cgm(AppMessageResult appmsg_indrop_error, void *conte
 	// check if need to vibrate
 	if (!AppMsgInDropAlert)
 	{
-	LOG("APPMSG IN DROP ERROR: VIBRATE");
+	LOG("inbox_drepped_handler_cgm: VIBRATE");
 		alert_handler_cgm(APPMSG_INDROP_VIBE);
 		AppMsgInDropAlert = true;
 	}
@@ -995,8 +982,8 @@ void outbox_failed_handler_cgm(DictionaryIterator *failed, AppMessageResult appm
 	// CODE START
 
 	// APPMSG OUT FAIL debug logs
-	INFO("APPMSG OUT FAIL ERROR");
-	DEBUG("APPMSG OUT FAIL ERR CODE: %i RES: %s", appmsg_outfail_error, translate_app_error(appmsg_outfail_error));
+//	INFO("APPMSG OUT FAIL ERROR");
+	DEBUG("outbox_failed_handler_cgm: ERR CODE: %i RES: %s", appmsg_outfail_error, translate_app_error(appmsg_outfail_error));
 
 	bluetooth_connected_cgm = bluetooth_connection_service_peek();
 
@@ -1017,9 +1004,9 @@ void outbox_failed_handler_cgm(DictionaryIterator *failed, AppMessageResult appm
 		return;
 	}
 
-	INFO("APPMSG OUT FAIL RESEND ERROR");
-	DEBUG("APPMSG OUT FAIL RESEND ERR CODE: %i RES: %s", appmsg_outfail_openerr, translate_app_error(appmsg_outfail_openerr));
-	DEBUG("AppMsgOutFailAlert:	%i", AppMsgOutFailAlert);
+//	INFO("APPMSG OUT FAIL RESEND ERROR");
+	DEBUG("outbox_failed_handler_cgm RESEND ERR CODE: %i RES: %s", appmsg_outfail_openerr, translate_app_error(appmsg_outfail_openerr));
+	DEBUG("AppMsgOutFailAlert: %i", AppMsgOutFailAlert);
 
 	bluetooth_connected_cgm = bluetooth_connection_service_peek();
 
@@ -1043,7 +1030,7 @@ void outbox_failed_handler_cgm(DictionaryIterator *failed, AppMessageResult appm
 	// check if need to vibrate
 	if (!AppMsgOutFailAlert)
 	{
-	LOG("APPMSG OUT FAIL ERROR: VIBRATE");
+		LOG("outbox_failed_handler_cgm: VIBRATE");
 		alert_handler_cgm(APPMSG_OUTFAIL_VIBE);
 		AppMsgOutFailAlert = true;
 	}
@@ -1052,7 +1039,7 @@ void outbox_failed_handler_cgm(DictionaryIterator *failed, AppMessageResult appm
 
 static void load_icon()
 {
-	TRACE("LOAD ICON ARROW FUNCTION START");
+	TRACE("load_icon: Start");
 
 	// CONSTANTS
 
@@ -1095,14 +1082,13 @@ static void load_icon()
 	const uint8_t LOGO_ARROW_ICON_INDX = 8;
 	const uint8_t ERR_ARROW_ICON_INDX = 9;
 
-	TRACE("LOAD ARROW ICON, BEFORE CHECK SPEC VALUE BITMAP");
 	// check if special value set
 	if (specvalue_alert == false)
 	{
 
 		// no special value, set arrow
 		// check for arrow direction, set proper arrow icon
-		TRACE("LOAD ICON, CURRENT ICON: %s", current_icon);
+		TRACE("load_icon: CURRENT ICON: %s", current_icon);
 		if ( (strcmp(current_icon, NO_ARROW) == 0) || (strcmp(current_icon, NOTCOMPUTE_ICON) == 0) || (strcmp(current_icon, OUTOFRANGE_ICON) == 0) )
 		{
 			create_update_bitmap(&icon_bitmap,icon_layer,ARROW_ICONS[NONE_ARROW_ICON_INDX]);
@@ -1164,14 +1150,14 @@ static void load_icon()
 	} // if specvalue_alert == false
 	else   // this is just for log when need it
 	{
-		TRACE("LOAD ICON, SPEC VALUE ALERT IS TRUE, DONE");
+		TRACE("load_icon: DONE");
 	} // else specvalue_alert == true
 
 } // end load_icon
 
 static void load_bg()
 {
-	TRACE("LOAD BG, FUNCTION START");
+	TRACE("load_bg: start");
 
 #define SENSOR_NOT_ACTIVE_VALUE "?SN"
 #define MINIMAL_DEVIATION_VALUE	"?MD"
@@ -1192,7 +1178,7 @@ static void load_bg()
 	// set special value alert to false no matter what
 	specvalue_alert = false;
 
-	INFO("LAST BG: %s", last_bg);
+	INFO("load_bg: last_bg: %s", last_bg);
 
 #ifdef TEST_MODE
 	snprintf(last_bg,sizeof(last_bg),"%s","100");
@@ -1212,7 +1198,7 @@ static void load_bg()
 		if (!bluetooth_connected_cgm)
 		{
 			// Bluetooth is out; set BT message
-			TRACE("LOAD BG, BG INIT: NO BT, SET NO BT MESSAGE");
+			TRACE("load_bg: NO BT, SET NO BT MESSAGE");
 			if (!TurnOff_NOBLUETOOTH_Msg)
 			{
 				text_layer_set_text(delta_layer, "NO BLUETOOTH");
@@ -1221,7 +1207,7 @@ static void load_bg()
 		else
 		{
 			// if init code, we will set it right in message layer
-			TRACE("LOAD BG, UNEXPECTED BG: SET ERR ICON");
+			TRACE("load_bg: UNEXPECTED BG: SET ERR ICON");
 			text_layer_set_text(bg_layer, "ERR");
 			create_update_bitmap(&icon_bitmap,icon_layer,SPECIAL_VALUE_ICONS[NONE_SPECVALUE_ICON_INDX]);
 			specvalue_alert = true;
@@ -1234,17 +1220,17 @@ static void load_bg()
 	{
 		// valid BG
 		// check for special value, if special value, then replace icon and blank BG; else send current BG
-		TRACE("LOAD BG, BEFORE CREATE SPEC VALUE BITMAP");
+		TRACE("load_bg: BEFORE CREATE SPEC VALUE BITMAP");
 		if (strcmp(last_bg, NO_ANTENNA_VALUE) == 0 || strcmp(last_bg, BAD_RF_VALUE) == 0)
 		{
-			TRACE("LOAD BG, SPECIAL VALUE: SET BROKEN ANTENNA");
+			TRACE("load_bg: last_bg: \"%s\"", last_bg);
 			text_layer_set_text(bg_layer, "");
 			create_update_bitmap(&specialvalue_bitmap,icon_layer, SPECIAL_VALUE_ICONS[BROKEN_ANTENNA_ICON_INDX]);
 			specvalue_alert = true;
 		}
 		else if (strcmp(last_bg, SENSOR_NOT_CALIBRATED_VALUE) == 0)
 		{
-			TRACE("LOAD BG, SPECIAL VALUE: SET BLOOD DROP");
+			TRACE("load_bg: SET BLOOD DROP");
 			text_layer_set_text(bg_layer, "");
 			create_update_bitmap(&specialvalue_bitmap,icon_layer,SPECIAL_VALUE_ICONS[BLOOD_DROP_ICON_INDX]);
 			specvalue_alert = true;
@@ -1252,14 +1238,14 @@ static void load_bg()
 		else if (strcmp(last_bg, SENSOR_NOT_ACTIVE_VALUE) == 0 || strcmp(last_bg, MINIMAL_DEVIATION_VALUE) == 0
 				 || strcmp(last_bg, STOP_LIGHT_VALUE) == 0)
 		{
-			TRACE("LOAD BG, SPECIAL VALUE: SET STOP LIGHT");
+			TRACE("load_bg: SET STOP LIGHT");
 			text_layer_set_text(bg_layer, "");
 			create_update_bitmap(&specialvalue_bitmap,icon_layer,SPECIAL_VALUE_ICONS[STOP_LIGHT_ICON_INDX]);
 			specvalue_alert = true;
 		}
 		else if (strcmp(last_bg, HOURGLASS_VALUE) == 0)
 		{
-			TRACE("LOAD BG, SPECIAL VALUE: SET HOUR GLASS");
+			TRACE("load_bg: SET HOUR GLASS");
 			text_layer_set_text(bg_layer, "");
 			create_update_bitmap(&specialvalue_bitmap,icon_layer,SPECIAL_VALUE_ICONS[HOURGLASS_ICON_INDX]);
 			specvalue_alert = true;
@@ -1268,28 +1254,27 @@ static void load_bg()
 		{
 			//PP_LOG(APP_LOG_LEVEL_INFO, "LOAD BG, SPECIAL VALUE: SET QUESTION MARKS, CLEAR TEXT");
 			text_layer_set_text(bg_layer, "");
-			TRACE("LOAD BG, SPECIAL VALUE: SET QUESTION MARKS, SET BITMAP");
+			TRACE("load_bg: SET QUESTION MARKS, SET BITMAP");
 			create_update_bitmap(&specialvalue_bitmap,icon_layer,SPECIAL_VALUE_ICONS[QUESTION_MARKS_ICON_INDX]);
-			TRACE("LOAD BG, SPECIAL VALUE: SET QUESTION MARKS, DONE");
+			TRACE("load_bg: SET QUESTION MARKS, DONE");
 			specvalue_alert = true;
 		}
 
-		TRACE("LOAD BG, AFTER CREATE SPEC VALUE BITMAP");
+		TRACE("load_bg: AFTER CREATE SPEC VALUE BITMAP");
 
 		if (specvalue_alert == false)
 		{
 			// we didn't find a special value, so set BG instead
 			// arrow icon already set separately
-			TRACE("LOAD BG, SET TO BG: %s ", last_bg);
+			TRACE("load_bg: SET BG: %s ", last_bg);
 			text_layer_set_text(bg_layer, last_bg);
 		} // end bg checks (if special_value_bitmap)
 
 
 	}
 
-	TRACE("LOAD BG, FUNCTION OUT");
-	TRACE("LOAD BG, FUNCTION OUT, SNOOZE VALUE: %d", lastAlertTime);
-	LOG("LOAD_BG: bg_layer is \"%s\"", text_layer_get_text(bg_layer));
+	TRACE("load_bg: SNOOZE VALUE: %d", lastAlertTime);
+	LOG("load_bg: bg_layer is \"%s\"", text_layer_get_text(bg_layer));
 
 
 } // end load_bg
@@ -1310,7 +1295,7 @@ time_t get_UTC_offset(struct tm *t)
 
 static void load_cgmtime()
 {
-	TRACE("LOAD CGMTIME FUNCTION START");
+	TRACE("load_cgmtime: START");
 
 	// VARIABLES
 	// NOTE: buffers have to be static and hardcoded
@@ -1330,7 +1315,7 @@ static void load_cgmtime()
 	if (current_cgm_time == 0)
 	{
 		// Init code or error code; set text layer & icon to empty value
-		TRACE("LOAD CGMTIME, CGM TIME AGO INIT OR ERROR CODE: %s", cgm_label_buffer);
+		TRACE("load_cgmtime, CGM TIME AGO INIT OR ERROR CODE: %s", cgm_label_buffer);
 		text_layer_set_text(cgmtime_layer, "");
 		//create_update_bitmap(&cgmicon_bitmap,cgmicon_layer,TIMEAGO_ICONS[NONE_TIMEAGO_ICON_INDX]);
 	}
@@ -1355,21 +1340,21 @@ static void load_cgmtime()
 			//this code should only run on core devices models.  Hopefully this will not change.
 			struct tm *lc_tm = localtime(&time_now);
 			time_now = abs(time_now + lc_tm->tm_gmtoff);
-			TRACE("LOAD CGMTIME, UTC OFFSET: %lu", lc_tm->tm_gmtoff);
+			TRACE("load_cgmtime UTC OFFSET: %lu", lc_tm->tm_gmtoff);
 		} else {
 			// old models can use get_UTC_offset
 			time_now = abs(time_now + get_UTC_offset(localtime(&time_now)));
 		}
 
-		TRACE("LOAD CGMTIME, CURRENT CGM TIME: %lu", current_cgm_time);
-		LOG("LOAD CGMTIME, time_now: %lu, current_cgm_time: %lu", time_now, current_cgm_time);
+//		TRACE("load_cgmtime:  CURRENT CGM TIME: %lu", current_cgm_time);
+		LOG("load_cgmtime:  time_now: %lu, current_cgm_time: %lu", time_now, current_cgm_time);
 
 		//current_cgm_timeago = abs(time_now - current_cgm_time);
 		current_cgm_timeago = (time_now - current_cgm_time);
 
-		TRACE("LOAD CGMTIME, CURRENT CGM TIMEAGO: %lu", current_cgm_timeago);
+//		TRACE("LOAD CGMTIME, CURRENT CGM TIMEAGO: %lu", current_cgm_timeago);
 
-		TRACE("LOAD CGMTIME, GM TIME AGO LABEL IN: %s", cgm_label_buffer);
+		TRACE("load_cgmtime: cgm_label_buffer: %s, current_cgm_timeago\"%lu\"", cgm_label_buffer);
 
 		if (current_cgm_timeago < MINUTEAGO)
 		{
@@ -1406,14 +1391,14 @@ static void load_cgmtime()
 		text_layer_set_text(cgmtime_layer, formatted_cgm_timeago);
 	} // else init code
 
-	LOG("LOAD_CGMTIME: cgmtime_layer is \"%s\"", text_layer_get_text(cgmtime_layer));
-	TRACE("LOAD CGMTIME, CGM TIMEAGO LABEL OUT: %s", cgm_label_buffer);
+	LOG("load_cgmtime: cgmtime_layer is \"%s\"", text_layer_get_text(cgmtime_layer));
+	TRACE("load_cgmtime: cgm_label_buffer: %s", cgm_label_buffer);
 } // end load_cgmtime
 
 static void load_bg_delta()
 {
-	LOG("BG DELTA FUNCTION START");
-	LOG("LOAD_BG_DELTA: current_bg_delta is \"%s\"", current_bg_delta);
+//	LOG("BG DELTA FUNCTION START");
+	LOG("load_bg_delta: current_bg_delta is \"%s\"", current_bg_delta);
 
 
 	// CONSTANTS
@@ -1456,7 +1441,7 @@ static void load_bg_delta()
 	// put " " (space) in bg field so logo continues to show
 	if (strcmp(current_bg_delta, "LOAD") == 0)
 	{
-	LOG("LOAD_BG_DELTA: Found LOAD, current_bg_delta is \"%s\"", current_bg_delta);
+		LOG("load_bg_delta: Found \"LOAD\"");
 
 		strncpy(formatted_bg_delta, "LOADING...", MSGLAYER_BUFFER_SIZE);
 		text_layer_set_text(delta_layer, formatted_bg_delta);
@@ -1487,7 +1472,7 @@ static void load_bg_delta()
 
 	strncpy(formatted_bg_delta, current_bg_delta, BGDELTA_FORMATTED_SIZE);
 
-	LOG("LOAD_BG_DELTA: All good. Setting \"%s\"", formatted_bg_delta);
+	LOG("load_bg_delta: All good. Setting \"%s\"", formatted_bg_delta);
 
 	text_layer_set_text(delta_layer, formatted_bg_delta);
 #ifdef PBL_COLOR
@@ -1497,13 +1482,13 @@ static void load_bg_delta()
 		text_layer_set_text_color(delta_layer,bg_colour);
 	}
 #endif
-	LOG("LOAD_BG_DELTA: delta_layer is \"%s\"", text_layer_get_text(delta_layer));
+	LOG("load_bg_delta: delta_layer is \"%s\"", text_layer_get_text(delta_layer));
 
 } // end load_bg_delta
 
 static void load_battlevel()
 {
-	TRACE("LOAD BATTLEVEL, FUNCTION START");
+	TRACE("load_battlevel: START");
 
 	// CONSTANTS
 
@@ -1516,15 +1501,16 @@ static void load_battlevel()
 	// CODE START
 	//Deterime if a metric text layer is configured for phone battery
 	if(bottom_left_metric != METRIC_PHONEBATT && bottom_right_metric == METRIC_PHONEBATT) {
-		LOG("LOAD BATTLEVEL, Nothing to update, exiting.");
+		LOG("load_battlevel: No update, exiting.");
 		return;
 	}
-	LOG("LOAD BATTLEVEL, LAST BATTLEVEL: %s", last_battlevel);
+	LOG("load_battlevel: last_battlevel: %s", last_battlevel);
 	if (strcmp(last_battlevel, " ") == 0)
 	{
 		// Init code or no battery, can't do battery; set text layer & icon to empty value
-		INFO("LOAD BATTLEVEL, NO BATTERY");
-		text_layer_set_text(bottom_left_text_layer, "");
+		INFO("load_battlevel: NO BATTERY");
+		if(bottom_left_metric == 1) text_layer_set_text(bottom_left_text_layer, "");
+		if(bottom_right_metric == 1) text_layer_set_text(bottom_right_text_layer, "");
 		LowBatteryAlert = false;
 		return;
 	}
@@ -1532,11 +1518,12 @@ static void load_battlevel()
 	if (strcmp(last_battlevel, "0") == 0)
 	{
 		// Zero battery level; set here, so if we get zero later we know we have an error instead
-		INFO("LOAD BATTLEVEL, ZERO BATTERY, SET STRING");
-		text_layer_set_text(bottom_left_text_layer, "0%");
+		INFO("load_battlevel: 0 value");
+		if(bottom_left_metric == 1) text_layer_set_text(bottom_left_text_layer, "0%");
+		if(bottom_right_metric == 1) text_layer_set_text(bottom_right_text_layer, "0%");
 		if (!LowBatteryAlert)
 		{
-		INFO("LOAD BATTLEVEL, ZERO BATTERY, VIBRATE");
+			INFO("load_battlevel: 0 value, vibe");
 			alert_handler_cgm(LOWBATTERY_VIBE);
 			LowBatteryAlert = true;
 		}
@@ -1545,13 +1532,14 @@ static void load_battlevel()
 
 	current_battlevel = myAtoi(last_battlevel);
 
-	INFO("LOAD BATTLEVEL, CURRENT BATTLEVEL: %i", current_battlevel);
+	INFO("load_battlevel: current_battlevel: %i", current_battlevel);
 
 	if ((current_battlevel <= 0) || (current_battlevel > 100) || (last_battlevel[0] == '-'))
 	{
 		// got a negative or out of bounds or error battery level
-		INFO("LOAD BATTLEVEL, UNKNOWN, ERROR BATTERY");
-		text_layer_set_text(bottom_left_text_layer, "ERR");
+		INFO("load_battlevel: error");
+		if(bottom_left_metric == 1) text_layer_set_text(bottom_left_text_layer, "ERR");
+		if(bottom_right_metric == 1) text_layer_set_text(bottom_right_text_layer, "ERR");
 		return;
 	}
 
@@ -1563,32 +1551,35 @@ static void load_battlevel()
 #else
 	snprintf(battlevel_percent, BATTLEVEL_FORMATTED_SIZE, "B:%i%%", current_battlevel);
 #endif
-	LOG("SETTING BATTLEVEL to %s", battlevel_percent);
+	LOG("load_battlevel: %s\%", battlevel_percent);
 #ifndef PBL_ROUND
-	text_layer_set_text(bottom_left_text_layer, battlevel_percent);
+	if(bottom_left_metric == 1) text_layer_set_text(bottom_left_text_layer, battlevel_percent);
+	if(bottom_right_metric == 1) text_layer_set_text(bottom_right_text_layer, battlevel_percent);
 #endif
 #ifdef PBL_COLOR
 	if ( (current_battlevel > 0) && (current_battlevel <= 30) )
 	{
-		text_layer_set_text_color(bottom_left_text_layer, GColorRed);
+		if(bottom_left_metric == 1) text_layer_set_text_color(bottom_left_text_layer, GColorRed);
+		if(bottom_right_metric == 1) text_layer_set_text_color(bottom_right_text_layer, GColorRed);
 		if (!LowBatteryAlert)
 		{
-			INFO("LOAD BATTLEVEL, LOW BATTERY, 5 OR LESS, VIBRATE");
+			INFO("load_battlevel: low battery VIBRATE");
 			alert_handler_cgm(LOWBATTERY_VIBE);
 			LowBatteryAlert = true;
 		}
 	}
 	else if ( (current_battlevel > 30) && (current_battlevel <= 50) )
 	{
-		text_layer_set_text_color(bottom_left_text_layer, GColorYellow);
+		if(bottom_left_metric == 1) text_layer_set_text_color(bottom_left_text_layer, GColorYellow);
+		if(bottom_right_metric == 1) text_layer_set_text_color(bottom_right_text_layer, GColorYellow);
 	}
 	else
 	{
-		text_layer_set_text_color(bottom_left_text_layer, GColorGreen);
+		if(bottom_left_metric == 1) text_layer_set_text_color(bottom_left_text_layer, GColorGreen);
+		if(bottom_right_metric == 1) text_layer_set_text_color(bottom_right_text_layer, GColorGreen);
 	}
 #endif
-	LOG("LOAD_BATTLEVEL: bottom_left_text_layer is \"%s\"", text_layer_get_text(bottom_left_text_layer));
-	TRACE("LOAD BATTLEVEL, END FUNCTION");
+	TRACE("load_battlevel: done");
 } // end load_battlevel
 
 // send_cmd_cgm - Function to send dat to xDrip to cause a refresh/update of data.
@@ -1610,29 +1601,28 @@ static void send_cmd_cgm(void)
 	}
 	if (sendcmd_openerr != APP_MSG_OK)
 	{
-		LOG("WATCH SENDCMD OPEN ERROR");
-		LOG("WATCH SENDCMD OPEN ERR CODE: %i RES: %s", sendcmd_openerr, translate_app_error(sendcmd_openerr));
+//		LOG("WATCH SENDCMD OPEN ERROR");
+		LOG("send_cmd_cgm: ERR CODE: %i RES: %s", sendcmd_openerr, translate_app_error(sendcmd_openerr));
 		return;
 	}
 
-	LOG("SEND CMD, MSG OUTBOX OPEN, NO ERROR, Creating Dictionary.");
+	LOG("send_cmd_cgm: Creating Dictionary.");
 
 	dict_write_uint32(iter, CGM_SYNC_KEY, CGM_SYNC_KEY);
 	dict_write_uint8(iter, PBL_PLATFORM, (uint8_t) PLATFORM);
 	dict_write_cstring(iter, PBL_APP_VER, FACE_VERSION);
 	dict_write_end(iter);
-	TRACE("SEND CMD IN, ABOUT TO OPEN APP MSG OUTBOX");
+	TRACE("send_cmd_cgm: Opening outbox");
 
 
 	sendcmd_senderr = app_message_outbox_send();
 
 	if (sendcmd_senderr != APP_MSG_OK && sendcmd_senderr != APP_MSG_BUSY && sendcmd_senderr != APP_MSG_SEND_REJECTED)
 	{
-		LOG("WATCH SENDCMD SEND ERROR");
-		LOG("WATCH SENDCMD SEND ERR CODE: %i RES: %s", sendcmd_senderr, translate_app_error(sendcmd_senderr));
+		LOG("send_cmd_cgm: ERR CODE: %i RES: %s", sendcmd_senderr, translate_app_error(sendcmd_senderr));
 	}
 	//free(iter);
-	TRACE("SEND CMD OUT, SENT MSG TO APP");
+	TRACE("send_cmd_cgm: done");
 
 } // end send_cmd_cgm
 
@@ -1668,12 +1658,12 @@ void updateColours()
 void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 {
 	Tuple *data = dict_read_first(iterator);
-	TRACE("SYNC TUPLE");
+//	TRACE("SYNC TUPLE");
 	LOG("inbox_received_callback_cgm: got dictionary");
 
 	if (global_lock)
 	{
-		APP_LOG(APP_LOG_LEVEL_ERROR, "GLOBALLY LOCKED");
+		LOG("inbox_received_handler_cgm: GLOBALLY LOCKED");
 		return;
 	}
 
@@ -1687,7 +1677,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 
 	while ((data != NULL) && (!global_lock))
 	{
-		LOG("inbox_received_callback_cgm: key is %lu", data->key);
+		LOG(":inbox_received_handler_cgm: key is %lu", data->key);
 		switch (data->key)
 		{
 
@@ -1728,9 +1718,9 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 			case CGM_UBAT_KEY:
 			;
 				LOG("SYNC TUPLE: UPLOADER BATTERY LEVEL");
-				TRACE("SYNC TUPLE: BATTERY LEVEL IN, COPY LAST BATTLEVEL");
+//				TRACE("SYNC TUPLE: BATTERY LEVEL IN, COPY LAST BATTLEVEL");
 				strncpy(last_battlevel, data->value->cstring, BATTLEVEL_MSGSTR_SIZE);
-				TRACE("SYNC TUPLE: BATTERY LEVEL, CALL LOAD BATTLEVEL");
+//				TRACE("SYNC TUPLE: BATTERY LEVEL, CALL LOAD BATTLEVEL");
 				load_battlevel();
 				TRACE("SYNC TUPLE: BATTERY LEVEL OUT");
 			break; // break for CGM_UBAT_KEY
@@ -2065,7 +2055,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 			break;
 
 			default:
-				LOG("sync_tuple_cgm_callback: Dictionary Key not recognised");
+				LOG("inbox_received_handler_cgm: Dictionary Key not recognised");
 			break;
 		}
 		// end switch(key)
@@ -2076,7 +2066,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 void timer_callback_cgm(void *data)
 {
 
-	TRACE("TIMER CALLBACK IN, TIMER POP, ABOUT TO CALL SEND CMD");
+	TRACE("timer_callback_cgm: start");
 	// reset msg timer to NULL
 	if (timer_cgm != NULL)
 		{
@@ -2086,12 +2076,12 @@ void timer_callback_cgm(void *data)
 	// if it reaches 0, we have not received an update in 6 minutes, so we ask for one.
 	//This limits the number of messages the pebble sends, and therefore improves battery life.
 
-	TRACE("minutes_cgm: %d", minutes_cgm);
+	TRACE("timer_callback_cgm: minutes_cgm: %d", minutes_cgm);
 	if (minutes_cgm == 0)
 		{
 			minutes_cgm = 6;
 			// send message
-	LOG("send_cmd_cgm: minutes_cgm is zero, setting to 6 and sending for data.");
+			LOG("timer_callback_cgm: minutes_cgm is 0, setting to 6 and invoking send_cmd_cgm.");
 			send_cmd_cgm();
 		}
 	else
@@ -2100,12 +2090,12 @@ void timer_callback_cgm(void *data)
 			load_cgmtime();
 			load_bg_delta();
 		}
-	LOG("minutes_cgm: %d", minutes_cgm);
-	TRACE("TIMER CALLBACK, SEND CMD DONE, ABOUT TO REGISTER TIMER");
+	LOG("timer_callback_cgm: minutes_cgm: %d", minutes_cgm);
+	TRACE("timer_callback_cgm: register timer");
 	// set msg timer
 	timer_cgm = app_timer_register((WATCH_MSGSEND_SECS*MS_IN_A_SECOND), timer_callback_cgm, NULL);
 
-	TRACE("TIMER CALLBACK, REGISTER TIMER DONE");
+	TRACE("timer_callback_cgm: done");
 
 } // end timer_callback_cgm
 
@@ -2115,6 +2105,7 @@ void timer_callback_cgm(void *data)
 // message/delta tick layer
 void handle_message_tick(void *data) 
 {
+	if(display_message == 0) return;
 	INFO("handle_message_tick: Handling alert tick, display_message is %i", display_message);
 	if(display_message)
 	{
@@ -2142,7 +2133,7 @@ void handle_message_tick(void *data)
 
 void handle_second_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cgm)
 {
-	TRACE("Handling second tick");
+	TRACE("handle_second_tick_cgm:");
 
 	// VARIABLES
 	size_t tick_return_cgm = 0;
@@ -2155,7 +2146,7 @@ void handle_second_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
 		{
 			text_layer_set_text(time_watch_layer, time_watch_text);
 		}
-		INFO("Seconds Tick: display_seconds = %i, time_watch_text = %s, time_watch_format = %s", display_seconds, time_watch_text, time_watch_format);
+		INFO("handle_second_tick_cgm: display_seconds = %i, time_watch_text = %s, time_watch_format = %s", display_seconds, time_watch_text, time_watch_format);
 	}
 	handling_second = false;
 
@@ -2166,7 +2157,7 @@ void handle_second_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
  */
 void handle_minute_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cgm)
 {
-	TRACE("Handling minute tick");
+	TRACE("handle_minute_tick_cgm:");
 
 	// VARIABLES
 	size_t tick_return_cgm = 0;
@@ -2174,7 +2165,7 @@ void handle_minute_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
 
 	if (units_changed_cgm & MINUTE_UNIT)
 	{
-	    LOG("TICK TIME MINUTE CODE");
+	    LOG("handle_minute_tick_cgm: tick");
 	    tick_return_cgm = strftime(time_watch_text, TIME_TEXTBUFF_SIZE, time_watch_format, tick_time_cgm);
 	}
 
@@ -2186,7 +2177,7 @@ void handle_minute_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
 
 	if (units_changed_cgm & DAY_UNIT)
 	{
-	    INFO("TICK TIME DAY CODE");
+	    INFO("handle_minute_tick_cgm: Day changed");
 		tick_return_cgm = strftime(date_app_text, DATE_TEXTBUFF_SIZE, "%a %d %b", tick_time_cgm);
 		if (tick_return_cgm != 0)
 		{
@@ -2222,7 +2213,7 @@ static void bitmapLayerUpdate(struct Layer *layer, GContext *ctx)
 	framebuffer = graphics_capture_frame_buffer(ctx);
 	if (framebuffer == NULL)
 	{
-		DEBUG("bitmapLayerUpdateProc: capture frame buffer failed!!");
+		DEBUG("bitmapLayerUpdate: capture frame buffer failed!!");
 	}
 	else
 	{
@@ -2230,7 +2221,7 @@ static void bitmapLayerUpdate(struct Layer *layer, GContext *ctx)
 
 		if (graphic == NULL)
 		{
-			DEBUG("bitmapLayerUpdateProc: GRAPHIC IS NULL!!");
+			DEBUG("bitmapLayerUpdate: GRAPHIC IS NULL!!");
 		}
 		else
 		{
@@ -2239,14 +2230,14 @@ static void bitmapLayerUpdate(struct Layer *layer, GContext *ctx)
 			uint8_t* bitmapstart=(uint8_t*)gbitmap_get_data(graphic);
 			if (bitmapstart == NULL)
 			{
-				APP_LOG(APP_LOG_LEVEL_WARNING, "bitmapLayerUpdateProc: bitmap start went to null!!");
+				APP_LOG(APP_LOG_LEVEL_WARNING, "bitmapLayerUpdate: bitmap start went to null!!");
 				graphics_release_frame_buffer(ctx, framebuffer);
 				global_lock = false;
 				return;
 			}
 			if (bfstart == NULL)
 			{
-				APP_LOG(APP_LOG_LEVEL_WARNING, "bitmapLayerUpdateProc: framebuffer start went to null!!");
+				APP_LOG(APP_LOG_LEVEL_WARNING, "bitmapLayerUpdate: framebuffer start went to null!!");
 				graphics_release_frame_buffer(ctx, framebuffer);
 				global_lock = false;
 				return;
@@ -2277,13 +2268,13 @@ static void bitmapLayerUpdate(struct Layer *layer, GContext *ctx)
 
 void window_load_cgm(Window *window_cgm)
 {
-	TRACE("WINDOW LOAD");
+	TRACE("window_load_cgm: start");
 
 	// VARIABLES
 	Layer *window_layer_cgm = NULL;
 //APLITE (CLASSIC)
 #ifdef PBL_PLATFORM_APLITE
-	LOG("WINDOW LOAD: Detected Aplite");
+	LOG("window_load_cgm: Detected Aplite");
 	//monochrome colours
 	//static GColor fg_colour;
 	//static GColor bg_colour;
@@ -2322,7 +2313,7 @@ void window_load_cgm(Window *window_cgm)
 
 //BASALT (TIME, TIME STEEL)
 #ifdef PBL_PLATFORM_BASALT
-	LOG("WINDOW LOAD: Detected Basalt");
+	LOG("window_load_cgm: Detected Basalt");
 	//collour colours
 	//static GColor8 fg_colour;
 	//static GColor8 bg_colour;
@@ -2356,19 +2347,19 @@ void window_load_cgm(Window *window_cgm)
 	date_app_layer = text_layer_create(GRect(0, 124, 143, 29));
 	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
 	// phone/bridge batter level layer diemnsions
-	bottom_left_text_layer = text_layer_create(GRect(0, 150, 72, 18));
-	layer_set_bounds((Layer *) bottom_left_text_layer, GRect(0, -1, 72, 18)); // fixes bounding box with latest sdk
+	bottom_left_text_layer = text_layer_create(GRect(0, 148, 72, 20));
+	layer_set_bounds((Layer *) bottom_left_text_layer, GRect(0, -1, 72, 20)); // fixes bounding box with latest sdk
 	text_layer_set_text_alignment(bottom_left_text_layer, GTextAlignmentLeft);
 	// watch battery level layer dimensions
-	bottom_right_text_layer = text_layer_create(GRect(72, 150, 72, 18));
-	layer_set_bounds((Layer *) bottom_right_text_layer, GRect(0, -1, 72, 18)); // fixes bounding box with latest sdk
+	bottom_right_text_layer = text_layer_create(GRect(72, 148, 72, 20));
+	layer_set_bounds((Layer *) bottom_right_text_layer, GRect(0, -1, 72, 20)); // fixes bounding box with latest sdk
 	text_layer_set_text_alignment(bottom_right_text_layer, GTextAlignmentRight);
 
 #endif
 
 //CHALK (ROUND)
 #ifdef PBL_PLATFORM_CHALK
-	LOG("WINDOW LOAD: Detected Chalk");
+	LOG("window_load_cgm: Detected Chalk");
 	//collour colours
 	//static GColor8 fg_colour;
 	//static GColor8 bg_colour;
@@ -2410,7 +2401,7 @@ void window_load_cgm(Window *window_cgm)
 
 //DIORITE (PEBBLE 2)
 #ifdef PBL_PLATFORM_DIORITE
-	LOG("WINDOW LOAD: Detected Diorite");
+	LOG("window_load_cgm: Detected Diorite");
 	//monochrome colours
 	//static GColor fg_colour;
 	//static GColor bg_colour;
@@ -2448,7 +2439,7 @@ void window_load_cgm(Window *window_cgm)
 
 //EMERY (CORE TIME 2)
 #ifdef PBL_PLATFORM_EMERY
-	LOG("WINDOW LOAD: Detected Emery");
+	LOG("window_load_cgm: Detected Emery");
 	//monochrome colours
 	//static GColor8 fg_colour;
 	//static GColor8 bg_colour;
@@ -2497,7 +2488,7 @@ void window_load_cgm(Window *window_cgm)
 
 //FLINT (CORE DUO 2)
 #ifdef PBL_PLATFORM_FLINT
-	LOG("WINDOW LOAD: Detected Flint");
+	LOG("window_load_cgm: Detected Flint");
 	//monochrome colours
 	//static GColor fg_colour;
 	//static GColor bg_colour;
@@ -2538,7 +2529,7 @@ void window_load_cgm(Window *window_cgm)
 #ifdef PBL_PLATFORM_GABBRO
 	// 260x260 (renumerate from original round is 180-180, everything *1.44
 	//collour colours
-	LOG("WINDOW LOAD: Detected GABBRO");
+	LOG("window_load_cgm: Detected GABBRO");
 	//collour colours
 	//static GColor8 fg_colour;
 	//static GColor8 bg_colour;
@@ -2696,47 +2687,25 @@ void window_load_cgm(Window *window_cgm)
 	layer_add_child(window_layer_cgm, text_layer_get_layer(date_app_layer));
 	draw_date_from_app();
 
-	// PHONE BATTERY LEVEL
-	LOG("Creating Phone Battery Text layer");
+	// Metric Layers
+	// left metric layer
+	LOG("Creating Left Metric Text layer");
 	text_layer_set_text_color(bottom_left_text_layer, GColorMintGreen);
 	text_layer_set_background_color(bottom_left_text_layer, GColorClear);
-	text_layer_set_font(bottom_left_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+	text_layer_set_font(bottom_left_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
 //	text_layer_set_text_alignment(bottom_left_text_layer, GTextAlignmentLeft);
 	layer_add_child(window_layer_cgm, text_layer_get_layer(bottom_left_text_layer));
 	LOG("bottom_left_text_layer; %s", text_layer_get_text(bottom_left_text_layer));
 
-
-	// WATCH BATTERY LEVEL
-	LOG("Creating Watch Battery Text layer");
+	// right metric layer
+	LOG("Creating Right Metric Text layer");
 	BatteryChargeState charge_state=battery_state_service_peek();
-	text_layer_set_font(bottom_right_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
-#ifdef PBL_COLOR
-	if(charge_state.is_charging)
-	{
-		text_layer_set_text_color(bottom_right_text_layer, GColorDukeBlue);
-		text_layer_set_background_color(bottom_right_text_layer, GColorGreen);
-	}
-	else
-	{
-		text_layer_set_text_color(bottom_right_text_layer, GColorMintGreen);
-		text_layer_set_background_color(bottom_right_text_layer, GColorClear);
-	}
-#else
-	if(charge_state.is_charging)
-	{
-		text_layer_set_text_color(bottom_right_text_layer, GColorBlack);
-		text_layer_set_background_color(bottom_right_text_layer, GColorWhite);
-	}
-	else
-	{
-		text_layer_set_text_color(bottom_right_text_layer, GColorWhite);
-		text_layer_set_background_color(bottom_right_text_layer, GColorBlack);
-	}
-#endif
+	text_layer_set_text_color(bottom_right_text_layer, GColorMintGreen);
+	text_layer_set_background_color(bottom_right_text_layer, GColorClear);
+	text_layer_set_font(bottom_right_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
 	layer_add_child(window_layer_cgm, text_layer_get_layer(bottom_right_text_layer));
 	battery_handler(charge_state);
-	LOG("bottom_right_text_layer; %s", text_layer_get_text(bottom_right_text_layer));
-
+	
 	// put " " (space) in bg field so logo continues to show
 	// " " (space) also shows these are init values, not bad or null values
 	snprintf(current_icon, 2, " ");
@@ -2761,38 +2730,38 @@ void window_load_cgm(Window *window_cgm)
 #endif
 	load_battlevel();
 
-	TRACE("WINDOW LOAD, ABOUT TO CALL APP SYNC INIT");
+//	TRACE("WINDOW LOAD, ABOUT TO CALL APP SYNC INIT");
 	//app_sync_init(&sync_cgm, sync_buffer_cgm, sizeof(sync_buffer_cgm), initial_values_cgm, ARRAY_LENGTH(initial_values_cgm), sync_tuple_changed_callback_cgm, sync_error_callback_cgm, NULL);
 	// init timer to null if needed, and register timer
-	TRACE("WINDOW LOAD, APP INIT DONE, ABOUT TO REGISTER TIMER");
+	TRACE("window_load_cgm: build done, init timer");
 	if (timer_cgm != NULL)
 	{
 		timer_cgm = NULL;
 	}
 	timer_cgm = app_timer_register((LOADING_MSGSEND_SECS*MS_IN_A_SECOND), timer_callback_cgm, NULL);
-	TRACE("WINDOW LOAD, TIMER REGISTER DONE");
+	TRACE("window_load_cgm: timer registered");
 
 } // end window_load_cgm
 
 void window_unload_cgm(Window *window_cgm)
 {
-	TRACE("WINDOW UNLOAD IN");
+//	TRACE("WINDOW UNLOAD IN");
 
-	TRACE("WINDOW UNLOAD, APP SYNC DEINIT");
+	TRACE("window_unload_cgm: deinitialise app_sync");
 	app_sync_deinit(&sync_cgm);
 
 	//destroy the trend bitmap and layer
 	if(bg_trend_bitmap != NULL) destroy_null_GBitmap(&bg_trend_bitmap);
 	if(bg_trend_layer != NULL) destroy_null_BitmapLayer(&bg_trend_layer);
-	TRACE("WINDOW UNLOAD, DESTROY GBITMAPS IF EXIST");
+	TRACE("window_unload_cgm: destroy existing GBitmaps");
 	if(icon_bitmap != NULL) destroy_null_GBitmap(&icon_bitmap);
 	if(appicon_bitmap != NULL) destroy_null_GBitmap(&appicon_bitmap);
 	if(specialvalue_bitmap != NULL) destroy_null_GBitmap(&specialvalue_bitmap);
 
-	TRACE("WINDOW UNLOAD, DESTROY BITMAPS IF EXIST");
+	TRACE("window_unload_cgm: destroy existing Bitmaps");
 	if(icon_layer != NULL) destroy_null_BitmapLayer(&icon_layer);
 
-	TRACE("WINDOW UNLOAD, DESTROY TEXT LAYERS IF EXIST");
+	TRACE("window_unload_cgm: destroy existing text layers");
 	if(bg_layer != NULL) destroy_null_TextLayer(&bg_layer);
 	if(cgmtime_layer != NULL) destroy_null_TextLayer(&cgmtime_layer);
 	if(delta_layer != NULL) destroy_null_TextLayer(&delta_layer);
@@ -2806,7 +2775,7 @@ void window_unload_cgm(Window *window_cgm)
 	if(lower_face_layer != NULL) destroy_null_BitmapLayer(&lower_face_layer);
 	if(upper_face_layer != NULL) destroy_null_BitmapLayer(&upper_face_layer);
 
-	TRACE("WINDOW UNLOAD OUT");
+	TRACE("window_unload_cgm: done");
 } // end window_unload_cgm
 
 static void init_cgm(void)
