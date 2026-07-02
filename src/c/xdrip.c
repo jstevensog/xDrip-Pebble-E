@@ -8,10 +8,22 @@
 #define DEBUG_APP_INFO 1
 #define DEBUG_APP_NONE 0
 
-/* The line below will set the debug message level.
-Make sure you set this to 0 or DEBUG_APP_NONE before building a release. */
+/*  The line below will set the debug message level.
+    Make sure you set this to 0 or DEBUG_APP_NONE before building a release. 
+    Aplite will not build due to limited .text size with DEBUG_APP_TRACE, you can only enable info logging. 
+*/
 
-//#define DEBUG_LEVEL DEBUG_APP_TRACE 
+#define DEBUG_LEVEL DEBUG_APP_TRACE  
+
+
+/**
+ * prevent aplite from not building in trace logging
+ */
+#if defined(DEBUG_LEVEL) && defined(PBL_PLATFORM_APLITE) && DEBUG_LEVEL >= DEBUG_APP_DEBUG
+#pragma message "Lowering debug level to suit aplite"
+#undef DEBUG_LEVEL
+#define DEBUG_LEVEL DEBUG_APP_INFO
+#endif
 
 #if DEBUG_LEVEL >= 3
 #define TRACE(...)  APP_LOG(APP_LOG_LEVEL_DEBUG, __VA_ARGS__)
