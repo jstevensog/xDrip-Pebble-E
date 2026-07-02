@@ -19,7 +19,8 @@
 /**
  * prevent aplite from not building in trace logging
  */
-#if defined(DEBUG_LEVEL) && PBL_PLATFORM_TYPE_CURRENT == PlatformTypeAplite && DEBUG_LEVEL >= DEBUG_APP_DEBUG
+#if defined(DEBUG_LEVEL) && defined(PBL_PLATFORM_APLITE) && DEBUG_LEVEL >= DEBUG_APP_DEBUG
+#pragma message "Lowering debug level to suit aplite"
 #undef DEBUG_LEVEL
 #define DEBUG_LEVEL DEBUG_APP_INFO
 #endif
