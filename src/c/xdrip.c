@@ -415,7 +415,7 @@ static void update_health_metric_displays() {
 			// Data is available!
 			step_count = health_service_sum_today(metric);
   			LOG("Steps today: %d", step_count);
-			snprintf(step_count_text,8, "%i", step_count);
+			snprintf(step_count_text,8, "%i steps", step_count);
 		} else {
 			// No data recorded yet today
 			LOG("Data unavailable!");
@@ -1557,6 +1557,11 @@ static void load_battlevel()
 	if(bottom_right_metric == 1) text_layer_set_text(bottom_right_text_layer, battlevel_percent);
 #endif
 #ifdef PBL_COLOR
+	// if neither bottom metric is battery indication, then return immediately and don't process the colours.
+	if(bottom_left_metric != 1 && bottom_right_metric !=1) {
+		TRACE("load_battlevel: done");
+		return;
+	}
 	if ( (current_battlevel > 0) && (current_battlevel <= 30) )
 	{
 		if(bottom_left_metric == 1) text_layer_set_text_color(bottom_left_text_layer, GColorRed);
