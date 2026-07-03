@@ -13,7 +13,7 @@
     Aplite will not build due to limited .text size with DEBUG_APP_TRACE, you can only enable info logging. 
 */
 
-#define DEBUG_LEVEL DEBUG_APP_TRACE  
+//#define DEBUG_LEVEL DEBUG_APP_TRACE  
 
 
 /**
@@ -415,7 +415,7 @@ static void update_health_metric_displays() {
 			// Data is available!
 			step_count = health_service_sum_today(metric);
   			LOG("Steps today: %d", step_count);
-			snprintf(step_count_text,8, "%i steps", step_count);
+			snprintf(step_count_text,8, "%is", step_count);
 		} else {
 			// No data recorded yet today
 			LOG("Data unavailable!");
@@ -492,7 +492,7 @@ static void battery_handler(BatteryChargeState charge_state)
 		light_enable(false);
 	}
 			
-	if(charge_state.is_charging)
+	if((bottom_left_metric == METRIC_WATCHBATT || bottom_right_metric == METRIC_WATCHBATT) && charge_state.is_charging)
 	{
 		LOG("Charging.  BacklightOnCharge:%u", BacklightOnCharge);
 		if(bottom_left_metric == METRIC_WATCHBATT) {
@@ -520,57 +520,57 @@ static void battery_handler(BatteryChargeState charge_state)
 #endif
 		}
 	}
-	else
+	else if(bottom_left_metric == METRIC_WATCHBATT || bottom_right_metric == METRIC_WATCHBATT)
 	{
-		LOG("Not Charging.  BacklightOnCharge:%u", BacklightOnCharge);
+		LOG("battery_handler: Not Charging.  BacklightOnCharge:%u", BacklightOnCharge);
 #ifdef PBL_COLOR
-		TRACE("COLOR DETECTED");
+		TRACE("battery_handler: COLOR DETECTED");
 		if(charge_state.charge_percent > 40)
 		{
-			TRACE("BATTERY > 40");
+			TRACE("battery_handler: BATTERY > 40");
 			if(bottom_left_metric == METRIC_WATCHBATT) {
-//				LOG("Charging.  Processing >40%% bottom_left_text_layer: GColorGreen");
+				LOG("battery_handler: >40%% bottom_left_text_layer: GColorGreen");
 				text_layer_set_text_color(bottom_left_text_layer, GColorGreen);
 			}
 			if(bottom_right_metric == METRIC_WATCHBATT) {
-//				LOG("Charging.  Processing >40%% bottom_right_text_layer: GColorGreen");
+				LOG("battery_handler: >40%% bottom_right_text_layer: GColorGreen");
 				text_layer_set_text_color(bottom_right_text_layer, GColorGreen);
 			}
 		}
 		else if (charge_state.charge_percent > 20)
 		{
-			TRACE("BATTERY > 20");
+			TRACE("battery_handler: BATTERY > 20");
 			if(bottom_left_metric == METRIC_WATCHBATT) {
-//				LOG("Charging.  Processing >20%% bottom_left_text_layer: GColorYellow");
+				LOG("battery_handler: >20%% bottom_left_text_layer: GColorYellow");
 				text_layer_set_text_color(bottom_left_text_layer, GColorYellow);
 			}
 			if(bottom_right_metric == METRIC_WATCHBATT) {
-//				LOG("Charging.  Processing >20%% bottom_right_text_layer: GColorYellow");
+				LOG("battery_handler: >20%% bottom_right_text_layer: GColorYellow");
 				text_layer_set_text_color(bottom_right_text_layer, GColorYellow);
 			}
 		}
 		else
 		{
-			TRACE("BATTERY <= 20");
+			TRACE("battery_handler: BATTERY <= 20");
 			if(bottom_left_metric == METRIC_WATCHBATT) {
-//				LOG("Charging.  Processing <=20%% bottom_left_text_layer: GColorRed");
+				LOG("battery_handler: <=20%% bottom_left_text_layer: GColorRed");
 				text_layer_set_text_color(bottom_left_text_layer, GColorRed);
 			}
 			if(bottom_right_metric == METRIC_WATCHBATT) {
-//				LOG("Charging.  Processing <=20%% bottom_right_text_layer: GColorRed");
+				LOG("battery_handler: <=20%% bottom_right_text_layer: GColorRed");
 				text_layer_set_text_color(bottom_right_text_layer, GColorRed);
 			}
 		}
 		if(bottom_left_metric == METRIC_WATCHBATT) {
-//			LOG("Charging.  Normal, setting bottom_left_text_layer background: GColorClear");
+			LOG("battery_handler: Normal, bottom_left_text_layer: GColorClear");
 			text_layer_set_background_color(bottom_left_text_layer, GColorClear);
 		}
 		if(bottom_right_metric == METRIC_WATCHBATT) {
-//			LOG("Charging.  Normal, setting bottom_right_text_layer background: GColorClear");
+			LOG("battery_handler: Normal, bottom_right_text_layer: GColorClear");
 			text_layer_set_background_color(bottom_right_text_layer, GColorClear);
 		}
 #else
-		TRACE("BW DETECTED");
+		TRACE("battery_handler: BW DETECTED");
 		if(bottom_left_metric == METRIC_WATCHBATT) {
 			text_layer_set_text_color(bottom_left_text_layer, GColorWhite);
 			text_layer_set_background_color(bottom_left_text_layer, GColorBlack);
@@ -819,9 +819,8 @@ void sync_error_callback_cgm(DictionaryResult appsync_dict_error, AppMessageResu
 	// CODE START
 
 	// APPSYNC ERROR debug logs
-	INFO("APP SYNC ERROR");
-	DEBUG("APP SYNC MSG ERR CODE: %i RES: %s", appsync_error, translate_app_error(appsync_error));
-	DEBUG("APP SYNC DICT ERR CODE: %i RES: %s", appsync_dict_error, translate_dict_error(appsync_dict_error));
+	LOG("sync_error_callback_cgm: MSG ERR CODE: %i RES: %s", appsync_error, translate_app_error(appsync_error));
+	LOG("sync_error_callback_cgm: DICT ERR CODE: %i RES: %s", appsync_dict_error, translate_dict_error(appsync_dict_error));
 
 	bluetooth_connected_cgm = bluetooth_connection_service_peek();
 
@@ -1501,7 +1500,7 @@ static void load_battlevel()
 	// CODE START
 	//Deterime if a metric text layer is configured for phone battery
 	if(bottom_left_metric != METRIC_PHONEBATT && bottom_right_metric == METRIC_PHONEBATT) {
-		LOG("load_battlevel: No update, exiting.");
+		LOG("load_battlevel: No phone battery displays, exiting.");
 		return;
 	}
 	LOG("load_battlevel: last_battlevel: %s", last_battlevel);
@@ -1509,8 +1508,8 @@ static void load_battlevel()
 	{
 		// Init code or no battery, can't do battery; set text layer & icon to empty value
 		INFO("load_battlevel: NO BATTERY");
-		if(bottom_left_metric == 1) text_layer_set_text(bottom_left_text_layer, "");
-		if(bottom_right_metric == 1) text_layer_set_text(bottom_right_text_layer, "");
+		if(bottom_left_metric == METRIC_PHONEBATT) text_layer_set_text(bottom_left_text_layer, "");
+		if(bottom_right_metric == METRIC_PHONEBATT) text_layer_set_text(bottom_right_text_layer, "");
 		LowBatteryAlert = false;
 		return;
 	}
@@ -1519,8 +1518,8 @@ static void load_battlevel()
 	{
 		// Zero battery level; set here, so if we get zero later we know we have an error instead
 		INFO("load_battlevel: 0 value");
-		if(bottom_left_metric == 1) text_layer_set_text(bottom_left_text_layer, "0%");
-		if(bottom_right_metric == 1) text_layer_set_text(bottom_right_text_layer, "0%");
+		if(bottom_left_metric == METRIC_PHONEBATT) text_layer_set_text(bottom_left_text_layer, "0%");
+		if(bottom_right_metric == METRIC_PHONEBATT) text_layer_set_text(bottom_right_text_layer, "0%");
 		if (!LowBatteryAlert)
 		{
 			INFO("load_battlevel: 0 value, vibe");
@@ -1538,8 +1537,8 @@ static void load_battlevel()
 	{
 		// got a negative or out of bounds or error battery level
 		INFO("load_battlevel: error");
-		if(bottom_left_metric == 1) text_layer_set_text(bottom_left_text_layer, "ERR");
-		if(bottom_right_metric == 1) text_layer_set_text(bottom_right_text_layer, "ERR");
+		if(bottom_left_metric == METRIC_PHONEBATT) text_layer_set_text(bottom_left_text_layer, "ERR");
+		if(bottom_right_metric == METRIC_PHONEBATT) text_layer_set_text(bottom_right_text_layer, "ERR");
 		return;
 	}
 
@@ -1553,19 +1552,25 @@ static void load_battlevel()
 #endif
 	LOG("load_battlevel: %s\%", battlevel_percent);
 #ifndef PBL_ROUND
-	if(bottom_left_metric == 1) text_layer_set_text(bottom_left_text_layer, battlevel_percent);
-	if(bottom_right_metric == 1) text_layer_set_text(bottom_right_text_layer, battlevel_percent);
+	if(bottom_left_metric == METRIC_PHONEBATT) text_layer_set_text(bottom_left_text_layer, battlevel_percent);
+	if(bottom_right_metric == METRIC_PHONEBATT) text_layer_set_text(bottom_right_text_layer, battlevel_percent);
 #endif
 #ifdef PBL_COLOR
 	// if neither bottom metric is battery indication, then return immediately and don't process the colours.
-	if(bottom_left_metric != 1 && bottom_right_metric !=1) {
-		TRACE("load_battlevel: done");
+	if(bottom_left_metric != METRIC_PHONEBATT && bottom_right_metric != METRIC_PHONEBATT) {
+		TRACE("load_battlevel: No watch battery displays, done");
 		return;
 	}
-	if ( (current_battlevel > 0) && (current_battlevel <= 30) )
+	if ( (current_battlevel > 0) && (current_battlevel <= 30) && (bottom_left_metric == METRIC_PHONEBATT || bottom_right_metric == METRIC_PHONEBATT) )
 	{
-		if(bottom_left_metric == 1) text_layer_set_text_color(bottom_left_text_layer, GColorRed);
-		if(bottom_right_metric == 1) text_layer_set_text_color(bottom_right_text_layer, GColorRed);
+		if(bottom_left_metric == METRIC_PHONEBATT) {
+			LOG("load_battlevel: Setting bottom_left_text_layer to GColorRed");
+			text_layer_set_text_color(bottom_left_text_layer, GColorRed);
+		}
+		if(bottom_right_metric == METRIC_PHONEBATT) {
+			LOG("load_battlevel: Setting bottom_right_text_layer to GColorRed");
+			text_layer_set_text_color(bottom_right_text_layer, GColorRed);
+		}
 		if (!LowBatteryAlert)
 		{
 			INFO("load_battlevel: low battery VIBRATE");
@@ -1573,15 +1578,27 @@ static void load_battlevel()
 			LowBatteryAlert = true;
 		}
 	}
-	else if ( (current_battlevel > 30) && (current_battlevel <= 50) )
+	else if ( (current_battlevel > 30) && (current_battlevel <= 50) && (bottom_left_metric == METRIC_PHONEBATT || bottom_right_metric == METRIC_PHONEBATT) )
 	{
-		if(bottom_left_metric == 1) text_layer_set_text_color(bottom_left_text_layer, GColorYellow);
-		if(bottom_right_metric == 1) text_layer_set_text_color(bottom_right_text_layer, GColorYellow);
+		if(bottom_left_metric == METRIC_PHONEBATT) {
+			LOG("load_battlevel: Setting bottom_left_text_layer to GColorYellow");
+			text_layer_set_text_color(bottom_left_text_layer, GColorYellow);
+		}
+		if(bottom_right_metric == METRIC_PHONEBATT) {
+			LOG("load_battlevel: Setting bottom_right_text_layer to GColorYellow");
+			text_layer_set_text_color(bottom_right_text_layer, GColorYellow);
+		}
 	}
 	else
 	{
-		if(bottom_left_metric == 1) text_layer_set_text_color(bottom_left_text_layer, GColorGreen);
-		if(bottom_right_metric == 1) text_layer_set_text_color(bottom_right_text_layer, GColorGreen);
+		if(bottom_left_metric == METRIC_PHONEBATT) {
+			LOG("load_battlevel: Setting bottom_left_text_layer to GColorGreen");
+			text_layer_set_text_color(bottom_left_text_layer, GColorGreen);
+		}
+		if(bottom_right_metric == METRIC_PHONEBATT) {
+			text_layer_set_text_color(bottom_right_text_layer, GColorGreen);
+			LOG("load_battlevel: Setting bottom_right_text_layer to GColorGreen");
+		}
 	}
 #endif
 	TRACE("load_battlevel: done");
@@ -1682,7 +1699,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 
 	while ((data != NULL) && (!global_lock))
 	{
-		LOG(":inbox_received_handler_cgm: key is %lu", data->key);
+		LOG("inbox_received_handler_cgm: key is %lu", data->key);
 		switch (data->key)
 		{
 
@@ -2029,11 +2046,12 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 				if(bottom_left_metric == METRIC_NONE) {
 					text_layer_set_text(bottom_left_text_layer, "");
 				} else {
+					text_layer_set_text_color(bottom_left_text_layer, GColorGreen);
 #ifdef PBL_HEALTH
 					update_health_metric_displays();
 #endif
 					battery_handler(battery_state_service_peek());
-					load_battlevel();
+					//load_battlevel();
 				}
 			break;
 
@@ -2051,11 +2069,12 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 				if(bottom_right_metric == METRIC_NONE) {
 					text_layer_set_text(bottom_right_text_layer, "");
 				} else {
+					text_layer_set_text_color(bottom_right_text_layer, GColorGreen);
 #ifdef PBL_HEALTH
 					update_health_metric_displays();
 #endif
 					battery_handler(battery_state_service_peek());
-					load_battlevel();
+					//load_battlevel();
 				}
 			break;
 
@@ -2695,20 +2714,21 @@ void window_load_cgm(Window *window_cgm)
 	// Metric Layers
 	// left metric layer
 	LOG("Creating Left Metric Text layer");
-	text_layer_set_text_color(bottom_left_text_layer, GColorMintGreen);
+	text_layer_set_text_color(bottom_left_text_layer, GColorGreen);
 	text_layer_set_background_color(bottom_left_text_layer, GColorClear);
-	text_layer_set_font(bottom_left_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
-//	text_layer_set_text_alignment(bottom_left_text_layer, GTextAlignmentLeft);
+	text_layer_set_font(bottom_left_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
 	layer_add_child(window_layer_cgm, text_layer_get_layer(bottom_left_text_layer));
-	LOG("bottom_left_text_layer; %s", text_layer_get_text(bottom_left_text_layer));
+	//LOG("bottom_left_text_layer; %s", text_layer_get_text(bottom_left_text_layer));
 
 	// right metric layer
 	LOG("Creating Right Metric Text layer");
-	BatteryChargeState charge_state=battery_state_service_peek();
-	text_layer_set_text_color(bottom_right_text_layer, GColorMintGreen);
+	text_layer_set_text_color(bottom_right_text_layer, GColorGreen);
 	text_layer_set_background_color(bottom_right_text_layer, GColorClear);
-	text_layer_set_font(bottom_right_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+	text_layer_set_font(bottom_right_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
 	layer_add_child(window_layer_cgm, text_layer_get_layer(bottom_right_text_layer));
+
+	// prep for battery display, even if we don't have one.
+	BatteryChargeState charge_state=battery_state_service_peek();
 	battery_handler(charge_state);
 	
 	// put " " (space) in bg field so logo continues to show
