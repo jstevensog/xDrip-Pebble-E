@@ -38,7 +38,7 @@ The above settings are stored in the watch, and persist between watch face trans
 Build Environment:
 * Pebble Tool: latest 
 * SDK: latest  
-* Clay: @rebble/clay latest v1.0 or later
+* Clay: @rebble/clay latest v1.0.10 or later
 
 Plan for Multiple Apps.
  * Apps will be identified in xDrip settings as their name/version.  This will set a string that matches the PBL_APP_VER key that is sent when the Pebble requests an update or responds to xDrip.  The xDrip Pebble watch face settings will also set the watch face/app UUID in settings.  No two watch faces can have the same UUID.
@@ -50,6 +50,11 @@ Build Environment:
 * Clay: @rebble/clay latest v1.0 or later
 
 Change Log:
+20260702 - Built with SDK 4.17.  Added features.
+* Added selectable bottom left/right metrics to Clay and in code.  Tested on Basalt so far, and working.  Users can select which metrics they wish to display, including None, Phone Battery, Watch Battery, Step Count (for Health enabled platforms), or Heart Rate (for platforms that support it).  Untested on Flint and Gabbro as yet, as I have no access to those watches.
+* For Round watches, only the bottom metric that appears mid screen is selectable.
+* NOTE TO DEVELOPERS!!!  When Logging is enabled, remove aplite from package.json, as it will not build.  Too many log strings to occupy the string space on the platform.  I will try and figure out how to fix this soon.
+
 20260620 - Built with latest SDK.
 
 20260609 - Refactored code, fixed outstanding issues and made it nicer to watch on a PT2 display.
