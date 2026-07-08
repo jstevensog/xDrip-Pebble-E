@@ -1,6 +1,6 @@
-#include "pebble.h"
+#include <pebble.h>
 #include "xdrip.h"
-
+#include "debug.h"
 
 // Boolean to allow/prevent re-raise of NO BLUETOOTH vibration
 static bool vibe_repeat = false;
@@ -1121,7 +1121,7 @@ static void load_bg()
 	// if special value set, erase anything in the icon field
 	if (specvalue_alert == true)
 	{
-		create_update_bitmap(&specialvalue_bitmap,icon_layer,SPECIAL_VALUE_ICONS[NONE_SPECVALUE_ICON_INDX]);
+		create_update_bitmap(&specialvalue_bitmap,icon_layer, NONE_SPECVALUE_ICON_INDX);
 	}
 
 	// set special value alert to false no matter what
@@ -1158,7 +1158,7 @@ static void load_bg()
 			// if init code, we will set it right in message layer
 			TRACE("load_bg: UNEXPECTED BG: SET ERR ICON");
 			text_layer_set_text(bg_layer, "ERR");
-			create_update_bitmap(&icon_bitmap,icon_layer,SPECIAL_VALUE_ICONS[NONE_SPECVALUE_ICON_INDX]);
+			create_update_bitmap(&icon_bitmap,icon_layer, NONE_SPECVALUE_ICON_INDX);
 			specvalue_alert = true;
 		}
 
@@ -1174,14 +1174,14 @@ static void load_bg()
 		{
 			TRACE("load_bg: last_bg: \"%s\"", last_bg);
 			text_layer_set_text(bg_layer, "");
-			create_update_bitmap(&specialvalue_bitmap,icon_layer, SPECIAL_VALUE_ICONS[BROKEN_ANTENNA_ICON_INDX]);
+			create_update_bitmap(&specialvalue_bitmap,icon_layer,  BROKEN_ANTENNA_ICON_INDX);
 			specvalue_alert = true;
 		}
 		else if (strcmp(last_bg, SENSOR_NOT_CALIBRATED_VALUE) == 0)
 		{
 			TRACE("load_bg: SET BLOOD DROP");
 			text_layer_set_text(bg_layer, "");
-			create_update_bitmap(&specialvalue_bitmap,icon_layer,SPECIAL_VALUE_ICONS[BLOOD_DROP_ICON_INDX]);
+			create_update_bitmap(&specialvalue_bitmap,icon_layer, BLOOD_DROP_ICON_INDX);
 			specvalue_alert = true;
 		}
 		else if (strcmp(last_bg, SENSOR_NOT_ACTIVE_VALUE) == 0 || strcmp(last_bg, MINIMAL_DEVIATION_VALUE) == 0
@@ -1189,14 +1189,14 @@ static void load_bg()
 		{
 			TRACE("load_bg: SET STOP LIGHT");
 			text_layer_set_text(bg_layer, "");
-			create_update_bitmap(&specialvalue_bitmap,icon_layer,SPECIAL_VALUE_ICONS[STOP_LIGHT_ICON_INDX]);
+			create_update_bitmap(&specialvalue_bitmap,icon_layer, STOP_LIGHT_ICON_INDX);
 			specvalue_alert = true;
 		}
 		else if (strcmp(last_bg, HOURGLASS_VALUE) == 0)
 		{
 			TRACE("load_bg: SET HOUR GLASS");
 			text_layer_set_text(bg_layer, "");
-			create_update_bitmap(&specialvalue_bitmap,icon_layer,SPECIAL_VALUE_ICONS[HOURGLASS_ICON_INDX]);
+			create_update_bitmap(&specialvalue_bitmap,icon_layer, HOURGLASS_ICON_INDX);
 			specvalue_alert = true;
 		}
 		else if (strcmp(last_bg, QUESTION_MARKS_VALUE) == 0)
@@ -1204,7 +1204,7 @@ static void load_bg()
 			//INFO("LOAD BG, SPECIAL VALUE: SET QUESTION MARKS, CLEAR TEXT");
 			text_layer_set_text(bg_layer, "");
 			TRACE("load_bg: SET QUESTION MARKS, SET BITMAP");
-			create_update_bitmap(&specialvalue_bitmap,icon_layer,SPECIAL_VALUE_ICONS[QUESTION_MARKS_ICON_INDX]);
+			create_update_bitmap(&specialvalue_bitmap,icon_layer, QUESTION_MARKS_ICON_INDX);
 			TRACE("load_bg: SET QUESTION MARKS, DONE");
 			specvalue_alert = true;
 		}
@@ -1395,7 +1395,7 @@ static void load_bg_delta()
 		strncpy(formatted_bg_delta, "LOADING...", MSGLAYER_BUFFER_SIZE);
 		text_layer_set_text(delta_layer, formatted_bg_delta);
 		text_layer_set_text(bg_layer, " ");
-		create_update_bitmap(&icon_bitmap,icon_layer,SPECIAL_VALUE_ICONS[LOGO_SPECVALUE_ICON_INDX]);
+		create_update_bitmap(&icon_bitmap,icon_layer, LOGO_SPECVALUE_ICON_INDX);
 		specvalue_alert = false;
 		return;
 	}

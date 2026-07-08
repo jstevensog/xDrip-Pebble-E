@@ -1,15 +1,10 @@
-#ifdef __DEBUG_H__
-#define __DEBUG_H_
+#ifndef __DEBUG_H__
+#define __DEBUG_H__
 /*
  * Debug helper macros
  */
 
 // Scope debug to cleanup debug ifdefs
-
-#define DEBUG_APP_TRACE 3
-#define DEBUG_APP_DEBUG 2
-#define DEBUG_APP_INFO 1
-#define DEBUG_APP_NONE 0
 
 /*  
  *  The line below will set the debug message level.
@@ -36,23 +31,26 @@
 #else
 #define TRACE(...)
 #endif
+
 #if DEBUG_LEVEL >= 2
 #define DEBUG(...) APP_LOG(APP_LOG_LEVEL_DEBUG, __VA_ARGS__)
 #else
 #define DEBUG(...)
 #endif
+
 #if DEBUG_LEVEL >= 1
 #define INFO(...) APP_LOG(APP_LOG_LEVEL_INFO, __VA_ARGS__)
 #else
 #define INFO(...)
 #endif
+
 #if defined(DEBUG_LEVEL)
 #define LOG(...) APP_LOG(APP_LOG_LEVEL_INFO, __VA_ARGS__)
 #else
 #define LOG(...)
 #endif
 
-#define WARNING(...) APP_LOG(APP_LOT_LEVEL_WARNING, __VA_ARGS__)
-#define ERROR(...) APP_LOG(APP_LOT_LEVEL_WARNING, __VA_ARGS__)
+#define WARNING(...) APP_LOG(APP_LOG_LEVEL_WARNING, __VA_ARGS__)
+#define ERROR(...) APP_LOG(APP_LOG_LEVEL_WARNING, __VA_ARGS__)
 
 #endif // __DEBUG_H__ 
