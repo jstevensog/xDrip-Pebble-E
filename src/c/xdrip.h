@@ -1,6 +1,25 @@
 //xdrip.h - file for all common defines and function prototypes used in xdrip.c
 #ifndef __XDRIP_H__
 #define __XDRIP_H
+
+#include "debug.h"
+/**
+ * Defines for testing modes
+ */
+
+/*
+ * Set debug text to show and compile DEBUG_APP_[NONE,INFO,DEBUG,TRACE]
+ * Note: Aplite will not go above INFO logging.
+ */
+//#define DEBUG_LEVEL DEBUG_APP_TRACE  
+
+/* The line below, if defined, will only indicate test values on the display.
+this is for testing purposes only until I can get the PebbleKit.JS code operating with the emulator.
+Make sure you udefine this before building a release.
+*/
+//#define TEST_MODE
+
+
 // global window variables
 // ANYTHING THAT IS CALLED BY PEBBLE API HAS TO BE NOT STATIC
 
@@ -168,6 +187,8 @@ TextLayer *step_count_text_layer = NULL;
 TextLayer *heart_rate_text_layer = NULL;
 #endif
 #endif
+
+
 
 // Function Prototypes
 // These two are only used if DEBUG_LEVEL is defined.  The code is conditinally compiled otherwise there are warnings.
