@@ -1201,7 +1201,7 @@ static void load_bg()
 		}
 		else if (strcmp(last_bg, QUESTION_MARKS_VALUE) == 0)
 		{
-			//PP_LOG(APP_LOG_LEVEL_INFO, "LOAD BG, SPECIAL VALUE: SET QUESTION MARKS, CLEAR TEXT");
+			//INFO("LOAD BG, SPECIAL VALUE: SET QUESTION MARKS, CLEAR TEXT");
 			text_layer_set_text(bg_layer, "");
 			TRACE("load_bg: SET QUESTION MARKS, SET BITMAP");
 			create_update_bitmap(&specialvalue_bitmap,icon_layer,SPECIAL_VALUE_ICONS[QUESTION_MARKS_ICON_INDX]);
@@ -2204,14 +2204,14 @@ static void bitmapLayerUpdate(struct Layer *layer, GContext *ctx)
 			uint8_t* bitmapstart=(uint8_t*)gbitmap_get_data(graphic);
 			if (bitmapstart == NULL)
 			{
-				APP_LOG(APP_LOG_LEVEL_WARNING, "bitmapLayerUpdate: bitmap start went to null!!");
+				WARNING("bitmapLayerUpdate: bitmap start went to null!!");
 				graphics_release_frame_buffer(ctx, framebuffer);
 				global_lock = false;
 				return;
 			}
 			if (bfstart == NULL)
 			{
-				APP_LOG(APP_LOG_LEVEL_WARNING, "bitmapLayerUpdate: framebuffer start went to null!!");
+				WARNING("bitmapLayerUpdate: framebuffer start went to null!!");
 				graphics_release_frame_buffer(ctx, framebuffer);
 				global_lock = false;
 				return;
