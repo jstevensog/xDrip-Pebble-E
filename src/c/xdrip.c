@@ -1,6 +1,10 @@
 #include <pebble.h>
 #include "xdrip.h"
-#include "debug.h"
+#include "debug.h" // must be included after xdrip.h
+
+/**
+ * Variables
+ */
 
 // Boolean to allow/prevent re-raise of NO BLUETOOTH vibration
 static bool vibe_repeat = false;
@@ -26,9 +30,6 @@ time_t time_now = 0;
 
 // global variable for bluetooth connection
 bool bluetooth_connected_cgm = true;
-
-// BATTERY LEVEL FORMATTED SIZE used for Bridge/Phone and Watch battery indications
-const uint8_t BATTLEVEL_FORMATTED_SIZE = 8;
 
 // global variables for sync tuple functions
 // buffers have to be static and hardcoded
@@ -59,37 +60,6 @@ static bool BT_timer_pop = false;
 static bool PhoneOffAlert = false;
 static bool LowBatteryAlert = false;
 
-// global constants for time durations
-static const uint8_t MINUTEAGO = 60;
-static const uint16_t HOURAGO = 60*(60);
-static const uint32_t DAYAGO = 24*(60*60);
-static const uint32_t WEEKAGO = 7*(24*60*60);
-static const uint16_t MS_IN_A_SECOND = 1000;
-
-// Constants for string buffers
-// If add month to date, buffer size needs to increase to 12; also need to reformat date_app_text init string
-static const uint8_t TIME_TEXTBUFF_SIZE = 10;
-static const uint8_t DATE_TEXTBUFF_SIZE = 11;
-static const uint8_t LABEL_BUFFER_SIZE = 6;
-static const uint8_t TIMEAGO_BUFFER_SIZE = 10;
-
-// * START OF CONSTANTS THAT CAN BE CHANGED; DO NOT CHANGE IF YOU DO NOT KNOW WHAT YOU ARE DOING **
-// * FOR MMOL, ALL VALUES ARE STORED AS INTEGER; LAST DIGIT IS USED AS DECIMAL **
-// * BE EXTRA CAREFUL OF CHANGING SPECIAL VALUES OR TIMERS; DO NOT CHANGE WITHOUT EXPERT HELP **
-
-// Vibration Levels; 0 = NONE; 1 = LOW; 2 = MEDIUM; 3 = HIGH
-// IF YOU DO NOT WANT A SPECIFIC VIBRATION, SET TO 0
-static const uint8_t APPSYNC_ERR_VIBE = 1;
-static const uint8_t APPMSG_INDROP_VIBE = 1;
-static const uint8_t APPMSG_OUTFAIL_VIBE = 1;
-static const uint8_t BTOUT_VIBE = 1;
-static const uint8_t LOWBATTERY_VIBE = 1;
-
-// Control Messages
-// IF YOU DO NOT WANT A SPECIFIC MESSAGE, SET TO true
-static const bool TurnOff_NOBLUETOOTH_Msg = false;
-static const bool TurnOff_CHECKPHONE_Msg = false;
-
 // Control Vibrations
 // IF YOU WANT NO VIBRATIONS, SET TO true
 static bool TurnOffAllVibrations = false;
@@ -102,17 +72,8 @@ static bool BacklightOnCharge = false;
 //Control TimeAgo text boldness
 static bool TimeAgoBold = false;
 
-// Bluetooth Timer Wait Time, in Seconds
-// RANGE 0-240
-// THIS IS ONLY FOR BAD BLUETOOTH CONNECTIONS
-// TRY EXTENDING THIS TIME TO SEE IF IT WILL HELP SMOOTH CONNECTION
-// CGM DATA RECEIVED EVERY 60 SECONDS, GOING BEYOND THAT MAY RESULT IN MISSED DATA
-static const uint8_t BT_ALERT_WAIT_SECS = 10;
-
 static uint32_t message_tick_timeout = 15000; // default of 15s
 static AppTimer *message_tick_timer = NULL;
-
-// * END OF CONSTANTS THAT CAN BE CHANGED; DO NOT CHANGE IF YOU DO NOT KNOW WHAT YOU ARE DOING **
 
 /**
  * predefines
@@ -1108,14 +1069,6 @@ static void load_bg()
 {
 	TRACE("load_bg: start");
 
-#define SENSOR_NOT_ACTIVE_VALUE "?SN"
-#define MINIMAL_DEVIATION_VALUE	"?MD"
-#define NO_ANTENNA_VALUE "?NA"
-#define SENSOR_NOT_CALIBRATED_VALUE "?NC"
-#define STOP_LIGHT_VALUE "?CD"
-#define HOURGLASS_VALUE "hourglass"
-#define QUESTION_MARKS_VALUE "???"
-#define BAD_RF_VALUE "?RF"
 	// CODE START
 
 	// if special value set, erase anything in the icon field
@@ -1350,10 +1303,6 @@ static void load_bg_delta()
 	LOG("load_bg_delta: current_bg_delta is \"%s\"", current_bg_delta);
 
 
-	// CONSTANTS
-#define MSGLAYER_BUFFER_SIZE 14
-#define BGDELTA_LABEL_SIZE 14
-#define BGDELTA_FORMATTED_SIZE 14
 	// VARIABLES
 	// NOTE: buffers have to be static and hardcoded
 	//static char delta_label_buffer[BGDELTA_LABEL_SIZE];
@@ -1639,11 +1588,6 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 		return;
 	}
 
-	// CONSTANTS
-#define ICON_MSGSTR_SIZE 4
-#define BG_MSGSTR_SIZE 6
-#define BGDELTA_MSGSTR_SIZE 13
-#define BATTLEVEL_MSGSTR_SIZE 5
 
 	// CODE START
 
@@ -2947,4 +2891,3 @@ int main(void)
 	deinit_cgm();
 
 } // end main
-

@@ -25,10 +25,15 @@ Make sure you udefine this before building a release.
 //#define TEST_MODE
 
 
+/** 
+ * Face name
+ */
+
+#define FACE_VERSION "xDrip-Pebble2"
+
 // global window variables
 // ANYTHING THAT IS CALLED BY PEBBLE API HAS TO BE NOT STATIC
 
-const char FACE_VERSION[] = "xDrip-Pebble2";
 
 // windows definition.
 Window *window_cgm = NULL;
