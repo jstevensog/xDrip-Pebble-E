@@ -16,6 +16,10 @@
  *  64k for others)
 */
 
+// guard againast debug in release, -DPBL_DEBUG is added to debug builds
+#if !defined(PBL_DEBUG)
+#undef DEBUG_LEVEL
+#endif
 
 /**
  * prevent aplite from not building in trace logging
@@ -23,7 +27,6 @@
 #if defined(DEBUG_LEVEL) && defined(PBL_PLATFORM_APLITE) && DEBUG_LEVEL >= DEBUG_APP_DEBUG
 #pragma message "Lowering debug level to suit aplite"
 #undef DEBUG_LEVEL
-#define DEBUG_LEVEL DEBUG_APP_INFO
 #endif
 
 #if DEBUG_LEVEL >= 3

@@ -16,13 +16,13 @@
 #define DEBUG_APP_INFO 1
 #define DEBUG_APP_NONE 0
 
-//#define DEBUG_LEVEL DEBUG_APP_TRACE  
+/* #define DEBUG_LEVEL DEBUG_APP_TRACE   */
 
 /* The line below, if defined, will only indicate test values on the display.
 this is for testing purposes only until I can get the PebbleKit.JS code operating with the emulator.
 Make sure you udefine this before building a release.
 */
-//#define TEST_MODE
+/* #define TEST_MODE */
 
 
 /** 
@@ -31,57 +31,11 @@ Make sure you udefine this before building a release.
 
 #define FACE_VERSION "xDrip-Pebble2"
 
-// global window variables
-// ANYTHING THAT IS CALLED BY PEBBLE API HAS TO BE NOT STATIC
-
-
-// windows definition.
-Window *window_cgm = NULL;
-
-// text layer definitions.
-TextLayer *bg_layer = NULL;
-TextLayer *cgmtime_layer = NULL;
-TextLayer *delta_layer = NULL;          // BG DELTA LAYER
-TextLayer *message_layer = NULL;        // MESSAGE LAYER
-TextLayer *bottom_left_text_layer = NULL;
-TextLayer *bottom_right_text_layer = NULL;
-TextLayer *time_watch_layer = NULL;
-TextLayer *date_app_layer = NULL;
-
-// bitmap layer definitions
-BitmapLayer *icon_layer = NULL;
-BitmapLayer *bg_trend_layer = NULL;
-BitmapLayer *upper_face_layer = NULL;
-BitmapLayer *lower_face_layer = NULL;
-
-#ifdef PBL_COLOR
-static GColor8 fg_colour;
-static GColor8 bg_colour;
-#else
-static GColor fg_colour;
-static GColor bg_colour;
-#endif
-
-#define HIGH_RES() (PBL_PLATFORM_TYPE_CURRENT >= PlatformTypeEmery)
-
-GBitmap *icon_bitmap = NULL;
-GBitmap *appicon_bitmap = NULL;
-GBitmap *specialvalue_bitmap = NULL;
-GBitmap *bg_trend_bitmap = NULL;
-
 // Defines to do with Time display
 #define TIME_24H_FORMAT "%H:%M"
 #define TIME_12H_FORMAT "%l:%M"
 #define TIME_24HS_FORMAT "%H:%M:%S"
 #define TIME_12HS_FORMAT "%l:%M:%S"
-static char time_watch_format[9] = TIME_24H_FORMAT;
-static char time_watch_text[] = "00:00:00";
-static char date_app_text[] = "Wed 13 Jan";
-static char message_layer_text[13];
-static GFont time_font;
-static char message_layer_text[13];
-static GFont time_font_small;
-static GFont time_font_normal;
 
 #ifndef PBL_COLOR
 #define CHUNK_SIZE 256
@@ -92,8 +46,7 @@ static void bitmapLayerUpdate(struct Layer *layer, GContext *ctx);
 #define CHUNK_SIZE 1024
 #endif
 
-// Message Timer Wait Times, in Seconds
-static uint8_t minutes_cgm = 0;
+#define HIGH_RES() (PBL_PLATFORM_TYPE_CURRENT >= PlatformTypeEmery)
 
 
 #define CGM_ICON_KEY			0	// TUPLE_CSTRING, MAX 2 BYTES (10)
@@ -133,22 +86,6 @@ static uint8_t minutes_cgm = 0;
 // TOTAL MESSAGE DATA 4x3+2+5+3+9 = 31 BYTES
 // TOTAL KEY HEADER DATA (STRINGS) 4x6+2 = 26 BYTES
 // TOTAL MESSAGE 57 BYTES
-
-
-
-//Metric Display Left/Right
-static uint8_t bottom_left_metric = 1;
-static uint8_t bottom_right_metric = 1;
-static char  bottom_left_metric_str[] = "pb";
-static char  bottom_right_metric_str[] = "wb";
-#ifdef PBL_HEALTH
-TextLayer *step_count_text_layer = NULL;
-#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_FLINT) || defined(PBL_PLATFORM_GABBRO)
-TextLayer *heart_rate_text_layer = NULL;
-#endif
-#endif
-
-
 
 // Function Prototypes
 // These two are only used if DEBUG_LEVEL is defined.  The code is conditinally compiled otherwise there are warnings.

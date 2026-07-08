@@ -33,10 +33,10 @@ bool bluetooth_connected_cgm = true;
 
 // global variables for sync tuple functions
 // buffers have to be static and hardcoded
-static char current_icon[4];
+static uint32_t current_icon = 0;
 static char last_bg[6];
 static bool currentBG_isMMOL = false;
-static char last_battlevel[5];
+static uint32_t last_battlevel = 100;
 static uint32_t current_cgm_time = 0;
 static uint32_t current_app_time = 0;
 static char current_bg_delta[14];
@@ -72,8 +72,74 @@ static bool BacklightOnCharge = false;
 //Control TimeAgo text boldness
 static bool TimeAgoBold = false;
 
+/**
+ * Message timeout indicator, this is separate from the other timers to allow users 
+ * to control the update rate and thus battery life.
+ */
 static uint32_t message_tick_timeout = 15000; // default of 15s
 static AppTimer *message_tick_timer = NULL;
+
+/**
+ * Global window and UI variables
+ */
+// ANYTHING THAT IS CALLED BY PEBBLE API HAS TO BE NOT STATIC
+
+// windows definition.
+Window *window_cgm = NULL;
+
+// text layer definitions.
+TextLayer *bg_layer = NULL;
+TextLayer *cgmtime_layer = NULL;
+TextLayer *delta_layer = NULL;          // BG DELTA LAYER
+TextLayer *message_layer = NULL;        // MESSAGE LAYER
+TextLayer *bottom_left_text_layer = NULL;
+TextLayer *bottom_right_text_layer = NULL;
+TextLayer *time_watch_layer = NULL;
+TextLayer *date_app_layer = NULL;
+
+// bitmap layer definitions
+BitmapLayer *icon_layer = NULL;
+BitmapLayer *bg_trend_layer = NULL;
+BitmapLayer *upper_face_layer = NULL;
+BitmapLayer *lower_face_layer = NULL;
+
+#ifdef PBL_COLOR
+static GColor8 fg_colour;
+static GColor8 bg_colour;
+#else
+static GColor fg_colour;
+static GColor bg_colour;
+#endif
+
+
+GBitmap *icon_bitmap = NULL;
+GBitmap *appicon_bitmap = NULL;
+GBitmap *specialvalue_bitmap = NULL;
+GBitmap *bg_trend_bitmap = NULL;
+
+static char time_watch_format[9] = TIME_24H_FORMAT;
+static char time_watch_text[] = "00:00:00";
+static char date_app_text[] = "Wed 13 Jan";
+static char message_layer_text[13];
+static GFont time_font;
+static char message_layer_text[13];
+static GFont time_font_small;
+static GFont time_font_normal;
+
+// Message Timer Wait Times, in Seconds
+static uint8_t minutes_cgm = 0;
+
+//Metric Display Left/Right
+static uint8_t bottom_left_metric = 1;
+static uint8_t bottom_right_metric = 1;
+static char  bottom_left_metric_str[] = "pb";
+static char  bottom_right_metric_str[] = "wb";
+#ifdef PBL_HEALTH
+TextLayer *step_count_text_layer = NULL;
+#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_FLINT) || defined(PBL_PLATFORM_GABBRO)
+TextLayer *heart_rate_text_layer = NULL;
+#endif
+#endif
 
 /**
  * predefines
@@ -951,112 +1017,85 @@ static void load_icon()
 {
 	TRACE("load_icon: Start");
 
-	// CONSTANTS
-
-	// ICON ASSIGNMENTS OF ARROW DIRECTIONS
-	const char NO_ARROW[] = "0";
-	const char DOUBLEUP_ARROW[] = "1";
-	const char SINGLEUP_ARROW[] = "2";
-	const char UP45_ARROW[] = "3";
-	const char FLAT_ARROW[] = "4";
-	const char DOWN45_ARROW[] = "5";
-	const char SINGLEDOWN_ARROW[] = "6";
-	const char DOUBLEDOWN_ARROW[] = "7";
-	const char NOTCOMPUTE_ICON[] = "8";
-	const char OUTOFRANGE_ICON[] = "9";
-
-	// ARRAY OF ARROW ICON IMAGES
-	const uint8_t ARROW_ICONS[] =
-	{
-		RESOURCE_ID_IMAGE_NONE,		//0
-		RESOURCE_ID_IMAGE_UPUP,		//1
-		RESOURCE_ID_IMAGE_UP,		//2
-		RESOURCE_ID_IMAGE_UP45,		//3
-		RESOURCE_ID_IMAGE_FLAT,		//4
-		RESOURCE_ID_IMAGE_DOWN45,	//5
-		RESOURCE_ID_IMAGE_DOWN,		//6
-		RESOURCE_ID_IMAGE_DOWNDOWN, 	//7
-		RESOURCE_ID_IMAGE_LOGO,		//8
-		RESOURCE_ID_IMAGE_ERR		//9
-	};
-
-	// INDEX FOR ARRAY OF ARROW ICON IMAGES
-	const uint8_t NONE_ARROW_ICON_INDX = 0;
-	const uint8_t UPUP_ICON_INDX = 1;
-	const uint8_t UP_ICON_INDX = 2;
-	const uint8_t UP45_ICON_INDX = 3;
-	const uint8_t FLAT_ICON_INDX = 4;
-	const uint8_t DOWN45_ICON_INDX = 5;
-	const uint8_t DOWN_ICON_INDX = 6;
-	const uint8_t DOWNDOWN_ICON_INDX = 7;
-	const uint8_t LOGO_ARROW_ICON_INDX = 8;
-	const uint8_t ERR_ARROW_ICON_INDX = 9;
-
 	// check if special value set
 	if (specvalue_alert == false)
 	{
 
 		// no special value, set arrow
 		// check for arrow direction, set proper arrow icon
-		TRACE("load_icon: CURRENT ICON: %s", current_icon);
-		if ( (strcmp(current_icon, NO_ARROW) == 0) || (strcmp(current_icon, NOTCOMPUTE_ICON) == 0) || (strcmp(current_icon, OUTOFRANGE_ICON) == 0) )
-		{
-			create_update_bitmap(&icon_bitmap,icon_layer,ARROW_ICONS[NONE_ARROW_ICON_INDX]);
-			DoubleDownAlert = false;
-		}
-		else if (strcmp(current_icon, DOUBLEUP_ARROW) == 0)
-		{
-			create_update_bitmap(&icon_bitmap,icon_layer,ARROW_ICONS[UPUP_ICON_INDX]);
-			DoubleDownAlert = false;
-		}
-		else if (strcmp(current_icon, SINGLEUP_ARROW) == 0)
-		{
-			create_update_bitmap(&icon_bitmap,icon_layer,ARROW_ICONS[UP_ICON_INDX]);
-			DoubleDownAlert = false;
-		}
-		else if (strcmp(current_icon, UP45_ARROW) == 0)
-		{
-			create_update_bitmap(&icon_bitmap,icon_layer,ARROW_ICONS[UP45_ICON_INDX]);
-			DoubleDownAlert = false;
-		}
-		else if (strcmp(current_icon, FLAT_ARROW) == 0)
-		{
-			create_update_bitmap(&icon_bitmap,icon_layer,ARROW_ICONS[FLAT_ICON_INDX]);
-			DoubleDownAlert = false;
-		}
-		else if (strcmp(current_icon, DOWN45_ARROW) == 0)
-		{
-			create_update_bitmap(&icon_bitmap,icon_layer,ARROW_ICONS[DOWN45_ICON_INDX]);
-			DoubleDownAlert = false;
-		}
-		else if (strcmp(current_icon, SINGLEDOWN_ARROW) == 0)
-		{
-			create_update_bitmap(&icon_bitmap,icon_layer,ARROW_ICONS[DOWN_ICON_INDX]);
-			DoubleDownAlert = false;
-		}
-		else if (strcmp(current_icon, DOUBLEDOWN_ARROW) == 0)
-		{
-						create_update_bitmap(&icon_bitmap,icon_layer,ARROW_ICONS[DOWNDOWN_ICON_INDX]);
-		}
-		else
-		{
-			// check for special cases and set icon accordingly
-			// check bluetooth
-			bluetooth_connected_cgm = bluetooth_connection_service_peek();
+		TRACE("load_icon: CURRENT ICON: %lu", current_icon);
+        switch (current_icon) {
+            case NO_ARROW:
+            case NOTCOMPUTE:
+            case OUTOFRANGE:
+                {
+                    create_update_bitmap(&icon_bitmap,icon_layer, NONE_ARROW_ICON);
+                    DoubleDownAlert = false;
+                }
+                break;
+            case DOUBLEUP_ARROW:
+                {
+                    create_update_bitmap(&icon_bitmap,icon_layer, UPUP_ICON);
+                    DoubleDownAlert = false;
+                }
+                break;
+            case SINGLEUP_ARROW:
+                {
+                    create_update_bitmap(&icon_bitmap,icon_layer, UP_ICON);
+                    DoubleDownAlert = false;
+                }
+                break;
+            case UP45_ARROW:
+                {
+                    create_update_bitmap(&icon_bitmap,icon_layer, UP45_ICON);
+                    DoubleDownAlert = false;
+                }
+                break;
+            case FLAT_ARROW:
+                {
+                    create_update_bitmap(&icon_bitmap,icon_layer, FLAT_ICON);
+                    DoubleDownAlert = false;
+                }
+                break;
+            case DOWN45_ARROW:
+                {
+                    create_update_bitmap(&icon_bitmap,icon_layer, DOWN45_ICON);
+                    DoubleDownAlert = false;
+                }
+                break;
+            case SINGLEDOWN_ARROW:
+                {
+                    create_update_bitmap(&icon_bitmap,icon_layer, DOWN_ICON);
+                    DoubleDownAlert = false;
+                }
+                break;
+            case DOUBLEDOWN_ARROW:
+                {
+                    create_update_bitmap(&icon_bitmap,icon_layer, DOWNDOWN_ICON);
+                    DoubleDownAlert = true; // does nothing
+                }
+                break;
+            default:
+                {
+                    // check for special cases and set icon accordingly
+                    // check bluetooth
+                    bluetooth_connected_cgm = bluetooth_connection_service_peek();
 
-			// check to see if we are in the loading screen
-			if (!bluetooth_connected_cgm)
-			{
-				// Bluetooth is out; in the loading screen so set logo
-				create_update_bitmap(&icon_bitmap,icon_layer,ARROW_ICONS[LOGO_ARROW_ICON_INDX]);
-			}
-			else
-			{
-				// unexpected, set error icon
-				create_update_bitmap(&icon_bitmap,icon_layer,ARROW_ICONS[ERR_ARROW_ICON_INDX]);
-			}
-			DoubleDownAlert = false;
-		}
+                    // check to see if we are in the loading screen
+                    if (!bluetooth_connected_cgm)
+                    {
+                        // Bluetooth is out; in the loading screen so set logo
+                        create_update_bitmap(&icon_bitmap,icon_layer, LOGO_ARROW_ICON);
+                    }
+                    else
+                    {
+                        // unexpected, set error icon
+                        create_update_bitmap(&icon_bitmap,icon_layer, ERR_ARROW_ICON);
+                    }
+                    DoubleDownAlert = false;
+                }
+                break;
+        }
 	} // if specvalue_alert == false
 	else   // this is just for log when need it
 	{
@@ -1074,7 +1113,7 @@ static void load_bg()
 	// if special value set, erase anything in the icon field
 	if (specvalue_alert == true)
 	{
-		create_update_bitmap(&specialvalue_bitmap,icon_layer, NONE_SPECVALUE_ICON_INDX);
+		create_update_bitmap(&specialvalue_bitmap,icon_layer, NONE_SPECVALUE_ICON);
 	}
 
 	// set special value alert to false no matter what
@@ -1111,7 +1150,7 @@ static void load_bg()
 			// if init code, we will set it right in message layer
 			TRACE("load_bg: UNEXPECTED BG: SET ERR ICON");
 			text_layer_set_text(bg_layer, "ERR");
-			create_update_bitmap(&icon_bitmap,icon_layer, NONE_SPECVALUE_ICON_INDX);
+			create_update_bitmap(&icon_bitmap,icon_layer, NONE_SPECVALUE_ICON);
 			specvalue_alert = true;
 		}
 
@@ -1127,14 +1166,14 @@ static void load_bg()
 		{
 			TRACE("load_bg: last_bg: \"%s\"", last_bg);
 			text_layer_set_text(bg_layer, "");
-			create_update_bitmap(&specialvalue_bitmap,icon_layer,  BROKEN_ANTENNA_ICON_INDX);
+			create_update_bitmap(&specialvalue_bitmap,icon_layer,  BROKEN_ANTENNA_ICON);
 			specvalue_alert = true;
 		}
 		else if (strcmp(last_bg, SENSOR_NOT_CALIBRATED_VALUE) == 0)
 		{
 			TRACE("load_bg: SET BLOOD DROP");
 			text_layer_set_text(bg_layer, "");
-			create_update_bitmap(&specialvalue_bitmap,icon_layer, BLOOD_DROP_ICON_INDX);
+			create_update_bitmap(&specialvalue_bitmap,icon_layer, BLOOD_DROP_ICON);
 			specvalue_alert = true;
 		}
 		else if (strcmp(last_bg, SENSOR_NOT_ACTIVE_VALUE) == 0 || strcmp(last_bg, MINIMAL_DEVIATION_VALUE) == 0
@@ -1142,14 +1181,14 @@ static void load_bg()
 		{
 			TRACE("load_bg: SET STOP LIGHT");
 			text_layer_set_text(bg_layer, "");
-			create_update_bitmap(&specialvalue_bitmap,icon_layer, STOP_LIGHT_ICON_INDX);
+			create_update_bitmap(&specialvalue_bitmap,icon_layer, STOP_LIGHT_ICON);
 			specvalue_alert = true;
 		}
 		else if (strcmp(last_bg, HOURGLASS_VALUE) == 0)
 		{
 			TRACE("load_bg: SET HOUR GLASS");
 			text_layer_set_text(bg_layer, "");
-			create_update_bitmap(&specialvalue_bitmap,icon_layer, HOURGLASS_ICON_INDX);
+			create_update_bitmap(&specialvalue_bitmap,icon_layer, HOURGLASS_ICON);
 			specvalue_alert = true;
 		}
 		else if (strcmp(last_bg, QUESTION_MARKS_VALUE) == 0)
@@ -1157,7 +1196,7 @@ static void load_bg()
 			//INFO("LOAD BG, SPECIAL VALUE: SET QUESTION MARKS, CLEAR TEXT");
 			text_layer_set_text(bg_layer, "");
 			TRACE("load_bg: SET QUESTION MARKS, SET BITMAP");
-			create_update_bitmap(&specialvalue_bitmap,icon_layer, QUESTION_MARKS_ICON_INDX);
+			create_update_bitmap(&specialvalue_bitmap,icon_layer, QUESTION_MARKS_ICON);
 			TRACE("load_bg: SET QUESTION MARKS, DONE");
 			specvalue_alert = true;
 		}
@@ -1344,7 +1383,7 @@ static void load_bg_delta()
 		strncpy(formatted_bg_delta, "LOADING...", MSGLAYER_BUFFER_SIZE);
 		text_layer_set_text(delta_layer, formatted_bg_delta);
 		text_layer_set_text(bg_layer, " ");
-		create_update_bitmap(&icon_bitmap,icon_layer, LOGO_SPECVALUE_ICON_INDX);
+		create_update_bitmap(&icon_bitmap,icon_layer, LOGO_SPECVALUE_ICON);
 		specvalue_alert = false;
 		return;
 	}
@@ -1402,8 +1441,8 @@ static void load_battlevel()
 		LOG("load_battlevel: No phone battery displays, exiting.");
 		return;
 	}
-	LOG("load_battlevel: last_battlevel: %s", last_battlevel);
-	if (strcmp(last_battlevel, " ") == 0)
+	LOG("load_battlevel: last_battlevel: %lu", last_battlevel);
+	if (last_battlevel == 255)
 	{
 		// Init code or no battery, can't do battery; set text layer & icon to empty value
 		INFO("load_battlevel: NO BATTERY");
@@ -1413,7 +1452,7 @@ static void load_battlevel()
 		return;
 	}
 
-	if (strcmp(last_battlevel, "0") == 0)
+	if (last_battlevel == 0)
 	{
 		// Zero battery level; set here, so if we get zero later we know we have an error instead
 		INFO("load_battlevel: 0 value");
@@ -1428,11 +1467,11 @@ static void load_battlevel()
 		return;
 	}
 
-	current_battlevel = myAtoi(last_battlevel);
+	current_battlevel = last_battlevel;
 
 	INFO("load_battlevel: current_battlevel: %i", current_battlevel);
 
-	if ((current_battlevel <= 0) || (current_battlevel > 100) || (last_battlevel[0] == '-'))
+	if ((current_battlevel <= 0) || (current_battlevel > 100) || ((last_battlevel > 100 && last_battlevel != 255)))
 	{
 		// got a negative or out of bounds or error battery level
 		INFO("load_battlevel: error");
@@ -1600,7 +1639,12 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 			case CGM_ICON_KEY:
 			;
 				LOG("SYNC TUPLE: ICON ARROW");
-				strncpy(current_icon, data->value->cstring, ICON_MSGSTR_SIZE);
+                TRACE("Current icon: %lu", current_icon);
+                /* char *strend = NULL; */
+                //current_icon = strtol(data->value->cstring, &strend, 10);
+                current_icon = atoi(data->value->cstring);
+                TRACE("New icon: %lu", current_icon);
+                TRACE("String: %s", data->value->cstring);
 				load_icon();
 			break; // break for CGM_ICON_KEY
 
@@ -1635,7 +1679,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 			;
 				LOG("SYNC TUPLE: UPLOADER BATTERY LEVEL");
 //				TRACE("SYNC TUPLE: BATTERY LEVEL IN, COPY LAST BATTLEVEL");
-				strncpy(last_battlevel, data->value->cstring, BATTLEVEL_MSGSTR_SIZE);
+                last_battlevel = atoi(data->value->cstring);
 //				TRACE("SYNC TUPLE: BATTERY LEVEL, CALL LOAD BATTLEVEL");
 				load_battlevel();
 				TRACE("SYNC TUPLE: BATTERY LEVEL OUT");
@@ -2627,9 +2671,9 @@ void window_load_cgm(Window *window_cgm)
 	
 	// put " " (space) in bg field so logo continues to show
 	// " " (space) also shows these are init values, not bad or null values
-	snprintf(current_icon, 2, " ");
+    current_icon = 255; // no icon set and ignore
 #ifdef TEST_MODE
-	snprintf(current_icon, 2, "1");
+    current_icon = 1;
 	specvalue_alert=false;
 #endif
 	load_icon();
@@ -2643,9 +2687,9 @@ void window_load_cgm(Window *window_cgm)
 	snprintf(current_bg_delta, BGDELTA_MSGSTR_SIZE, "+0.08");
 #endif
 	load_bg_delta();
-	snprintf(last_battlevel, BATTLEVEL_MSGSTR_SIZE, " ");
+    last_battlevel = 255;
 #ifdef TEST_MODE
-	snprintf(last_battlevel, BATTLEVEL_MSGSTR_SIZE, "100%%");
+    last_battlevel = 100;
 #endif
 	load_battlevel();
 
