@@ -1,5 +1,6 @@
 //xdrip.h - file for all common defines and function prototypes used in xdrip.c
-
+#ifndef __XDRIP_H__
+#define __XDRIP_H
 // global window variables
 // ANYTHING THAT IS CALLED BY PEBBLE API HAS TO BE NOT STATIC
 
@@ -193,4 +194,4 @@ void updateColours();
 static void update_health_metric_displays();
 static void health_handler(HealthEventType event, void *context);
 #endif
-
+#endif // __XDRIP_H__
