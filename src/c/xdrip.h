@@ -1,73 +1,41 @@
 //xdrip.h - file for all common defines and function prototypes used in xdrip.c
+#ifndef __XDRIP_H__
+#define __XDRIP_H
 
-// global window variables
-// ANYTHING THAT IS CALLED BY PEBBLE API HAS TO BE NOT STATIC
+#include "constant.h"
+/**
+ * Defines for testing modes
+ */
 
-const char FACE_VERSION[] = "xDrip-Pebble2";
+/*
+ * Set debug text to show and compile DEBUG_APP_[NONE,INFO,DEBUG,TRACE]
+ * Note: Aplite will not go above INFO logging.
+ */
+#define DEBUG_APP_TRACE 3
+#define DEBUG_APP_DEBUG 2
+#define DEBUG_APP_INFO 1
+#define DEBUG_APP_NONE 0
 
-// windows definition.
-Window *window_cgm = NULL;
+/* #define DEBUG_LEVEL DEBUG_APP_TRACE   */
 
-// text layer definitions.
-TextLayer *bg_layer = NULL;
-TextLayer *cgmtime_layer = NULL;
-TextLayer *delta_layer = NULL;          // BG DELTA LAYER
-TextLayer *message_layer = NULL;        // MESSAGE LAYER
-TextLayer *bottom_left_text_layer = NULL;
-TextLayer *bottom_right_text_layer = NULL;
-TextLayer *time_watch_layer = NULL;
-TextLayer *date_app_layer = NULL;
+/* The line below, if defined, will only indicate test values on the display.
+this is for testing purposes only until I can get the PebbleKit.JS code operating with the emulator.
+Make sure you udefine this before building a release.
+*/
+/* #define TEST_MODE */
 
-// bitmap layer definitions
-BitmapLayer *icon_layer = NULL;
-BitmapLayer *bg_trend_layer = NULL;
-BitmapLayer *upper_face_layer = NULL;
-BitmapLayer *lower_face_layer = NULL;
 
-#ifdef PBL_COLOR
-static GColor8 fg_colour;
-static GColor8 bg_colour;
-#else
-static GColor fg_colour;
-static GColor bg_colour;
-#endif
-//Set up Platform specific values and global variables.
-#ifdef PBL_PLATFORM_APLITE
-const uint8_t PLATFORM = 0;
-#elif PBL_PLATFORM_BASALT
-const uint8_t PLATFORM = 1;
-#elif PBL_PLATFORM_CHALK
-const uint8_t PLATFORM = 2;
-#elif PBL_PLATFORM_DIORITE
-const uint8_t PLATFORM = 3;
-#elif PBL_PLATFORM_EMERY
-const uint8_t PLATFORM = 4;
-#elif PBL_PLATFORM_FLINT
-const uint8_t PLATFORM = 5;
-#elif PBL_PLATFORM_GABBRO
-const uint8_t PLATFORM = 6;
-#endif
+/** 
+ * Face name
+ */
 
-#define HIGH_RES() (PBL_PLATFORM_TYPE_CURRENT >= PlatformTypeEmery)
-
-GBitmap *icon_bitmap = NULL;
-GBitmap *appicon_bitmap = NULL;
-GBitmap *specialvalue_bitmap = NULL;
-GBitmap *bg_trend_bitmap = NULL;
+#define FACE_VERSION "xDrip-Pebble2"
 
 // Defines to do with Time display
 #define TIME_24H_FORMAT "%H:%M"
 #define TIME_12H_FORMAT "%l:%M"
 #define TIME_24HS_FORMAT "%H:%M:%S"
 #define TIME_12HS_FORMAT "%l:%M:%S"
-static char time_watch_format[9] = TIME_24H_FORMAT;
-static char time_watch_text[] = "00:00:00";
-static char date_app_text[] = "Wed 13 Jan";
-static char message_layer_text[13];
-static GFont time_font;
-static char message_layer_text[13];
-static GFont time_font_small;
-static GFont time_font_normal;
 
 #ifndef PBL_COLOR
 #define CHUNK_SIZE 256
@@ -78,10 +46,7 @@ static void bitmapLayerUpdate(struct Layer *layer, GContext *ctx);
 #define CHUNK_SIZE 1024
 #endif
 
-// Message Timer Wait Times, in Seconds
-static const uint16_t WATCH_MSGSEND_SECS = 60;
-static const uint8_t LOADING_MSGSEND_SECS = 2;
-static uint8_t minutes_cgm = 0;
+#define HIGH_RES() (PBL_PLATFORM_TYPE_CURRENT >= PlatformTypeEmery)
 
 
 #define CGM_ICON_KEY			0	// TUPLE_CSTRING, MAX 2 BYTES (10)
@@ -109,8 +74,8 @@ static uint8_t minutes_cgm = 0;
 #define SET_LOW_LINE			111	// Setting key - Enable Low line on graph.
 #define SET_MESSAGE_TIMEOUT		113	// Setting key - Message timeout
 #define SET_BOLD_TIMEAGO		114	// Setting key - Meke the TimeAgo text bold if true
-#define SET_BOTTOM_LEFT_TEXT		115	// Setting key - What to display in the bottom left text field
-#define SET_BOTTOM_RIGHT_TEXT		116	// Setting key - What to display in the bottom right text field
+#define SET_BOTTOM_LEFT_TEXT	        115	// Setting key - What to display in the bottom left text field
+#define SET_BOTTOM_RIGHT_TEXT	        116	// Setting key - What to display in the bottom right text field
 #define CGM_SYNC_KEY			1000	// key pebble will use to request an update.	This should probably include the "capabilities" bits
 #define PBL_PLATFORM			1001	// key pebble will use to send it's platform	This is probably not required under the new famework.
 #define PBL_APP_VER			1002	// key pebble will use to send the face/app version.	This is probably not required under the new framework.
@@ -121,52 +86,6 @@ static uint8_t minutes_cgm = 0;
 // TOTAL MESSAGE DATA 4x3+2+5+3+9 = 31 BYTES
 // TOTAL KEY HEADER DATA (STRINGS) 4x6+2 = 26 BYTES
 // TOTAL MESSAGE 57 BYTES
-
-// ARRAY OF SPECIAL VALUE ICONS
-static const uint8_t SPECIAL_VALUE_ICONS[] =
-{
-	RESOURCE_ID_IMAGE_NONE,		 	//0
-	RESOURCE_ID_IMAGE_BROKEN_ANTENNA,	//1
-	RESOURCE_ID_IMAGE_BLOOD_DROP,		//2
-	RESOURCE_ID_IMAGE_STOP_LIGHT,		//3
-	RESOURCE_ID_IMAGE_HOURGLASS,		//4
-	RESOURCE_ID_IMAGE_QUESTION_MARKS,	//5
-	RESOURCE_ID_IMAGE_LOGO,		 	//6
-	RESOURCE_ID_IMAGE_ERR			//7
-};
-
-// INDEX FOR ARRAY OF SPECIAL VALUE ICONS
-static const uint8_t NONE_SPECVALUE_ICON_INDX = 0;
-static const uint8_t BROKEN_ANTENNA_ICON_INDX = 1;
-static const uint8_t BLOOD_DROP_ICON_INDX = 2;
-static const uint8_t STOP_LIGHT_ICON_INDX = 3;
-static const uint8_t HOURGLASS_ICON_INDX = 4;
-static const uint8_t QUESTION_MARKS_ICON_INDX = 5;
-static const uint8_t LOGO_SPECVALUE_ICON_INDX = 6;
-
-// Metric Display defines
-#define METRIC_NONE_STR		"no"
-#define METRIC_PHONEBATT_STR	"pb"
-#define METRIC_WATCHBATT_STR	"wb"
-#define METRIC_STEPS_STR	"sc"
-#define METRIC_HEARTRATE_STR	"hr"
-#define METRIC_NONE		0
-#define METRIC_PHONEBATT	1
-#define METRIC_WATCHBATT	2
-#define METRIC_STEPS		3
-#define METRIC_HEARTRATE	4
-
-//Metric Display Left/Right
-static uint8_t bottom_left_metric = 1;
-static uint8_t bottom_right_metric = 1;
-static char  bottom_left_metric_str[] = "pb";
-static char  bottom_right_metric_str[] = "wb";
-#ifdef PBL_HEALTH
-TextLayer *step_count_text_layer = NULL;
-#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_FLINT) || defined(PBL_PLATFORM_GABBRO)
-TextLayer *heart_rate_text_layer = NULL;
-#endif
-#endif
 
 // Function Prototypes
 // These two are only used if DEBUG_LEVEL is defined.  The code is conditinally compiled otherwise there are warnings.
@@ -193,4 +112,4 @@ void updateColours();
 static void update_health_metric_displays();
 static void health_handler(HealthEventType event, void *context);
 #endif
-
+#endif // __XDRIP_H__
