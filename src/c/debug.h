@@ -17,9 +17,10 @@
 */
 
 // guard againast debug in release, -DPBL_DEBUG is added to debug builds
-#if !defined(PBL_DEBUG)
-#undef DEBUG_LEVEL
-#endif
+// disabled due to running with --debug crashes PNG decoding
+/* #if !defined(PBL_DEBUG) */
+/* #undef DEBUG_LEVEL */
+/* #endif */
 
 /**
  * prevent aplite from not building in trace logging
