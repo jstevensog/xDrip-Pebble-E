@@ -1,4 +1,5 @@
 #include <pebble.h>
+#include <math.h>
 #include "xdrip.h"
 #include "debug.h" // must be included after xdrip.h
 
@@ -2414,7 +2415,7 @@ void window_load_cgm(Window *window_cgm)
 	icon_layer = bitmap_layer_create(GRect(146, -9, 78, 49));
 	bitmap_layer_set_compositing_mode(icon_layer, GCompOpSet);
 	// trend bitmap layer dimensions and composition mode
-	bg_trend_layer = bitmap_layer_create(GRect(0,0,200,84));
+	bg_trend_layer = bitmap_layer_create(GRect(0,0,200,114));
 	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
 	// delta layer dimensions
 	delta_layer = text_layer_create(GRect(2, 78, 198, 50));
@@ -2943,6 +2944,53 @@ int main(void)
 
 } // end main
 
+#define clamp(val, min, max) (val < min ? min : val > max ? max : val)
+
+/**
+ * Nearest neighbor scaling, can be done with 14bit max fixed point ints if need be due to
+ * the gabbro having a 260x260 screens
+ *
+ * based on a gitst but it can just as well be any NN code (https://gist.github.com/meitarBass/ff224ae087e1ffd3a1b50b74b6721e1a)
+ */
+void scale_nn(
+        const uint8_t *in, const int32_t width, const int32_t height,
+        uint8_t *out,  const int32_t target_width, const int32_t target_height)
+{
+    int32_t scale_x = ((width << 7) / target_width);
+    int32_t scale_y = ((height << 7) / target_height);
+
+    DEBUG("SCALE %ldx%ld to %ldx%ld", width, height, target_width, target_height);
+    for (int y_d = 0; y_d < target_height - 1; y_d++) {
+        for (int x_d = 0; x_d < target_width; x_d++) {
+            int32_t src_x = (int32_t) ((((x_d << 7) + 64) * (scale_x)) - 8192) >> 14;
+            int32_t src_y = (int32_t) ((((y_d << 7) + 64) * (scale_y)) - 8192) >> 14;
+            int x_scaled = clamp(src_x, 0, width - 1);
+            int y_scaled = clamp(src_y, 0, height - 1);
+
+            out[y_d * target_width + x_d] = in[y_scaled * width + x_scaled];
+        }
+    }
+    DEBUG("NN Scaled one");
+}
+
+/*
+ * Quick and dirty 1/2/4bit palette to 8bit
+ * Must be byte aligned
+ */
+#define ppb_origin(x, y, w, ppb) (((y * w) >> (ppb-1)) + (x >> (ppb-1)))
+#define ppb_offset(in, x, ppb) ((in >> ((x % ppb) * (8 >> (ppb-1)))) & (0xFF >> (8 - (8 / ppb))))
+uint8_t *convert_nbit_to_8bit(const uint8_t *in, const int32_t width, const int32_t height, uint8_t *palette, uint8_t *out, int32_t pixels_per_byte) {
+    DEBUG("Converting image, %ldx%ld from %ld pixels per byte to 1 (8bpp)", width, height, pixels_per_byte);
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            out[y*width + x] = palette[ppb_offset(
+                    in[ppb_origin(x, y, width, pixels_per_byte)],
+                    x, pixels_per_byte)];
+        }
+    }
+
+    return out;
+}
 
 void load_trend(const uint8_t *png, int32_t png_length) {
     if(bg_trend_bitmap != NULL)
@@ -2954,11 +3002,78 @@ void load_trend(const uint8_t *png, int32_t png_length) {
     TRACE("PNG to bitmap image: %lu", png_length);
 
     bg_trend_bitmap = gbitmap_create_from_png_data(png, png_length - 1);
-    TRACE("PNG to bitmap image done: %08X", bg_trend_bitmap);
-    TRACE("PNG ", bg_trend_bitmap);
+
+    /*
+     * Due to how bg_trend_bitmap is created, it will _almost_ always
+     * be set, but can be zero'd, this is not a good check but it's the
+     * best we've got.
+     */
     if(bg_trend_bitmap != NULL)
     {
-        LOG("bg_trend_bitmap created, setting to layer");
+        /*
+         * Gabbro not yet supported due to odd display characteristics
+         */
+#if defined(PBL_PLATFORM_EMERY)
+        /*
+         * Bitmap is now loaded, we can redraw it on the more capable devices (emery/gabbro)
+         */
+        LOG("bg_trend_bitmap created, resizing to layer");
+        GRect bounds = layer_get_bounds((const Layer *) bg_trend_layer);
+        GRect bitmap_bounds = gbitmap_get_bounds(bg_trend_bitmap);
+        GBitmapFormat colour_format = gbitmap_get_format(bg_trend_bitmap);
+        DEBUG("Color format: %lu", colour_format);
+        DEBUG("original: %lux%lu", bitmap_bounds.size.w, bitmap_bounds.size.h);
+        DEBUG("new bounds: %lux%lu", bounds.size.w, bounds.size.h);
+        int palette_size = 0; // 4bit
+                              //
+        // we can assume color on emery/gabbro
+        GBitmap *new_bitmap = gbitmap_create_blank(bounds.size, GBitmapFormat8Bit); 
+        GColor8 *new_data = (GColor8 *) gbitmap_get_data(new_bitmap); 
+        uint8_t *old_bitmap_8bit = calloc(bitmap_bounds.size.w * bitmap_bounds.size.h, sizeof(uint8_t));
+        if (NULL == old_bitmap_8bit) {
+            ERROR("Calloc failed");
+            return;
+        }
+        GColor *palette = gbitmap_get_palette(bg_trend_bitmap);
+
+        uint8_t *old_bitmap_4bit = (uint8_t *) gbitmap_get_data(bg_trend_bitmap);
+        switch (colour_format) {
+            case GBitmapFormat8Bit:
+                DEBUG("Color format is 8 bit (2+2+2+2)");
+                break;
+            case GBitmapFormat4BitPalette:
+                convert_nbit_to_8bit(
+                        old_bitmap_4bit, bitmap_bounds.size.w, bitmap_bounds.size.h, 
+                        (uint8_t *) palette, 
+                        (uint8_t *) old_bitmap_8bit, 2);
+                break;
+            case GBitmapFormat2BitPalette:
+                convert_nbit_to_8bit(
+                        old_bitmap_4bit, bitmap_bounds.size.w, bitmap_bounds.size.h, 
+                        (uint8_t *) palette, 
+                        (uint8_t *) old_bitmap_8bit, 4);
+                break;
+            case GBitmapFormat1BitPalette:
+                convert_nbit_to_8bit(
+                        old_bitmap_4bit, bitmap_bounds.size.w, bitmap_bounds.size.h, 
+                        (uint8_t *) palette, 
+                        (uint8_t *) old_bitmap_8bit, 8);
+                break;
+            case GBitmapFormat1Bit:
+            default:
+                ERROR("Resizing not supported for 1 bit mode");
+                break;
+        }
+        // scale
+        scale_nn(old_bitmap_8bit, bitmap_bounds.size.w, bitmap_bounds.size.h, (uint8_t *) new_data, bounds.size.w, bounds.size.h); 
+        // yes this is twice the size but we have plenty of memory on the emery and gabbro devices
+        // cleanup and set
+        DEBUG("Cleanup");
+        free(old_bitmap_8bit);
+        gbitmap_destroy(bg_trend_bitmap);
+        bg_trend_bitmap = new_bitmap; // replace
+#endif
+        LOG("bg_trend_bitmap created, setting to layer (classic)");
         bitmap_layer_set_bitmap(bg_trend_layer, bg_trend_bitmap);
     }
     else
