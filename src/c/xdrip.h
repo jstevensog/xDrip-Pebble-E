@@ -29,7 +29,7 @@ Make sure you udefine this before building a release.
  * Face name
  */
 
-#define FACE_VERSION "xDrip-Pebble-drain-test"
+#define FACE_VERSION "xDrip-Pebble2"
 
 // Defines to do with Time display
 #define TIME_24H_FORMAT "%H:%M"
