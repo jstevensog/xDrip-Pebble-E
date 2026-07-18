@@ -2,6 +2,9 @@
 #include "xdrip.h"
 #include "debug.h" // must be included after xdrip.h
 
+#ifdef TEST_MODE
+#include "trend_testimages.h"
+#endif
 /**
  * Variables
  */
@@ -1744,35 +1747,21 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 					break;
 				}
 				LOG("Finished receiving Trend Image");
-				if(bg_trend_bitmap != NULL)
-				{
-					INFO("Destroying bg_trend_bitmap");
-					gbitmap_destroy(bg_trend_bitmap);
-					bg_trend_bitmap = NULL;
-				}
+
 
 				LOG("Creating Trend Image");
 				LOG("TREND_END: trend_buffer is %lx, trend_buffer_length is %i", (uint32_t)trend_buffer, trend_buffer_length);
 
 				if ((trend_buffer != NULL) && (trend_buffer_length > 0) && (trend_buffer_length == expected_trend_buffer_length))
 				{
-					bg_trend_bitmap = gbitmap_create_from_png_data(trend_buffer, trend_buffer_length);
+                    load_trend(trend_buffer, trend_buffer_length);
 				}
 				else
 				{
+                    TRACE("Ending trend image");
 					break;
 				}
 
-				if(bg_trend_bitmap != NULL)
-				{
-					LOG("bg_trend_bitmap created, setting to layer");
-					bitmap_layer_set_bitmap(bg_trend_layer, bg_trend_bitmap);
-				}
-
-				else
-				{
-					INFO("bg_trend_bitmap creation FAILED!");
-				}
 				if (trend_buffer)
 				{
 					LOG("Free trend buffer 2");
@@ -2102,6 +2091,7 @@ void handle_message_tick(void *data)
 #endif
 	}
 
+    // reschedule timer
 	message_tick_timer = app_timer_register(message_tick_timeout, handle_message_tick, NULL);
 }
 
@@ -2706,6 +2696,9 @@ void window_load_cgm(Window *window_cgm)
     last_battlevel = 100;
 #endif
 	load_battlevel();
+#ifdef TEST_MODE
+    load_trend(trend_testimage_png, trend_testimage_png_len);
+#endif
 
 //	TRACE("WINDOW LOAD, ABOUT TO CALL APP SYNC INIT");
 	//app_sync_init(&sync_cgm, sync_buffer_cgm, sizeof(sync_buffer_cgm), initial_values_cgm, ARRAY_LENGTH(initial_values_cgm), sync_tuple_changed_callback_cgm, sync_error_callback_cgm, NULL);
@@ -2715,7 +2708,7 @@ void window_load_cgm(Window *window_cgm)
 	{
 		timer_cgm = NULL;
 	}
-	timer_cgm = app_timer_register((LOADING_MSGSEND_SECS*MS_IN_A_SECOND), timer_callback_cgm, NULL);
+    timer_cgm = app_timer_register((LOADING_MSGSEND_SECS*MS_IN_A_SECOND), timer_callback_cgm, NULL);
 	TRACE("window_load_cgm: timer registered");
 
 } // end window_load_cgm
@@ -2842,7 +2835,7 @@ static void init_cgm(void)
 	if (display_seconds) tick_timer_service_subscribe(SECOND_UNIT, &handle_second_tick_cgm);
 
 	tick_timer_service_subscribe(MINUTE_UNIT, &handle_minute_tick_cgm);
-	message_tick_timer = app_timer_register(message_tick_timeout, handle_message_tick, NULL);
+	message_tick_timer = app_timer_register(INITIAL_MESSAGE_DISPLAY_TIMER, handle_message_tick, NULL); // schedule message timer after loading
 
 	// subscribe to the bluetooth connection service
 	bluetooth_connection_service_subscribe(handle_bluetooth_cgm);
@@ -2949,3 +2942,28 @@ int main(void)
 	deinit_cgm();
 
 } // end main
+
+
+void load_trend(const uint8_t *png, int32_t png_length) {
+    if(bg_trend_bitmap != NULL)
+    {
+        INFO("Destroying bg_trend_bitmap");
+        gbitmap_destroy(bg_trend_bitmap);
+        bg_trend_bitmap = NULL;
+    }
+    TRACE("PNG to bitmap image: %lu", png_length);
+
+    bg_trend_bitmap = gbitmap_create_from_png_data(png, png_length - 1);
+    TRACE("PNG to bitmap image done: %08X", bg_trend_bitmap);
+    TRACE("PNG ", bg_trend_bitmap);
+    if(bg_trend_bitmap != NULL)
+    {
+        LOG("bg_trend_bitmap created, setting to layer");
+        bitmap_layer_set_bitmap(bg_trend_layer, bg_trend_bitmap);
+    }
+    else
+    {
+        INFO("bg_trend_bitmap creation FAILED!");
+    }
+
+}

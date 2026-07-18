@@ -29,7 +29,7 @@ Make sure you udefine this before building a release.
  * Face name
  */
 
-#define FACE_VERSION "xDrip-Pebble2"
+#define FACE_VERSION "xDrip-Pebble-drain-test"
 
 // Defines to do with Time display
 #define TIME_24H_FORMAT "%H:%M"
@@ -106,6 +106,7 @@ void sync_error_callback_cgm(DictionaryResult appsync_dict_error, AppMessageResu
 time_t get_UTC_offset(struct tm *t);
 //updates the display colours when they are changed in settings
 void updateColours();
+void load_trend(const uint8_t *png, int32_t png_length);
 
 //Health and Metric Display functions
 #ifdef PBL_HEALTH

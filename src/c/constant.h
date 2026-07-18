@@ -4,6 +4,7 @@
 
 #include <pebble.h>
 
+
 // Metric Display defines
 #define METRIC_NONE_STR		"no"
 #define METRIC_PHONEBATT_STR	"pb"
@@ -38,6 +39,7 @@
 // time defines
 #define WATCH_MSGSEND_SECS      60
 #define LOADING_MSGSEND_SECS    2
+#define INITIAL_MESSAGE_DISPLAY_TIMER 3000 //ms
 
 
 // resource and index definitions
