@@ -413,8 +413,9 @@ static void update_health_metric_displays() {
 			val = health_service_peek_current_value(HealthMetricHeartRateBPM);
 			LOG("Heart Rate data is \"%lu\"", (uint32_t)val);
 			if(val > 0) {
-			    // Display HRM value
-			    snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "%lu BPM", (uint32_t)val);
+				// Display HRM value
+//				snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "%lu BPM", (uint32_t)val);
+				snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "%lu \U0001F493", (uint32_t)val);
 			}
 		}
 		if(bottom_left_metric == METRIC_HEARTRATE) {
