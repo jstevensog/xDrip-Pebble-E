@@ -476,7 +476,9 @@ static void battery_handler(BatteryChargeState charge_state)
 //			LOG("Charging.  Processing bottom_left_text_layer:");
 #ifdef PBL_COLOR
 			TRACE("COLOR DETECTED");
-			text_layer_set_text_color(bottom_left_text_layer, GColorDukeBlue);
+//			text_layer_set_text_color(bottom_left_text_layer, GColorDukeBlue);
+//			text_layer_set_background_color(bottom_left_text_layer, GColorGreen);
+			text_layer_set_text_color(bottom_left_text_layer, bg_colour);
 			text_layer_set_background_color(bottom_left_text_layer, GColorGreen);
 #else
 			TRACE("BW DETECTED");
@@ -488,7 +490,9 @@ static void battery_handler(BatteryChargeState charge_state)
 //			LOG("Charging.  Processing bottom_right_text_layer:");
 #ifdef PBL_COLOR
 			TRACE("COLOR DETECTED");
-			text_layer_set_text_color(bottom_right_text_layer, GColorDukeBlue);
+//			text_layer_set_text_color(bottom_right_text_layer, GColorDukeBlue);
+//			text_layer_set_background_color(bottom_right_text_layer, GColorGreen);
+			text_layer_set_text_color(bottom_right_text_layer, bg_colour);
 			text_layer_set_background_color(bottom_right_text_layer, GColorGreen);
 #else
 			TRACE("BW DETECTED");
@@ -507,11 +511,13 @@ static void battery_handler(BatteryChargeState charge_state)
 			TRACE("battery_handler: BATTERY > 40");
 			if(bottom_left_metric == METRIC_WATCHBATT) {
 				LOG("battery_handler: >40%% bottom_left_text_layer: GColorGreen");
-				text_layer_set_text_color(bottom_left_text_layer, GColorGreen);
+//				text_layer_set_text_color(bottom_left_text_layer, GColorGreen);
+				text_layer_set_text_color(bottom_left_text_layer, fg_colour);
 			}
 			if(bottom_right_metric == METRIC_WATCHBATT) {
 				LOG("battery_handler: >40%% bottom_right_text_layer: GColorGreen");
-				text_layer_set_text_color(bottom_right_text_layer, GColorGreen);
+//				text_layer_set_text_color(bottom_right_text_layer, GColorGreen);
+				text_layer_set_text_color(bottom_right_text_layer, fg_colour);
 			}
 		}
 		else if (charge_state.charge_percent > 20)
@@ -1531,10 +1537,12 @@ static void load_battlevel()
 	{
 		if(bottom_left_metric == METRIC_PHONEBATT) {
 			LOG("load_battlevel: Setting bottom_left_text_layer to GColorGreen");
-			text_layer_set_text_color(bottom_left_text_layer, GColorGreen);
+//			text_layer_set_text_color(bottom_left_text_layer, GColorGreen);
+			text_layer_set_text_color(bottom_left_text_layer, fg_colour);
 		}
 		if(bottom_right_metric == METRIC_PHONEBATT) {
-			text_layer_set_text_color(bottom_right_text_layer, GColorGreen);
+//			text_layer_set_text_color(bottom_right_text_layer, GColorGreen);
+			text_layer_set_text_color(bottom_right_text_layer, fg_colour);
 			LOG("load_battlevel: Setting bottom_right_text_layer to GColorGreen");
 		}
 	}
@@ -1596,6 +1604,7 @@ void updateColours()
 		text_layer_set_text_color(message_layer, fg_colour);
 		text_layer_set_text_color(bg_layer, fg_colour);
 		text_layer_set_text_color(cgmtime_layer, fg_colour);
+		text_layer_set_text_color(bottom_left_text_layer, fg_colour);
 		text_layer_set_text_color(bottom_right_text_layer, fg_colour);
 	} else {
 		bitmap_layer_set_background_color(upper_face_layer, fg_colour);
@@ -1603,6 +1612,7 @@ void updateColours()
 		text_layer_set_text_color(message_layer, bg_colour);
 		text_layer_set_text_color(bg_layer, bg_colour);
 		text_layer_set_text_color(cgmtime_layer, bg_colour);
+		text_layer_set_text_color(bottom_left_text_layer, bg_colour);
 		text_layer_set_text_color(bottom_right_text_layer, bg_colour);
 	}
 	bitmap_layer_set_background_color(lower_face_layer, bg_colour);
@@ -1984,7 +1994,8 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 				if(bottom_left_metric == METRIC_NONE) {
 					text_layer_set_text(bottom_left_text_layer, "");
 				} else {
-					text_layer_set_text_color(bottom_left_text_layer, GColorGreen);
+//					text_layer_set_text_color(bottom_left_text_layer, GColorGreen);
+					text_layer_set_text_color(bottom_left_text_layer, fg_colour);
 #ifdef PBL_HEALTH
 					update_health_metric_displays();
 #endif
@@ -2007,7 +2018,8 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 				if(bottom_right_metric == METRIC_NONE) {
 					text_layer_set_text(bottom_right_text_layer, "");
 				} else {
-					text_layer_set_text_color(bottom_right_text_layer, GColorGreen);
+//					text_layer_set_text_color(bottom_right_text_layer, GColorGreen);
+					text_layer_set_text_color(bottom_right_text_layer, fg_colour);
 #ifdef PBL_HEALTH
 					update_health_metric_displays();
 #endif
@@ -2652,7 +2664,8 @@ void window_load_cgm(Window *window_cgm)
 	// Metric Layers
 	// left metric layer
 	LOG("Creating Left Metric Text layer");
-	text_layer_set_text_color(bottom_left_text_layer, GColorGreen);
+//	text_layer_set_text_color(bottom_left_text_layer, GColorGreen);
+	text_layer_set_text_color(bottom_left_text_layer, fg_colour);
 	text_layer_set_background_color(bottom_left_text_layer, GColorClear);
 	text_layer_set_font(bottom_left_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
 	layer_add_child(window_layer_cgm, text_layer_get_layer(bottom_left_text_layer));
@@ -2660,7 +2673,8 @@ void window_load_cgm(Window *window_cgm)
 
 	// right metric layer
 	LOG("Creating Right Metric Text layer");
-	text_layer_set_text_color(bottom_right_text_layer, GColorGreen);
+//	text_layer_set_text_color(bottom_right_text_layer, GColorGreen);
+	text_layer_set_text_color(bottom_right_text_layer, fg_colour);
 	text_layer_set_background_color(bottom_right_text_layer, GColorClear);
 	text_layer_set_font(bottom_right_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
 	layer_add_child(window_layer_cgm, text_layer_get_layer(bottom_right_text_layer));
