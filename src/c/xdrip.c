@@ -392,7 +392,7 @@ static void update_health_metric_displays() {
 			// Data is available!
 			step_count = health_service_sum_today(metric);
   			LOG("Steps today: %d", step_count);
-			snprintf(step_count_text,8, "%is", step_count);
+			snprintf(step_count_text,8, "%i s", step_count);
 		} else {
 			// No data recorded yet today
 			LOG("Data unavailable!");
