@@ -29,10 +29,7 @@ As of this version, the following settings are available.
  * Same background top and bottom - Sets the same background colour top and bottom.
  * Foreground Colour - Colour to use for "light" sections of the display.  Default white.  Only useful for Basalt, Chalk, and Emery
  * Background Colour - Colour to use for "Dark" sections of the display.  Default Duke Blue.  Only useful for Basalt, Chalk, and Emery
-<<<<<<< HEAD
-=======
  * Message timer - Seconds between each check for displaying the message / delta. This is done to avoid having to use the seconds timer for everything increasing the system/battery load. Default is 15 seconds (5-60s)
->>>>>>> origin/master
 The above settings are stored in the watch, and persist between watch face transitions.
 
 Build Environment:
