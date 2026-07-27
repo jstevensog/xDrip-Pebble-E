@@ -1580,6 +1580,8 @@ static void send_cmd_cgm(void)
 	dict_write_uint32(iter, CGM_SYNC_KEY, CGM_SYNC_KEY);
 	dict_write_uint8(iter, PBL_PLATFORM, (uint8_t) PLATFORM);
 	dict_write_cstring(iter, PBL_APP_VER, FACE_VERSION);
+// Set the trend size to send to xDrip+.  See xdrip.h
+	dict_write_uint16(iter, PBL_TREND_SIZE, (uint16_t)((PBL_DISPLAY_WIDTH << 8) | TREND_HEIGHT));
 	dict_write_end(iter);
 	TRACE("send_cmd_cgm: Opening outbox");
 

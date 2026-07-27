@@ -152,7 +152,9 @@
       "version": 1002,
       "trend_size": 1003,
       "trend_lines": 1004,
-      "display_options": 1005
+      "trend_period": 1005,
+      "display_options": 1006,
+      "vibration_options": 1007
     },
     "displayName": "xDrip Watch Face",
     "watchapp": {
