@@ -2516,7 +2516,6 @@ void window_load_cgm(Window *window_cgm)
 	// trend bitmap layer dimensions and composition mode
 	bg_trend_layer = bitmap_layer_create(       GRect(  0,   0, 207, 121));
 	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
-	text_layer_set_text_alignment(bg_layer, GTextAlignmentCenter);
 	// delta layer dimensions
 	delta_layer = text_layer_create(            GRect(  0,  52, 260,  72));
 	text_layer_set_text_alignment(delta_layer, GTextAlignmentCenter);
@@ -2525,6 +2524,7 @@ void window_load_cgm(Window *window_cgm)
 	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
 	// BG layer dimensions
 	bg_layer = text_layer_create(               GRect(  0,  -7, 260,  68));
+	text_layer_set_text_alignment(bg_layer, GTextAlignmentCenter);
 	// cgmtime layer dimensions
 	cgmtime_layer = text_layer_create(          GRect(  7,  84,  58,  35));
 	text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentRight);
