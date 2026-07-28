@@ -90,8 +90,8 @@ Window *window_cgm = NULL;
 // text layer definitions.
 TextLayer *bg_layer = NULL;
 TextLayer *cgmtime_layer = NULL;
-TextLayer *delta_layer = NULL;          // BG DELTA LAYER
-TextLayer *message_layer = NULL;        // MESSAGE LAYER
+TextLayer *delta_layer = NULL;	 	// BG DELTA LAYER
+TextLayer *message_layer = NULL;	// MESSAGE LAYER
 TextLayer *bottom_left_text_layer = NULL;
 TextLayer *bottom_right_text_layer = NULL;
 TextLayer *time_watch_layer = NULL;
@@ -246,7 +246,7 @@ int myBGAtoi(char *str)
 	// Iterate through all characters of input string and update result
 	for (int i = 0; str[i] != '\0'; ++i)
 	{
-	    DEBUG("myBGAtoi, STRING IN: %s", &str[i] );
+		DEBUG("myBGAtoi, STRING IN: %s", &str[i] );
 		if (str[i] == ('.')||str[i] == (','))
 		{
 			currentBG_isMMOL = true;
@@ -398,10 +398,10 @@ static void update_health_metric_displays() {
 			LOG("Data unavailable!");
 		}
 		if(bottom_left_metric == METRIC_STEPS) {
-         	 	text_layer_set_text(bottom_left_text_layer, step_count_text);
+		 	text_layer_set_text(bottom_left_text_layer, step_count_text);
 		}
 		if(bottom_right_metric == METRIC_STEPS) {
-         	 	text_layer_set_text(bottom_right_text_layer, step_count_text);
+		 	 text_layer_set_text(bottom_right_text_layer, step_count_text);
 		}
 	}	
 #if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_FLINT) || defined(PBL_PLATFORM_GABBRO)
@@ -619,7 +619,7 @@ static void alert_handler_cgm(uint8_t alertValue)
 		case 1:
 			;
 			//Low
-	        LOG("alert_handler: LOW ALERT");
+			LOG("alert_handler: LOW ALERT");
 			VibePattern low_alert_pat =
 			{
 				.durations = lowalert_beebuzz,
@@ -635,7 +635,7 @@ static void alert_handler_cgm(uint8_t alertValue)
 		case 2:
 		;
 			// Medium Alert
-	        LOG("alert_handler: MEDIUM ALERT");
+			LOG("alert_handler: MEDIUM ALERT");
 			VibePattern med_alert_pat =
 			{
 				.durations = medalert_long,
@@ -651,7 +651,7 @@ static void alert_handler_cgm(uint8_t alertValue)
 		case 3:
 		;
 		// High Alert
-	        LOG("alert_handler: HIGH ALERT");
+			LOG("alert_handler: HIGH ALERT");
 			VibePattern high_alert_pat =
 			{
 				.durations = highalert_fast,
@@ -1034,78 +1034,82 @@ static void load_icon()
 		// no special value, set arrow
 		// check for arrow direction, set proper arrow icon
 		TRACE("load_icon: CURRENT ICON: %lu", current_icon);
-        switch (current_icon) {
-            case NO_ARROW:
-            case NOTCOMPUTE:
-            case OUTOFRANGE:
-                {
-                    create_update_bitmap(&icon_bitmap,icon_layer, NONE_ARROW_ICON);
-                    DoubleDownAlert = false;
-                }
-                break;
-            case DOUBLEUP_ARROW:
-                {
-                    create_update_bitmap(&icon_bitmap,icon_layer, UPUP_ICON);
-                    DoubleDownAlert = false;
-                }
-                break;
-            case SINGLEUP_ARROW:
-                {
-                    create_update_bitmap(&icon_bitmap,icon_layer, UP_ICON);
-                    DoubleDownAlert = false;
-                }
-                break;
-            case UP45_ARROW:
-                {
-                    create_update_bitmap(&icon_bitmap,icon_layer, UP45_ICON);
-                    DoubleDownAlert = false;
-                }
-                break;
-            case FLAT_ARROW:
-                {
-                    create_update_bitmap(&icon_bitmap,icon_layer, FLAT_ICON);
-                    DoubleDownAlert = false;
-                }
-                break;
-            case DOWN45_ARROW:
-                {
-                    create_update_bitmap(&icon_bitmap,icon_layer, DOWN45_ICON);
-                    DoubleDownAlert = false;
-                }
-                break;
-            case SINGLEDOWN_ARROW:
-                {
-                    create_update_bitmap(&icon_bitmap,icon_layer, DOWN_ICON);
-                    DoubleDownAlert = false;
-                }
-                break;
-            case DOUBLEDOWN_ARROW:
-                {
-                    create_update_bitmap(&icon_bitmap,icon_layer, DOWNDOWN_ICON);
-                    DoubleDownAlert = true; // does nothing
-                }
-                break;
-            default:
-                {
-                    // check for special cases and set icon accordingly
-                    // check bluetooth
-                    bluetooth_connected_cgm = bluetooth_connection_service_peek();
+		switch (current_icon) {
+			case NO_ARROW:
+			case NOTCOMPUTE:
+			case OUTOFRANGE:
+			{
+				create_update_bitmap(&icon_bitmap,icon_layer, NONE_ARROW_ICON);
+				DoubleDownAlert = false;
+			}
+			break;
 
-                    // check to see if we are in the loading screen
-                    if (!bluetooth_connected_cgm)
-                    {
-                        // Bluetooth is out; in the loading screen so set logo
-                        create_update_bitmap(&icon_bitmap,icon_layer, LOGO_ARROW_ICON);
-                    }
-                    else
-                    {
-                        // unexpected, set error icon
-                        create_update_bitmap(&icon_bitmap,icon_layer, ERR_ARROW_ICON);
-                    }
-                    DoubleDownAlert = false;
-                }
-                break;
-        }
+			case DOUBLEUP_ARROW:
+			{
+				create_update_bitmap(&icon_bitmap,icon_layer, UPUP_ICON);
+				DoubleDownAlert = false;
+			}
+			break;
+
+			case SINGLEUP_ARROW:
+			{
+				create_update_bitmap(&icon_bitmap,icon_layer, UP_ICON);
+				DoubleDownAlert = false;
+			}
+			break;
+
+			case UP45_ARROW:
+			{
+				create_update_bitmap(&icon_bitmap,icon_layer, UP45_ICON);
+				DoubleDownAlert = false;
+			}
+			break;
+
+			case FLAT_ARROW:
+			{
+				create_update_bitmap(&icon_bitmap,icon_layer, FLAT_ICON);
+				DoubleDownAlert = false;
+			}
+			break;
+			case DOWN45_ARROW:
+			{
+				create_update_bitmap(&icon_bitmap,icon_layer, DOWN45_ICON);
+				DoubleDownAlert = false;
+			}
+			break;
+			case SINGLEDOWN_ARROW:
+			{
+				create_update_bitmap(&icon_bitmap,icon_layer, DOWN_ICON);
+				DoubleDownAlert = false;
+			}
+			break;
+			case DOUBLEDOWN_ARROW:
+			{
+				create_update_bitmap(&icon_bitmap,icon_layer, DOWNDOWN_ICON);
+				DoubleDownAlert = true; // does nothing
+			}
+			break;
+			default:
+			{
+				// check for special cases and set icon accordingly
+				// check bluetooth
+				bluetooth_connected_cgm = bluetooth_connection_service_peek();
+
+				// check to see if we are in the loading screen
+				if (!bluetooth_connected_cgm)
+				{
+					// Bluetooth is out; in the loading screen so set logo
+					create_update_bitmap(&icon_bitmap,icon_layer, LOGO_ARROW_ICON);
+				}
+				else
+				{
+					// unexpected, set error icon
+					create_update_bitmap(&icon_bitmap,icon_layer, ERR_ARROW_ICON);
+				}
+				DoubleDownAlert = false;
+			}
+			break;
+		}
 	} // if specvalue_alert == false
 	else   // this is just for log when need it
 	{
@@ -1655,12 +1659,12 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 			case CGM_ICON_KEY:
 			;
 				LOG("SYNC TUPLE: ICON ARROW");
-                TRACE("Current icon: %lu", current_icon);
-                /* char *strend = NULL; */
-                //current_icon = strtol(data->value->cstring, &strend, 10);
-                current_icon = atoi(data->value->cstring);
-                TRACE("New icon: %lu", current_icon);
-                TRACE("String: %s", data->value->cstring);
+				TRACE("Current icon: %lu", current_icon);
+				/* char *strend = NULL; */
+				//current_icon = strtol(data->value->cstring, &strend, 10);
+				current_icon = atoi(data->value->cstring);
+				TRACE("New icon: %lu", current_icon);
+				TRACE("String: %s", data->value->cstring);
 				load_icon();
 			break; // break for CGM_ICON_KEY
 
@@ -1695,7 +1699,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 			;
 				LOG("SYNC TUPLE: UPLOADER BATTERY LEVEL");
 //				TRACE("SYNC TUPLE: BATTERY LEVEL IN, COPY LAST BATTLEVEL");
-                last_battlevel = atoi(data->value->cstring);
+				last_battlevel = atoi(data->value->cstring);
 //				TRACE("SYNC TUPLE: BATTERY LEVEL, CALL LOAD BATTLEVEL");
 				load_battlevel();
 				TRACE("SYNC TUPLE: BATTERY LEVEL OUT");
@@ -2089,22 +2093,22 @@ void handle_message_tick(void *data)
 	INFO("handle_message_tick: Handling alert tick, display_message is %i", display_message);
 	if(display_message)
 	{
-	    layer_set_hidden((Layer *)message_layer, !(layer_get_hidden((Layer *)message_layer)));
+		layer_set_hidden((Layer *)message_layer, !(layer_get_hidden((Layer *)message_layer)));
 #if defined(PBL_PLATFORM_APLITE) || defined(PBL_PLATFORM_CHALK) || defined(PBL_PLATFORM_DIORITE) || defined(PBL_PLATFORM_FLINT)
-	    layer_set_hidden((Layer *)delta_layer, !(layer_get_hidden((Layer *)message_layer)));
+		layer_set_hidden((Layer *)delta_layer, !(layer_get_hidden((Layer *)message_layer)));
 #endif
 	}
 	else
 	{
-	    if(!layer_get_hidden((Layer *)message_layer))
-	    {
-	        layer_set_hidden((Layer *)message_layer, true);
-	    }
+		if(!layer_get_hidden((Layer *)message_layer))
+		{
+			layer_set_hidden((Layer *)message_layer, true);
+		}
 #if defined(PBL_PLATFORM_APLITE) || defined(PBL_PLATFORM_CHALK) || defined(PBL_PLATFORM_DIORITE) || defined(PBL_PLATFORM_FLINT)
-	    if(layer_get_hidden((Layer *)delta_layer))
-	    {
-	        layer_set_hidden((Layer *)delta_layer, false);
-	    }
+		if(layer_get_hidden((Layer *)delta_layer))
+		{
+			layer_set_hidden((Layer *)delta_layer, false);
+		}
 #endif
 	}
 
@@ -2145,19 +2149,19 @@ void handle_minute_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
 
 	if (units_changed_cgm & MINUTE_UNIT)
 	{
-	    LOG("handle_minute_tick_cgm: tick");
-	    tick_return_cgm = strftime(time_watch_text, TIME_TEXTBUFF_SIZE, time_watch_format, tick_time_cgm);
+		LOG("handle_minute_tick_cgm: tick");
+		tick_return_cgm = strftime(time_watch_text, TIME_TEXTBUFF_SIZE, time_watch_format, tick_time_cgm);
 	}
 
 	if (tick_return_cgm != 0)
 	{
-	    text_layer_set_text(time_watch_layer, time_watch_text);
+		text_layer_set_text(time_watch_layer, time_watch_text);
 		++lastAlertTime;
 	}
 
 	if (units_changed_cgm & DAY_UNIT)
 	{
-	    INFO("handle_minute_tick_cgm: Day changed");
+		INFO("handle_minute_tick_cgm: Day changed");
 		tick_return_cgm = strftime(date_app_text, DATE_TEXTBUFF_SIZE, "%a %d %b", tick_time_cgm);
 		if (tick_return_cgm != 0)
 		{
@@ -2445,16 +2449,16 @@ void window_load_cgm(Window *window_cgm)
 	text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentRight);
 	// time watch layer dimenssions
 	if (display_seconds) {
-	    	time_watch_layer = text_layer_create(GRect(0, 121, 200, 60));
+		time_watch_layer = text_layer_create(GRect(0, 121, 200, 60));
 	} else {
-	    	time_watch_layer = text_layer_create(GRect(0, 111, 200, 60));
+		time_watch_layer = text_layer_create(GRect(0, 111, 200, 60));
 	}
 	text_layer_set_text_alignment(time_watch_layer, GTextAlignmentCenter);
 	// date layer dimenstions
 	if (display_seconds) {
-	    	date_app_layer = text_layer_create(GRect(0, 168, 200, 39));
+		date_app_layer = text_layer_create(GRect(0, 168, 200, 39));
 	} else {
-	    	date_app_layer = text_layer_create(GRect(0, 176, 200, 39));
+		date_app_layer = text_layer_create(GRect(0, 176, 200, 39));
 	}
 	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
 	// phone/bridge batter level layer diemnsions
@@ -2514,37 +2518,37 @@ void window_load_cgm(Window *window_cgm)
 	//static GColor8 fg_colour;
 	//static GColor8 bg_colour;
 	// face layer sizes
-	upper_face_layer = bitmap_layer_create(     GRect(0  ,   0, 260, 120));
-	lower_face_layer = bitmap_layer_create(     GRect(0   ,121, 260, 238));
+	upper_face_layer = bitmap_layer_create(GRect(0  ,   0, 260, 120));
+	lower_face_layer = bitmap_layer_create(GRect(0   ,121, 260, 238));
 	// icon layer size and composition mode
-	icon_layer = bitmap_layer_create(           GRect(173,  43, 112,  72));
+	icon_layer = bitmap_layer_create(GRect(173,  43, 112,  72));
 	bitmap_layer_set_compositing_mode(icon_layer, GCompOpSet);
 	// trend bitmap layer dimensions and composition mode
-	bg_trend_layer = bitmap_layer_create(       GRect(  0,   0, 207, 121));
+	bg_trend_layer = bitmap_layer_create(GRect(  0,   0, 207, 121));
 	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
 	text_layer_set_text_alignment(bg_layer, GTextAlignmentCenter);
 	// delta layer dimensions
-	delta_layer = text_layer_create(            GRect(  0,  52, 260,  72));
+	delta_layer = text_layer_create(GRect(  0,  52, 260,  72));
 	text_layer_set_text_alignment(delta_layer, GTextAlignmentCenter);
 	// message layer dimensions
-	message_layer = text_layer_create(          GRect(  0,  52, 206,  72));
+	message_layer = text_layer_create(GRect(  0,  52, 206,  72));
 	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
 	// BG layer dimensions
-	bg_layer = text_layer_create(               GRect(  0,  -7, 260,  68));
+	bg_layer = text_layer_create(GRect(  0,  -7, 260,  68));
 	// cgmtime layer dimensions
-	cgmtime_layer = text_layer_create(          GRect(  7,  84,  58,  35));
+	cgmtime_layer = text_layer_create(GRect(  7,  84,  58,  35));
 	text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentRight);
 	// time watch layer dimenssions
-	time_watch_layer = text_layer_create(       GRect( 26, 118, 206,  64));
+	time_watch_layer = text_layer_create(GRect( 26, 118, 206,  64));
 	text_layer_set_text_alignment(time_watch_layer, GTextAlignmentCenter);
 	// date layer dimenstions
-	date_app_layer = text_layer_create(         GRect( 26, 178, 206,  38));
+	date_app_layer = text_layer_create(GRect( 26, 178, 206,  38));
 	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
 	// phone/bridge batter level layer diemnsions
-	bottom_left_text_layer = text_layer_create(        GRect( 69, 236,  130,  26));
+	bottom_left_text_layer = text_layer_create(GRect( 69, 236,  130,  26));
 	text_layer_set_text_alignment(bottom_left_text_layer, GTextAlignmentLeft);
 	// watch battery level layer dimensions
-	bottom_right_text_layer = text_layer_create(  GRect( 65, 210,  130,  26));
+	bottom_right_text_layer = text_layer_create(GRect( 65, 210,  130,  26));
 	text_layer_set_text_alignment(bottom_right_text_layer, GTextAlignmentCenter);
 
 #endif
@@ -2691,9 +2695,9 @@ void window_load_cgm(Window *window_cgm)
 	
 	// put " " (space) in bg field so logo continues to show
 	// " " (space) also shows these are init values, not bad or null values
-    current_icon = 255; // no icon set and ignore
+	current_icon = 255; // no icon set and ignore
 #ifdef TEST_MODE
-    current_icon = 1;
+	current_icon = 1;
 	specvalue_alert=false;
 #endif
 	load_icon();
@@ -2807,11 +2811,11 @@ static void init_cgm(void)
 	LOG("display_seconds: %i", display_seconds);
 	//initialise the Time Fonts
 	if (HIGH_RES()) {
-	    time_font_normal = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_60));
-	    time_font_small = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_40));
+		time_font_normal = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_60));
+		time_font_small = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_40));
 	} else {
-	    time_font_normal = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_40));
-	    time_font_small = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_30));
+		time_font_normal = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_40));
+		time_font_small = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_30));
 	}
 	//Initialise the time format string.  No seconds here.
 	if(clock_is_24h_style() == true)
