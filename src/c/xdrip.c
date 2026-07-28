@@ -418,6 +418,9 @@ static void update_health_metric_displays() {
 				snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "%lu \U0001F493", (uint32_t)val);
 			}
 		}
+		else {
+			snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "Wait.. \U0001F493");
+		}
 		if(bottom_left_metric == METRIC_HEARTRATE) {
 			LOG("Setting bottom left metric to \"%lu\"", (uint32_t)val);
 			text_layer_set_text(bottom_left_text_layer, s_hrm_buffer);
@@ -2427,7 +2430,7 @@ void window_load_cgm(Window *window_cgm)
 	icon_layer = bitmap_layer_create(GRect(146, -9, 78, 49));
 	bitmap_layer_set_compositing_mode(icon_layer, GCompOpSet);
 	// trend bitmap layer dimensions and composition mode
-	bg_trend_layer = bitmap_layer_create(GRect(0,0,200,84));
+	bg_trend_layer = bitmap_layer_create(GRect(0,0,200,114));
 	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
 	// delta layer dimensions
 	delta_layer = text_layer_create(GRect(2, 78, 198, 50));
@@ -2704,9 +2707,9 @@ void window_load_cgm(Window *window_cgm)
 	snprintf(current_bg_delta, BGDELTA_MSGSTR_SIZE, "+0.08");
 #endif
 	load_bg_delta();
-    last_battlevel = 255;
+	last_battlevel = 255;
 #ifdef TEST_MODE
-    last_battlevel = 100;
+	last_battlevel = 100;
 #endif
 	load_battlevel();
 
