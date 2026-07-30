@@ -1967,7 +1967,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 				if (!app_timer_reschedule(message_tick_timer, message_tick_timeout)) {
 					message_tick_timer = app_timer_register(message_tick_timeout, handle_message_tick, NULL);
 				}
-				persist_write_int(SET_MESSAGE_TIMEOUT, message_tick_timeout);
+				persist_write_int(SET_MESSAGE_TIMEOUT, data->value->uint32);
 			break;
 
 			case SET_BOLD_TIMEAGO:
