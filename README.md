@@ -30,23 +30,45 @@ As of this version, the following settings are available.
  * Foreground Colour - Colour to use for "light" sections of the display.  Default white.  Only useful for Basalt, Chalk, and Emery
  * Background Colour - Colour to use for "Dark" sections of the display.  Default Duke Blue.  Only useful for Basalt, Chalk, and Emery
  * Message timer - Seconds between each check for displaying the message / delta. This is done to avoid having to use the seconds timer for everything increasing the system/battery load. Default is 15 seconds (5-60s)
+ * Lower Metrics (left and right, or centre on Round Pebbles) are selectable, based on the capabilities of the Pebble watch in use.  You can select:
+ * * Phone Battery Level - All
+ * * Watch Battery Level - All
+ * * Step Count - Basalt and above
+ * * Heart Rate - Emery and Gabbro
 The above settings are stored in the watch, and persist between watch face transitions.
 
-Build Environment:
+## Build Environment:
 * Pebble Tool: latest 
 * SDK: latest  
 * Clay: @rebble/clay latest v1.0.10 or later
 
-Plan for Multiple Apps.
+## Contributing:
+Please do not fork and fragment this code to create your own face to put into xDrip+.  This happened with my initial work on this face causing a number of issues, such as:
+* Every watch face added to xDrip+ base repository uses the same UUID, which is against how the Pebble development is meant to work.
+* Every change that was made and sent back to me created a lot of rework because people used different editors/IDEs that did not honour the hard tabs and hard line feekds of the original code.  I lost many hours having to reformat the code so that diffs were understandable and merges of PRs made sense.
+* When the xDrip+ developers added different model watch faces, each with it's own PBW as a BIN file, it caused a lot of confusion for users, and I was inundated with questions and requests for changes that I could neither answer or make as I had no way of tracing back to the forks.
+
+That said, I appreciate all contributions, especially as the xDrip+ Pebble Protocol Framework takes shape and matures.  I am not aware of how everyone uses xDrip+ and the various other apps it integrates with, so the proposed framework will only accommodate what you want if you contribute to it's development.  
+
+Feel free to use the Discussions to get more information, or reach out to me directly via e-mail at jstevensog@gmail.com.
+If you fork this to develop and improve the code, please raise PRs against this repository and explain what you have improved.
+The master branch is not being updated frequently, most work is being done in the "new" branch.  That means it is also not as stable.  Please choose wisely wich branch you wish to develop with to improve.
+
+# Contributors:
+* jstevensog
+* AdrianLXM
+* Consp
+
+## Plan for Multiple Apps.
  * Apps will be identified in xDrip settings as their name/version.  This will set a string that matches the PBL_APP_VER key that is sent when the Pebble requests an update or responds to xDrip.  The xDrip Pebble watch face settings will also set the watch face/app UUID in settings.  No two watch faces can have the same UUID.
  * The Pebble code in xDrip will try to activate the selected watch face, and if it fails to do so, will install the face.
 
-Build Environment:
+## Build Environment:
 * Pebble Tool: v5.0.27
 * SDK: v4.9.127
 * Clay: @rebble/clay latest v1.0 or later
 
-Change Log:
+## Change Log:
 20260702 - Built with SDK 4.17.  Added features.
 * Added selectable bottom left/right metrics to Clay and in code.  Tested on Basalt so far, and working.  Users can select which metrics they wish to display, including None, Phone Battery, Watch Battery, Step Count (for Health enabled platforms), or Heart Rate (for platforms that support it).  Untested on Flint and Gabbro as yet, as I have no access to those watches.
 * For Round watches, only the bottom metric that appears mid screen is selectable.
