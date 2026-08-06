@@ -406,7 +406,7 @@ static void update_health_metric_displays() {
 	}	
 #if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_FLINT) || defined(PBL_PLATFORM_GABBRO)
 	if(bottom_left_metric == METRIC_HEARTRATE || bottom_right_metric == METRIC_HEARTRATE) {
-		static char s_hrm_buffer[16];
+		static char s_hrm_buffer[16] = "Wait.. \U0001F493";
 		HealthValue val = 0;
 		HealthServiceAccessibilityMask hr = health_service_metric_accessible(HealthMetricHeartRateBPM, time(NULL), time(NULL));
 		if (hr & HealthServiceAccessibilityMaskAvailable) {
@@ -1972,7 +1972,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 				if (!app_timer_reschedule(message_tick_timer, message_tick_timeout)) {
 					message_tick_timer = app_timer_register(message_tick_timeout, handle_message_tick, NULL);
 				}
-				persist_write_int(SET_MESSAGE_TIMEOUT, data->value->uint32);
+				persist_write_int(SET_MESSAGE_TIMEOUT, data->value->uint32/1000);
 			break;
 
 			case SET_BOLD_TIMEAGO:
