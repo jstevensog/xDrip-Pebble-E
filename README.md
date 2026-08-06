@@ -69,6 +69,11 @@ The master branch is not being updated frequently, most work is being done in th
 * Clay: @rebble/clay latest v1.0 or later
 
 ## Change Log:
+20260806 - Fixes and allows watch face to specify the size and depth of Trend image creation from xDrip+
+* Added PBL_TREND_SIZE uint32_t to send the Trend dimensions and colour depth to xDrip+ to generate the preferred size and depth.  Gabbro only supports PNG8.
+* Added "Wait.." to the HR readout as initial value.  Prevents a blank HR display when firmware is updated.
+* Fixed (hopefully) the Message Timeout issue.
+
 20260702 - Built with SDK 4.17.  Added features.
 * Added selectable bottom left/right metrics to Clay and in code.  Tested on Basalt so far, and working.  Users can select which metrics they wish to display, including None, Phone Battery, Watch Battery, Step Count (for Health enabled platforms), or Heart Rate (for platforms that support it).  Untested on Flint and Gabbro as yet, as I have no access to those watches.
 * For Round watches, only the bottom metric that appears mid screen is selectable.
