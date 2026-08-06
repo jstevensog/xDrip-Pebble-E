@@ -1819,6 +1819,10 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 					layer_set_hidden((Layer *)delta_layer, true);
 #endif
 				}
+				if (!app_timer_reschedule(message_tick_timer, message_tick_timeout)) {
+					message_tick_timer = app_timer_register(message_tick_timeout, handle_message_tick, NULL);
+				}
+				
 			break;
 
 			case CGM_VIBE_KEY:
