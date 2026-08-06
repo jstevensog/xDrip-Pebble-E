@@ -1818,9 +1818,9 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 #if defined(PBL_PLATFORM_APLITE) || defined(PBL_PLATFORM_CHALK) || defined(PBL_PLATFORM_DIORITE) || defined(PBL_PLATFORM_FLINT)
 					layer_set_hidden((Layer *)delta_layer, true);
 #endif
-				}
-				if (!app_timer_reschedule(message_tick_timer, message_tick_timeout)) {
-					message_tick_timer = app_timer_register(message_tick_timeout, handle_message_tick, NULL);
+					if (!app_timer_reschedule(message_tick_timer, message_tick_timeout)) {
+						message_tick_timer = app_timer_register(message_tick_timeout, handle_message_tick, NULL);
+					}
 				}
 				
 			break;
@@ -1976,7 +1976,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 				if (!app_timer_reschedule(message_tick_timer, message_tick_timeout)) {
 					message_tick_timer = app_timer_register(message_tick_timeout, handle_message_tick, NULL);
 				}
-				persist_write_int(SET_MESSAGE_TIMEOUT, data->value->uint32/1000);
+				persist_write_int(SET_MESSAGE_TIMEOUT, data->value->uint32);
 			break;
 
 			case SET_BOLD_TIMEAGO:
