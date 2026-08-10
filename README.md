@@ -35,6 +35,7 @@ As of this version, the following settings are available.
  * * Watch Battery Level - All
  * * Step Count - Basalt and above
  * * Heart Rate - Emery and Gabbro
+
 The above settings are stored in the watch, and persist between watch face transitions.
 
 ## Build Environment:
