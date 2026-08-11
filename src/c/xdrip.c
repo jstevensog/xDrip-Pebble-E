@@ -1,5 +1,5 @@
 #include <pebble.h>
-#include "xdrip.h"
+#include "xdrip.h" // set DEBUG_LEVEL in here or on the pebble build command line
 #include "debug.h" // must be included after xdrip.h
 
 /**
@@ -2535,7 +2535,6 @@ void window_load_cgm(Window *window_cgm)
 	// trend bitmap layer dimensions and composition mode
 	bg_trend_layer = bitmap_layer_create(GRect(  0,   0, 207, 121));
 	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
-	text_layer_set_text_alignment(bg_layer, GTextAlignmentCenter);
 	// delta layer dimensions
 	delta_layer = text_layer_create(GRect(  0,  52, 260,  72));
 	text_layer_set_text_alignment(delta_layer, GTextAlignmentCenter);
@@ -2544,6 +2543,7 @@ void window_load_cgm(Window *window_cgm)
 	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
 	// BG layer dimensions
 	bg_layer = text_layer_create(GRect(  0,  -7, 260,  68));
+	text_layer_set_text_alignment(bg_layer, GTextAlignmentCenter);
 	// cgmtime layer dimensions
 	cgmtime_layer = text_layer_create(GRect(  7,  84,  58,  35));
 	text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentRight);
@@ -2897,11 +2897,11 @@ static void init_cgm(void)
 
 	TRACE("INIT CODE, ABOUT TO CALL APP MSG OPEN");
 //#ifdef PBL_PLATFORM_APLITE
-#ifndef PBL_COLOR
-	app_message_open(512, 1024);
-#else
+//#ifndef PBL_COLOR
+//	app_message_open(512, 1024);
+//#else
 	app_message_open(app_message_inbox_size_maximum(), app_message_outbox_size_maximum());
-#endif
+//#endif
 	TRACE("INIT CODE, APP MSG OPEN DONE");
 
 	const bool animated_cgm = true;
