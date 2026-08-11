@@ -1806,7 +1806,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 					LOG("Setting message_layer hidden");
 					display_message = false;
 					layer_set_hidden((Layer *)message_layer, true);
-#if defined(PBL_PLATFORM_APLITE) || defined(PBL_PLATFORM_CHALK) || defined(PBL_PLATFORM_DIORITE) || defined(PBL_PLATFORM_FLINT)
+#if defined(PBL_PLATFORM_APLITE) || defined(PBL_PLATFORM_CHALK) || defined(PBL_PLATFORM_DIORITE) || defined(PBL_PLATFORM_FLINT) || defined(PBL_PLATFORM_GABBRO)
 					layer_set_hidden((Layer *)delta_layer, false);
 #endif
 				}
@@ -1815,7 +1815,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 					LOG("Setting message_layer visible");
 					display_message = true;
 					layer_set_hidden((Layer *)message_layer, false);
-#if defined(PBL_PLATFORM_APLITE) || defined(PBL_PLATFORM_CHALK) || defined(PBL_PLATFORM_DIORITE) || defined(PBL_PLATFORM_FLINT)
+#if defined(PBL_PLATFORM_APLITE) || defined(PBL_PLATFORM_CHALK) || defined(PBL_PLATFORM_DIORITE) || defined(PBL_PLATFORM_FLINT) || defined(PBL_PLATFORM_GABBRO)
 					layer_set_hidden((Layer *)delta_layer, true);
 #endif
 					if (!app_timer_reschedule(message_tick_timer, message_tick_timeout)) {
@@ -2103,8 +2103,8 @@ void handle_message_tick(void *data)
 	if(display_message)
 	{
 		layer_set_hidden((Layer *)message_layer, !(layer_get_hidden((Layer *)message_layer)));
-#if defined(PBL_PLATFORM_APLITE) || defined(PBL_PLATFORM_CHALK) || defined(PBL_PLATFORM_DIORITE) || defined(PBL_PLATFORM_FLINT)
-		layer_set_hidden((Layer *)delta_layer, !(layer_get_hidden((Layer *)message_layer)));
+#if defined(PBL_PLATFORM_APLITE) || defined(PBL_PLATFORM_CHALK) || defined(PBL_PLATFORM_DIORITE) || defined(PBL_PLATFORM_FLINT) || defined(PBL_PLATFORM_GABBRO)
+		layer_set_hidden((Layer *)delta_layer, !(layer_get_hidden((Layer *)delta_layer)));
 #endif
 	}
 	else
@@ -2113,7 +2113,7 @@ void handle_message_tick(void *data)
 		{
 			layer_set_hidden((Layer *)message_layer, true);
 		}
-#if defined(PBL_PLATFORM_APLITE) || defined(PBL_PLATFORM_CHALK) || defined(PBL_PLATFORM_DIORITE) || defined(PBL_PLATFORM_FLINT)
+#if defined(PBL_PLATFORM_APLITE) || defined(PBL_PLATFORM_CHALK) || defined(PBL_PLATFORM_DIORITE) || defined(PBL_PLATFORM_FLINT) || defined(PBL_PLATFORM_GABBRO)
 		if(layer_get_hidden((Layer *)delta_layer))
 		{
 			layer_set_hidden((Layer *)delta_layer, false);
@@ -2539,7 +2539,7 @@ void window_load_cgm(Window *window_cgm)
 	delta_layer = text_layer_create(GRect(  0,  52, 260,  72));
 	text_layer_set_text_alignment(delta_layer, GTextAlignmentCenter);
 	// message layer dimensions
-	message_layer = text_layer_create(GRect(  0,  52, 206,  72));
+	message_layer = text_layer_create(GRect(  0,  52, 260,  72));
 	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
 	// BG layer dimensions
 	bg_layer = text_layer_create(GRect(  0,  -7, 260,  68));
