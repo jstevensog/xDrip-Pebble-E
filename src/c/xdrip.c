@@ -1806,7 +1806,6 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 					LOG("Setting message_layer hidden");
 					display_message = false;
 					layer_set_hidden((Layer *)message_layer, true);
-//#if defined(PBL_PLATFORM_APLITE) || defined(PBL_PLATFORM_CHALK) || defined(PBL_PLATFORM_DIORITE) || defined(PBL_PLATFORM_FLINT) || defined(PBL_PLATFORM_GABBRO)
 #ifdef PBL_ROUND
 					layer_set_hidden((Layer *)delta_layer, false);
 #endif
@@ -1816,7 +1815,6 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 					LOG("Setting message_layer visible");
 					display_message = true;
 					layer_set_hidden((Layer *)message_layer, false);
-//#if defined(PBL_PLATFORM_APLITE) || defined(PBL_PLATFORM_CHALK) || defined(PBL_PLATFORM_DIORITE) || defined(PBL_PLATFORM_FLINT) || defined(PBL_PLATFORM_GABBRO)
 #ifdef PBL_ROUND
 					layer_set_hidden((Layer *)delta_layer, true);
 #endif
@@ -2006,7 +2004,10 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 				LOG("Got bottom_left_metric message is \"%s\"", data->value->cstring);
 				bottom_left_metric = METRIC_PHONEBATT;
 				if(strcmp(data->value->cstring,METRIC_NONE_STR) == 0) bottom_left_metric = METRIC_NONE;
-				if(strcmp(data->value->cstring,METRIC_PHONEBATT_STR) == 0) bottom_left_metric = METRIC_PHONEBATT;
+				if(strcmp(data->value->cstring,METRIC_PHONEBATT_STR) == 0) {
+					bottom_left_metric = METRIC_PHONEBATT;
+					text_layer_set_text(bottom_left_text_layer, "Wait..");
+				}
 				if(strcmp(data->value->cstring,METRIC_WATCHBATT_STR) == 0) bottom_left_metric = METRIC_WATCHBATT;
 				if(strcmp(data->value->cstring,METRIC_STEPS_STR) == 0) bottom_left_metric = METRIC_STEPS;
 				if(strcmp(data->value->cstring,METRIC_HEARTRATE_STR) == 0) bottom_left_metric = METRIC_HEARTRATE;
@@ -2015,7 +2016,6 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 				if(bottom_left_metric == METRIC_NONE) {
 					text_layer_set_text(bottom_left_text_layer, "");
 				} else {
-//					text_layer_set_text_color(bottom_left_text_layer, GColorGreen);
 					text_layer_set_text_color(bottom_left_text_layer, fg_colour);
 #ifdef PBL_HEALTH
 					update_health_metric_displays();
@@ -2030,7 +2030,10 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 				LOG("Got bottom_right_metric message is \"%s\"", data->value->cstring);
 				bottom_right_metric = METRIC_WATCHBATT;
 				if(strcmp(data->value->cstring,METRIC_NONE_STR) == 0) bottom_right_metric = METRIC_NONE;
-				if(strcmp(data->value->cstring,METRIC_PHONEBATT_STR) == 0) bottom_right_metric = METRIC_PHONEBATT;
+				if(strcmp(data->value->cstring,METRIC_PHONEBATT_STR) == 0) {
+					bottom_right_metric = METRIC_PHONEBATT;
+					text_layer_set_text(bottom_right_text_layer, "Wait..");
+				}
 				if(strcmp(data->value->cstring,METRIC_WATCHBATT_STR) == 0) bottom_right_metric = METRIC_WATCHBATT;
 				if(strcmp(data->value->cstring,METRIC_STEPS_STR) == 0) bottom_right_metric = METRIC_STEPS;
 				if(strcmp(data->value->cstring,METRIC_HEARTRATE_STR) == 0) bottom_right_metric = METRIC_HEARTRATE;
@@ -2039,7 +2042,6 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 				if(bottom_right_metric == METRIC_NONE) {
 					text_layer_set_text(bottom_right_text_layer, "");
 				} else {
-//					text_layer_set_text_color(bottom_right_text_layer, GColorGreen);
 					text_layer_set_text_color(bottom_right_text_layer, fg_colour);
 #ifdef PBL_HEALTH
 					update_health_metric_displays();
@@ -2105,7 +2107,6 @@ void handle_message_tick(void *data)
 	if(display_message)
 	{
 		layer_set_hidden((Layer *)message_layer, !(layer_get_hidden((Layer *)message_layer)));
-//#if defined(PBL_PLATFORM_APLITE) || defined(PBL_PLATFORM_CHALK) || defined(PBL_PLATFORM_DIORITE) || defined(PBL_PLATFORM_FLINT) || defined(PBL_PLATFORM_GABBRO)
 #ifdef PBL_ROUND
 		layer_set_hidden((Layer *)delta_layer, !(layer_get_hidden((Layer *)delta_layer)));
 #endif
@@ -2116,7 +2117,6 @@ void handle_message_tick(void *data)
 		{
 			layer_set_hidden((Layer *)message_layer, true);
 		}
-//#if defined(PBL_PLATFORM_APLITE) || defined(PBL_PLATFORM_CHALK) || defined(PBL_PLATFORM_DIORITE) || defined(PBL_PLATFORM_FLINT) || defined(PBL_PLATFORM_GABBRO)
 #ifdef PBL_ROUND
 		if(layer_get_hidden((Layer *)delta_layer))
 		{
