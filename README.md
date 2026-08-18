@@ -66,10 +66,13 @@ The master branch is not being updated frequently, most work is being done in th
 
 ## Build Environment:
 * Pebble Tool: v5.0.27
-* SDK: v4.9.127
+* SDK: v4.33.1
 * Clay: @rebble/clay latest v1.0 or later
 
 ## Change Log:
+20260818 - Rebuilt with SDK v4.33.1.  Not yet available in xDrip+, but will work with the All Platforms selection.
+* HRV is now supported in the SDK, but no handlers in the watch face code as yet.  I will get around to adding it as a selectable metric in Emery and Gabbro.
+
 20260812 - Fixed Gabbro crash, and subsequent Aplite crash caused by that fix.
 * This is now merged into xDrip+
 
