@@ -102,8 +102,7 @@ static bool draw_trend(trend_config *config, Layer *layer, GContext *ctx) {
 
     bool interp = config->style == TREND_STYLE_DOTS ? (bounds.size.w > config->bgl.size) : false; // do not interp on lines 
     int32_t t = 0;
-    int32_t interval = (config->bgl.size << 16) / bounds.size.w;
-    if (config->style == TREND_STYLE_LINES) interval = ((config->bgl.size - 1) << 16) / bounds.size.w;
+    int32_t interval = ((config->bgl.size - 1) << 16) / bounds.size.w;
     int index = 0;
     TRACE(TREND_LOG "Size: %d array %d ", bounds.size.w, config->bgl.size);
     TRACE(TREND_LOG "Interp settings: [%d] :: %d", interp, interval);
@@ -114,15 +113,15 @@ static bool draw_trend(trend_config *config, Layer *layer, GContext *ctx) {
         for (int i = 0; i < bounds.size.w; i++) {
             if (interp) {
                 int16_t y0 = lerp(
-                        config->bgl.values[(config->bgl.index + index) % (config->bgl.size - 1)], 
-                        config->bgl.values[(config->bgl.index + index + 1) % (config->bgl.size - 1)], 
+                        config->bgl.values[(config->bgl.index + index) % (config->bgl.size)], 
+                        config->bgl.values[(config->bgl.index + index + 1) % (config->bgl.size)], 
                         t);
                 t += interval;
                 if (t >= (1 << 16)) index++;
                 draw_bgl_point(y0, i, config, bounds, ctx);
                 t %= 1 << 16;
             } else {
-                draw_bgl_point(config->bgl.values[(config->bgl.index + i) % (config->bgl.size - 1)], i, config, bounds, ctx); 
+                draw_bgl_point(config->bgl.values[(config->bgl.index + i) % (config->bgl.size)], i, config, bounds, ctx); 
             }
         }
     } else if (config->style == TREND_STYLE_LINES) {

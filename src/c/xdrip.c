@@ -1636,7 +1636,7 @@ static void send_cmd_cgm(void)
     hb.colour = 0;
 #endif
 
-    hb.time_period = 3;
+    hb.time_period = 3; // has no effect as the xdrip value will be used
     hb.time_series = 1;
 
     // trend values
