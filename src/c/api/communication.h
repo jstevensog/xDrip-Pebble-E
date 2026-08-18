@@ -2,6 +2,21 @@
 #define __COMMUNICATION_H__
 
 #include <stdint.h>
+#include <pebble.h>
+
+/**
+ * Message codes for framework communication
+ */
+#define FRAMEWORK_HEARTBEAT         2000
+#define FRAMEWORK_BGL_DELTA         2001
+#define FRAMEWORK_BGL_VALUE         2002
+#define FRAMEWORK_PHONEBAT          2003
+#define FRAMEWORK_MESSAGE           2004
+#define FRAMEWORK_HIGHLIMIT         2005
+#define FRAMEWORK_LOWLIMIT          2006
+#define FRAMEWORK_VIBE              2007
+#define FRAMEWORK_SLOPEVAL          2008 
+#define FRAMEWORK_BGL_SERIES        2009
 
 /**
  * Struct definitions for communication
@@ -30,26 +45,27 @@ typedef union comm_trend_size_t {
 
 /**
  * Heartbeat data request indicator
- * Note: endianess is BE, LE on chip
+ * Note: transport endianess is BE, LE on chip
  */
 typedef union comm_heartbeat_t {
     struct {
         // B2-3
         uint32_t : 16;                  // RFU
         // B1
-        uint32_t send_pump_state : 1;   // Send pump state
-        uint32_t send_pump_battery : 1; // Send battery state
-        uint32_t send_delta_value : 1;  // Send delta value
+        uint32_t : 3;
         uint32_t send_slope_arrow : 1;  // Send slope arrow value
-        uint32_t : 4;
+        uint32_t send_delta_value : 1;  // Send delta value
+        uint32_t send_pump_battery : 1; // Send battery state
+        uint32_t send_phone_battery : 1; // 
+        uint32_t send_pump_state : 1;   // Send pump state
         // B0
-        uint32_t colour : 1;            // Is pebble colour capable
-        uint32_t time_series : 1;       // Send time series (1) or PNG (0)
-        uint32_t time_period : 2;       // Time period (0b00 = 1h, 0b01 = 2h, 0b10 = 3h, 0b11 = 4h)
-        uint32_t height_limit : 1;      // Add height line or send height line value
-        uint32_t low_limit : 1;         // Add low limit line or send low limit line value
-        uint32_t small_dots : 1;        // Use smal dots (1) or larger (0), PNG only
         uint32_t send_iob : 1;          // Send IOB data
+        uint32_t small_dots : 1;        // Use smal dots (1) or larger (0), PNG only
+        uint32_t low_limit : 1;         // Add low limit line or send low limit line value
+        uint32_t high_limit : 1;      // Add height line or send height line value
+        uint32_t time_period : 2;       // Time period (0b00 = 1h, 0b01 = 2h, 0b10 = 3h, 0b11 = 4h)
+        uint32_t time_series : 1;       // Send time series (1) or PNG (0)
+        uint32_t colour : 1;            // Is pebble colour capable
     };
     uint32_t    raw;
 } comm_heartbeat;
@@ -65,8 +81,17 @@ typedef struct comm_bgl_value_t {
 typedef struct comm_bgl_data_t {
     uint32_t        timestamp;      // timestamp of bgl value
     comm_bgl_value  bgl;
-    uint8_t         delta;
 } comm_bgl_data;
+
+typedef union  comm_bgl_delta_t {
+    struct {
+        uint16_t        value : 13;
+        uint16_t        is_neg : 1;
+        uint16_t        display_units : 1;
+        uint16_t        is_mmol : 1;
+    };
+    uint16_t raw;
+} comm_bgl_delta;
 
 typedef struct comm_bgl_series_t {
     uint32_t        timestamp;      // current timestamp of last reading
@@ -83,9 +108,26 @@ typedef struct comm_message_t {
 
 typedef uint16_t comm_high_limit;
 typedef uint16_t comm_low_limit;
-typedef uint8_t vibe;
+typedef uint8_t comm_vibe;
 typedef uint8_t comm_slopeval;
 
 #pragma pack()
 
+/*
+ * Callback struct
+ */
+typedef struct comm_callback_t {
+    void (*phonebat)(comm_phonebat value);
+    void (*low_limit)(comm_low_limit value);
+    void (*high_limit)(comm_high_limit value);
+    void (*slopeval)(comm_slopeval value);
+    void (*vibe)(comm_vibe value);
+    void (*bgl_data)(comm_bgl_data value);
+    void (*bgl_series)(comm_bgl_series value);
+    void (*bgl_delta)(comm_bgl_delta value);
+} comm_callback;
+
+
+void comm_init(comm_callback *cb);
+void comm_handle(Tuple *data);
 #endif // __COMMUNICATION_H__
