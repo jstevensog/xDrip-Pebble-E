@@ -163,8 +163,8 @@ trend_config t_config = {
     .bgl_high_limit = 270,
     .bgl_low_limit = 36,
     .line_width = 2,
-    .trend_width = 4,
-    .style = TREND_STYLE_LINES,
+    .trend_width = 5,
+    .style = TREND_STYLE_DOTS,
     .line_style = TREND_LINE_STYLE_DASHED_WIDE,
 };
 #endif
@@ -1335,6 +1335,9 @@ static void load_cgmtime()
 		* Thanks Tristan for the fix.
 		*/
 		// Leaving this as per Tristan's work.  Should probably be #if defined, to reduce code on older pebbles, but this is easier while it works.
+#ifndef ENABLE_COMM_FRAMEWORK
+        // new framework sends trend/bgl timestamps as UTC
+
 		if (watch_info_get_model() > WATCH_INFO_MODEL_PEBBLE_TIME_2) {
 			//this code should only run on core devices models.  Hopefully this will not change.
 			struct tm *lc_tm = localtime(&time_now);
@@ -1344,7 +1347,7 @@ static void load_cgmtime()
 			// old models can use get_UTC_offset
 			time_now = abs(time_now + get_UTC_offset(localtime(&time_now)));
 		}
-
+#endif
 //		TRACE("load_cgmtime:  CURRENT CGM TIME: %lu", current_cgm_time);
 		LOG("load_cgmtime:  time_now: %lu, current_cgm_time: %lu", time_now, current_cgm_time);
 
