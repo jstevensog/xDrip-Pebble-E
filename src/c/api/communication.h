@@ -43,6 +43,10 @@ typedef union comm_trend_size_t {
     uint32_t raw;                       // Data Blob
 } comm_trend_size;
 
+typedef struct comm_trend_request_t {
+    uint32_t from;
+} comm_trend_request;
+
 /**
  * Heartbeat data request indicator
  * Note: transport endianess is BE, LE on chip
@@ -74,8 +78,8 @@ typedef union comm_heartbeat_t {
  * measurement range is 40-400, 9 bits is enough
  */
 typedef struct comm_bgl_value_t {
-    uint16_t        is_mmol : 1;    // display value as mmol/l
     uint16_t        value : 15;     // bgl in mg/dl
+    uint16_t        is_mmol : 1;    // display value as mmol/l
 } comm_bgl_value;
 
 typedef struct comm_bgl_data_t {
@@ -106,8 +110,20 @@ typedef struct comm_message_t {
     char    message[];
 } comm_message;
 
-typedef uint16_t comm_high_limit;
-typedef uint16_t comm_low_limit;
+typedef union  {
+    struct {
+        uint16_t high_line;
+        uint16_t high_limit;
+    };
+    uint32_t raw;
+} comm_high_limit;
+typedef union {
+    struct {
+        uint16_t low_line;
+        uint16_t low_limit;
+    };
+    uint32_t raw;
+} comm_low_limit;
 typedef uint8_t comm_vibe;
 typedef uint8_t comm_slopeval;
 
@@ -122,9 +138,11 @@ typedef struct comm_callback_t {
     void (*high_limit)(comm_high_limit value);
     void (*slopeval)(comm_slopeval value);
     void (*vibe)(comm_vibe value);
-    void (*bgl_data)(comm_bgl_data value);
-    void (*bgl_series)(comm_bgl_series value);
+    void (*bgl_data)(comm_bgl_data *value);
+    void (*bgl_series)(comm_bgl_series *value);
     void (*bgl_delta)(comm_bgl_delta value);
+    void (*bgl_value)(comm_bgl_value value);
+    void (*bgl_timestamp)(uint32_t timestamp);
 } comm_callback;
 
 
