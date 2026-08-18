@@ -141,6 +141,17 @@ TextLayer *heart_rate_text_layer = NULL;
 #endif
 #endif
 
+#ifdef ENABLE_COMM_FRAMEWORK
+comm_callback comm_callbacks;
+
+void set_icon(comm_slopeval value);
+void set_phone_battery(comm_phonebat value);
+void set_low_limit(comm_low_limit value);
+void set_high_limit(comm_high_limit value);
+void set_vibrate(comm_vibe value);
+void set_bgl_delta(comm_bgl_delta value);
+#endif
+
 /**
  * predefines
  */
@@ -1565,19 +1576,10 @@ static void load_battlevel()
 // Needs to include configuration values that xDrip can read and respond to.
 static void send_cmd_cgm(void)
 {
-	comm_trend_size trend_size;
-	DictionaryIterator *iter = NULL;
-	LOG("send_cmd_cgm called.");
 	AppMessageResult sendcmd_openerr = APP_MSG_OK;
 	AppMessageResult sendcmd_senderr = APP_MSG_OK;
+	DictionaryIterator *iter = NULL;
 
-    trend_size.raw = 0;
-	//set up the trend size and colour depth to send.  Note: Gabbro requires PNG8/64 colours, so we set the MSbit to true for that platform.
-    trend_size.width = PBL_DISPLAY_WIDTH;
-    trend_size.height = TREND_HEIGHT;
-#ifdef PBL_PLATFORM_GABBRO
-	trend_size.rgb8 = 1; 
-#endif
 	sendcmd_openerr = app_message_outbox_begin(&iter);
 	if(BluetoothAlert)
 	{
@@ -1587,10 +1589,47 @@ static void send_cmd_cgm(void)
 	}
 	if (sendcmd_openerr != APP_MSG_OK)
 	{
-//		LOG("WATCH SENDCMD OPEN ERROR");
 		LOG("send_cmd_cgm: ERR CODE: %i RES: %s", sendcmd_openerr, translate_app_error(sendcmd_openerr));
 		return;
 	}
+#ifdef ENABLE_COMM_FRAMEWORK
+
+    comm_heartbeat hb;
+    hb.raw = 0; // reset
+
+#ifdef PBL_COLOR
+    hb.colour = 1;
+#else 
+    hb.colour = 0;
+#endif
+
+    hb.time_period = 3;
+    hb.time_series = 1;
+
+    // trend values
+    hb.high_limit = 1;
+    hb.low_limit = 1;
+
+    // delta + pump values
+    /* hb.send_iob = 1; */
+    /* hb.send_pump_state = 1; */
+    hb.send_slope_arrow = 1;
+    /* hb.send_pump_battery = 1; */
+    hb.send_delta_value = 1;
+    if (bottom_right_metric == METRIC_PHONEBATT || bottom_left_metric == METRIC_PHONEBATT) hb.send_phone_battery = 1;
+
+	dict_write_uint32(iter, FRAMEWORK_HEARTBEAT, hb.raw);
+#else
+	comm_trend_size trend_size;
+	LOG("send_cmd_cgm called.");
+
+    trend_size.raw = 0;
+	//set up the trend size and colour depth to send.  Note: Gabbro requires PNG8/64 colours, so we set the MSbit to true for that platform.
+    trend_size.width = PBL_DISPLAY_WIDTH;
+    trend_size.height = TREND_HEIGHT;
+#ifdef PBL_PLATFORM_GABBRO
+	trend_size.rgb8 = 1; 
+#endif
 
 	LOG("send_cmd_cgm: Creating Dictionary.");
 
@@ -1600,9 +1639,11 @@ static void send_cmd_cgm(void)
 // Set the trend size to send to xDrip+.  See xdrip.h
 	dict_write_uint32(iter, PBL_TREND_SIZE, trend_size.raw);
 	dict_write_end(iter);
+
+
+#endif
+
 	TRACE("send_cmd_cgm: Opening outbox");
-
-
 	sendcmd_senderr = app_message_outbox_send();
 
 	if (sendcmd_senderr != APP_MSG_OK && sendcmd_senderr != APP_MSG_BUSY && sendcmd_senderr != APP_MSG_SEND_REJECTED)
@@ -1611,7 +1652,6 @@ static void send_cmd_cgm(void)
 	}
 	//free(iter);
 	TRACE("send_cmd_cgm: done");
-
 } // end send_cmd_cgm
 
 // updateColours - called when fg_colour or bg_colour is changed.
@@ -2055,9 +2095,20 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 					//load_battlevel();
 				}
 			break;
+            case FRAMEWORK_HEARTBEAT:
+            case FRAMEWORK_VIBE:
+            case FRAMEWORK_MESSAGE:
+            case FRAMEWORK_LOWLIMIT:
+            case FRAMEWORK_HIGHLIMIT:
+            case FRAMEWORK_SLOPEVAL:
+            case FRAMEWORK_BGL_VALUE:
+            case FRAMEWORK_BGL_SERIES:
+            case FRAMEWORK_BGL_DELTA:
+                comm_handle(data);
+                break;
 
 			default:
-				LOG("inbox_received_handler_cgm: Dictionary Key not recognised");
+				LOG("inbox_received_handler_cgm: Dictionary Key not recognised: %ld", data->key);
 			break;
 		}
 		// end switch(key)
@@ -2916,6 +2967,18 @@ static void init_cgm(void)
 	const bool animated_cgm = true;
 	window_stack_push(window_cgm, animated_cgm);
 
+#ifdef ENABLE_COMM_FRAMEWORK
+    comm_callbacks.bgl_data = NULL;
+    comm_callbacks.bgl_series = NULL;
+    comm_callbacks.low_limit = set_low_limit;
+    comm_callbacks.high_limit = set_high_limit;
+    comm_callbacks.phonebat = set_phone_battery;
+    comm_callbacks.slopeval = set_icon;
+    comm_callbacks.vibe = set_vibrate;
+    comm_callbacks.bgl_delta = set_bgl_delta;
+    comm_init(&comm_callbacks);
+#endif
+
 	LOG("init_cgm done.");
 }	// end init_cgm
 
@@ -2969,6 +3032,60 @@ static void deinit_cgm(void)
 
 	TRACE("DEINIT CODE OUT");
 } // end deinit_cgm
+
+#ifdef ENABLE_COMM_FRAMEWORK
+/*
+ * Comm framework callback functions
+ */
+void set_icon(comm_slopeval value) {
+    current_icon = value;
+    load_icon();
+}
+
+void set_high_limit(comm_high_limit value) {
+    // do  nothing for now
+}
+
+void set_low_limit(comm_high_limit value) {
+    // do  nothing for now
+}
+
+void set_phone_battery(comm_phonebat value) {
+    last_battlevel = value;
+    load_battlevel();
+}
+
+// snprintf does not support float!
+void set_bgl_delta(comm_bgl_delta value) {
+    DEBUG("Delta units: neg: %d mmol: %d display: %d value: %d", value.is_neg, value.is_mmol, value.display_units, value.value);
+    if (value.value == 0x3FFF) {
+        snprintf(current_bg_delta, sizeof(current_bg_delta), "???");
+    } else if (value.is_mmol && value.display_units) {
+        TRACE("MMOL + Display");
+        int delta_point = MGDL_TO_MMOL_DEC(value.is_neg ? value.value * -1 : value.value);
+        int delta = MGDL_TO_MMOL(value.is_neg ? value.value * -1 : value.value);
+        snprintf(current_bg_delta, sizeof(current_bg_delta), "%d.%d mmol/l", delta, delta_point);
+    } else if (value.display_units && !value.is_mmol) {
+        TRACE("MG + Display");
+        int16_t delta = value.is_neg ? -1 * value.value : value.value;
+        snprintf(current_bg_delta, sizeof(current_bg_delta), "%hd mg/dL", delta);
+    } else if (value.is_mmol) {
+        TRACE("MMOL");
+        int delta_point = MGDL_TO_MMOL_DEC(value.is_neg ? value.value * -1 : value.value);
+        int delta = MGDL_TO_MMOL(value.is_neg ? value.value * -1 : value.value);
+        snprintf(current_bg_delta, sizeof(current_bg_delta), "%d.%d", delta, delta_point);
+    } else {
+        TRACE("MG");
+        int16_t delta = value.is_neg ? -1 * value.value : value.value;
+        snprintf(current_bg_delta, sizeof(current_bg_delta), "%hd", delta);
+    }
+    load_bg_delta();
+}
+
+void set_vibrate(comm_vibe value) {
+    if (!BluetoothAlert) alert_handler_cgm(value);
+}
+#endif
 
 int main(void)
 {

@@ -1,6 +1,6 @@
 //xdrip.h - file for all common defines and function prototypes used in xdrip.c
 #ifndef __XDRIP_H__
-#define __XDRIP_H
+#define __XDRIP_H__
 
 #include "constant.h"
 /**
@@ -16,7 +16,7 @@
 #define DEBUG_APP_INFO 1
 #define DEBUG_APP_NONE 0
 
-//#define DEBUG_LEVEL DEBUG_APP_TRACE 
+#define DEBUG_LEVEL DEBUG_APP_TRACE 
 
 /* The line below, if defined, will only indicate test values on the display.
 this is for testing purposes only until I can get the PebbleKit.JS code operating with the emulator.
@@ -24,6 +24,7 @@ Make sure you udefine this before building a release.
 */
 /* #define TEST_MODE */
 
+#define ENABLE_COMM_FRAMEWORK
 
 /** 
  * Face name
@@ -102,6 +103,9 @@ static void bitmapLayerUpdate(struct Layer *layer, GContext *ctx);
 #else
 #define TREND_HEIGHT	64
 #endif
+
+#define MGDL_TO_MMOL(x)      ((int) ((float) x / 18.016)) 
+#define MGDL_TO_MMOL_DEC(x)  ((int) (10.0 * (((float) x / 18.016) - MGDL_TO_MMOL(x))))
 
 // Function Prototypes
 // These two are only used if DEBUG_LEVEL is defined.  The code is conditinally compiled otherwise there are warnings.
