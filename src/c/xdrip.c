@@ -2,6 +2,9 @@
 #include "xdrip.h" // set DEBUG_LEVEL in here or on the pebble build command line
 #include "debug.h" // must be included after xdrip.h
 #include "api/communication.h"
+#ifdef ENABLE_TREND_RENDERER
+#include "api/trend.h"
+#endif
 /**
  * Variables
  */
@@ -141,6 +144,31 @@ TextLayer *heart_rate_text_layer = NULL;
 #endif
 #endif
 
+// trend config
+#ifdef ENABLE_TREND_RENDERER
+trend_config t_config = {
+    .bgl_type = BGL_TYPE_MG_DL,
+    .average_color = GColorOrange,
+    .good_color = GColorGreen,
+    .critical_color = GColorFromRGBA(255, 0, 0, 255),
+    .low_color = GColorBlue,
+    .high_color = GColorRed,
+    .high_line_color = (GColor) {.r = 3, .a = 2},
+    .low_line_color = (GColor) {.g = 3, .a = 2},
+    .bgl_average = 126,
+    .bgl_low = 72,
+    .bgl_high = 216,
+    .bgl_high_line = 216,
+    .bgl_low_line = 72,
+    .bgl_high_limit = 270,
+    .bgl_low_limit = 36,
+    .line_width = 2,
+    .trend_width = 4,
+    .style = TREND_STYLE_LINES,
+    .line_style = TREND_LINE_STYLE_DASHED_WIDE,
+};
+#endif
+// comms framework
 #ifdef ENABLE_COMM_FRAMEWORK
 comm_callback comm_callbacks;
 
@@ -150,6 +178,8 @@ void set_low_limit(comm_low_limit value);
 void set_high_limit(comm_high_limit value);
 void set_vibrate(comm_vibe value);
 void set_bgl_delta(comm_bgl_delta value);
+void set_bgl_timestamp(uint32_t timestamp); 
+void set_bgl_value(comm_bgl_value value);
 #endif
 
 /**
@@ -1607,18 +1637,24 @@ static void send_cmd_cgm(void)
     hb.time_series = 1;
 
     // trend values
-    hb.high_limit = 1;
-    hb.low_limit = 1;
+    if (!t_config.bgl.initialized) { 
+        hb.high_limit = 1;
+        hb.low_limit = 1;
+    }
 
     // delta + pump values
     /* hb.send_iob = 1; */
     /* hb.send_pump_state = 1; */
-    hb.send_slope_arrow = 1;
     /* hb.send_pump_battery = 1; */
+    
+    // function is called when BGL times out, send data
+    hb.send_slope_arrow = 1;
     hb.send_delta_value = 1;
+
     if (bottom_right_metric == METRIC_PHONEBATT || bottom_left_metric == METRIC_PHONEBATT) hb.send_phone_battery = 1;
 
 	dict_write_uint32(iter, FRAMEWORK_HEARTBEAT, hb.raw);
+    dict_write_uint32(iter, FRAMEWORK_BGL_VALUE, current_cgm_time); // request update
 #else
 	comm_trend_size trend_size;
 	LOG("send_cmd_cgm called.");
@@ -2786,6 +2822,14 @@ void window_load_cgm(Window *window_cgm)
 #endif
 	load_battlevel();
 
+#ifdef ENABLE_TREND_RENDERER
+    // default config
+    t_config.layer = (Layer *) bg_trend_layer;
+    t_config.bgl.index = 0;
+    t_config.bgl.initialized = 0;
+    trend_set_config(&t_config);
+#endif
+
 //	TRACE("WINDOW LOAD, ABOUT TO CALL APP SYNC INIT");
 	//app_sync_init(&sync_cgm, sync_buffer_cgm, sizeof(sync_buffer_cgm), initial_values_cgm, ARRAY_LENGTH(initial_values_cgm), sync_tuple_changed_callback_cgm, sync_error_callback_cgm, NULL);
 	// init timer to null if needed, and register timer
@@ -2976,6 +3020,10 @@ static void init_cgm(void)
     comm_callbacks.slopeval = set_icon;
     comm_callbacks.vibe = set_vibrate;
     comm_callbacks.bgl_delta = set_bgl_delta;
+    comm_callbacks.bgl_series = trend_set_series;
+    comm_callbacks.bgl_data = trend_set_value;
+    comm_callbacks.bgl_timestamp = set_bgl_timestamp;
+    comm_callbacks.bgl_value = set_bgl_value;
     comm_init(&comm_callbacks);
 #endif
 
@@ -3043,11 +3091,17 @@ void set_icon(comm_slopeval value) {
 }
 
 void set_high_limit(comm_high_limit value) {
-    // do  nothing for now
+    DEBUG("High line limit: %hd %hd", value.high_line, value.high_limit);
+    t_config.bgl_high_line = value.high_line;
+    t_config.bgl_high_limit = value.high_limit;
+    trend_draw();
 }
 
-void set_low_limit(comm_high_limit value) {
-    // do  nothing for now
+void set_low_limit(comm_low_limit value) {
+    DEBUG("Low line limit: %hd %hd", value.low_line, value.low_limit);
+    t_config.bgl_low_line = value.low_line;
+    t_config.bgl_low_limit = value.low_limit;
+    trend_draw();
 }
 
 void set_phone_battery(comm_phonebat value) {
@@ -3084,6 +3138,22 @@ void set_bgl_delta(comm_bgl_delta value) {
 
 void set_vibrate(comm_vibe value) {
     if (!BluetoothAlert) alert_handler_cgm(value);
+}
+
+void set_bgl_timestamp(uint32_t timestamp) {
+    current_cgm_time = timestamp;
+    load_cgmtime();
+}
+
+void set_bgl_value(comm_bgl_value value) {
+    if (value.is_mmol) {
+        int delta_point = MGDL_TO_MMOL_DEC(value.value);
+        int delta = MGDL_TO_MMOL(value.value);
+        snprintf(last_bg, sizeof(last_bg), "%d.%d", delta, delta_point);
+    } else {
+        snprintf(last_bg, sizeof(last_bg), "%d", value.value);
+    }
+    load_bg();
 }
 #endif
 
