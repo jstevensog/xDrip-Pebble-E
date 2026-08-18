@@ -1,0 +1,91 @@
+#ifndef __COMMUNICATION_H__
+#define __COMMUNICATION_H__
+
+#include <stdint.h>
+
+/**
+ * Struct definitions for communication
+ */
+#pragma pack(1)
+/**
+ * "old" trend size, note: endianess is BE, so some
+ * conversion has to be done
+ */
+typedef union comm_trend_size_t {
+    struct {
+        union {
+            struct {
+                uint32_t height : 8;    // Height value of PNG
+                uint32_t width : 8;     // Width value of PNG
+                uint32_t : 8;
+            };
+            uint32_t size : 24;         // Alternative size
+        };
+        uint32_t rgb8 : 1;              // Send RGB8 png
+        uint32_t data_only : 1;         // Send trend series instead of PNG
+        uint32_t : 6;                   // RFU
+    };
+    uint32_t raw;                       // Data Blob
+} comm_trend_size;
+
+/**
+ * Heartbeat data request indicator
+ * Note: endianess is BE, LE on chip
+ */
+typedef union comm_heartbeat_t {
+    struct {
+        // B2-3
+        uint32_t : 16;                  // RFU
+        // B1
+        uint32_t send_pump_state : 1;   // Send pump state
+        uint32_t send_pump_battery : 1; // Send battery state
+        uint32_t send_delta_value : 1;  // Send delta value
+        uint32_t send_slope_arrow : 1;  // Send slope arrow value
+        uint32_t : 4;
+        // B0
+        uint32_t colour : 1;            // Is pebble colour capable
+        uint32_t time_series : 1;       // Send time series (1) or PNG (0)
+        uint32_t time_period : 2;       // Time period (0b00 = 1h, 0b01 = 2h, 0b10 = 3h, 0b11 = 4h)
+        uint32_t height_limit : 1;      // Add height line or send height line value
+        uint32_t low_limit : 1;         // Add low limit line or send low limit line value
+        uint32_t small_dots : 1;        // Use smal dots (1) or larger (0), PNG only
+        uint32_t send_iob : 1;          // Send IOB data
+    };
+    uint32_t    raw;
+} comm_heartbeat;
+
+/**
+ * measurement range is 40-400, 9 bits is enough
+ */
+typedef struct comm_bgl_value_t {
+    uint16_t        is_mmol : 1;    // display value as mmol/l
+    uint16_t        value : 15;     // bgl in mg/dl
+} comm_bgl_value;
+
+typedef struct comm_bgl_data_t {
+    uint32_t        timestamp;      // timestamp of bgl value
+    comm_bgl_value  bgl;
+    uint8_t         delta;
+} comm_bgl_data;
+
+typedef struct comm_bgl_series_t {
+    uint32_t        timestamp;      // current timestamp of last reading
+    uint16_t        length;         // values to receive
+    comm_bgl_value  bgl_values[];   // open ended array of values
+} comm_bgl_series;
+
+typedef uint8_t comm_phonebat;
+
+typedef struct comm_message_t {
+    uint8_t length;
+    char    message[];
+} comm_message;
+
+typedef uint16_t comm_high_limit;
+typedef uint16_t comm_low_limit;
+typedef uint8_t vibe;
+typedef uint8_t comm_slopeval;
+
+#pragma pack()
+
+#endif // __COMMUNICATION_H__

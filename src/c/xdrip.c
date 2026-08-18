@@ -1,7 +1,7 @@
 #include <pebble.h>
 #include "xdrip.h" // set DEBUG_LEVEL in here or on the pebble build command line
 #include "debug.h" // must be included after xdrip.h
-
+#include "api/communication.h"
 /**
  * Variables
  */
@@ -1565,16 +1565,18 @@ static void load_battlevel()
 // Needs to include configuration values that xDrip can read and respond to.
 static void send_cmd_cgm(void)
 {
-	uint32_t trend_size;
+	comm_trend_size trend_size;
 	DictionaryIterator *iter = NULL;
 	LOG("send_cmd_cgm called.");
 	AppMessageResult sendcmd_openerr = APP_MSG_OK;
 	AppMessageResult sendcmd_senderr = APP_MSG_OK;
 
+    trend_size.raw = 0;
 	//set up the trend size and colour depth to send.  Note: Gabbro requires PNG8/64 colours, so we set the MSbit to true for that platform.
-	trend_size = (uint32_t)((PBL_DISPLAY_WIDTH << 8) | TREND_HEIGHT);
+    trend_size.width = PBL_DISPLAY_WIDTH;
+    trend_size.height = TREND_HEIGHT;
 #ifdef PBL_PLATFORM_GABBRO
-	trend_size = trend_size || 0x80000000;
+	trend_size.rgb8 = 1; 
 #endif
 	sendcmd_openerr = app_message_outbox_begin(&iter);
 	if(BluetoothAlert)
@@ -1596,7 +1598,7 @@ static void send_cmd_cgm(void)
 	dict_write_uint8(iter, PBL_PLATFORM, (uint8_t) PLATFORM);
 	dict_write_cstring(iter, PBL_APP_VER, FACE_VERSION);
 // Set the trend size to send to xDrip+.  See xdrip.h
-	dict_write_uint32(iter, PBL_TREND_SIZE, trend_size);
+	dict_write_uint32(iter, PBL_TREND_SIZE, trend_size.raw);
 	dict_write_end(iter);
 	TRACE("send_cmd_cgm: Opening outbox");
 
