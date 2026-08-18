@@ -19,63 +19,55 @@ The idea for this framework was to allow the reliance on complex changes to xDri
 ## Heartbeat Description
 The heartbeat will occur when the Pebble face/app starts, and then at regular intervals (ideally at 6 minute intervals) unless data is received from xDrip.  This allows the watch face/app "prompt" xDrip for an update IF nothing is sent within the usual expected 5 minutes per reading from the CGM.
 The content of the heartbeat will be:
-1. Index 1000 - A uint 16 value representing the Framework protocol version.  
-While xDrip will always support the latest version, some watch faces/apps may not keep up.  So, telling xDrip which version the watch can handle may help the back end code.  
-Most of the protocol will be defined by the the flags in the next dictionary entry.  This value will only increment when the dictionary in the framework changes and the watch face/app supports the new dictionary.  
-It is not expected to change all that often, only when new data or capabilties are added to the framework.
-2. Index 1001 - A uint 32 bit set of flags that include:
-	1. Bit 0 - Colour - True if the watch has a colour display, false if otherwise.
-	2. Bit 1 - Time Series Data - If true, xDrip will send time series data to the watch for it to draw the trend. Otherwise xDrip will send a PNG of the trend composed and sized as requested.
-	3. Bit 2 to 3  - Time Period - For time series or trend PNG, the time period to send.  This will comprise 3 bits.  the values will be:
+1. Index 1000 - A uint 32 bit set of flags that include:
+	Bit 0 - Colour - True if the watch has a colour display, false if otherwise.
+	Bit 1 - Time Series Data - If true, xDrip will send time series data to the watch for it to draw the trend. Otherwise xDrip will send a PNG of the trend composed and sized as requested.
+	Bit 2 to 3  - Time Period - For time series or trend PNG, the time period to send.  The values will be:
 		1. 00 - 1 hour
 		2. 01 - 2 hour
 		3. 10 - 3 hour
 		4. 11 - 4 hour
 
-	4. Bit 4 - Graph High limit line - True adds the High limit line to graph, otherwise no High line is added.  Only relevant and used if the Time Series Data flag is false.
-	5. Bit 5 - Graph Low limit line - True adds the Low limit line to graph, otherwise no Low line is added.  Only relevant and used if the Time Series Data flag is false.
-	6. Bit 6 - Small dots - True will create the image with small dots rather than the larger ones.  Only relevant and used if the Time Series Data flag is false.
- 	7. Bit 7 - Send IOB data - True will cause xDrip to send IOB value.  Expects formatted text string from xDrip in 
-    9. Bit 8 - Send Pump State - True will have xDrip send the pump status.
-    9. Bit 9 - Send Phone Battery - True will send the Phone battery level.
-   10. Bit 10 - Send Pump Battery - True will send the Pump battery level.  Note, while it could be more efficient to have one bit to select the phone OR the pump, some people may want both sent.
-   11. Bit 11 - Send Delta.  Expects a formatted text string to be sent by xDrip in CGM_DLTA_KEY.
-   12. Bit 12 - Not yet allocated.
-   13. Bit 13 - Not yet allocated.
-   14. Bit 14 - Not yet allocated.
-   15. Bit 15 - Not yet allocated.
+	Bit 4 - High limit - True will either add the High limit line to graph, or send the High Limit value (HIGHVAL) to the watch.  Otherwise no High line is added to the graph and no High value is sent.
+	Bit 5 - Low limit - True will either add the Low limit line to graph, or sends the Low Limit value (LOWLIMIT) to the watch.  Otherwise no Low line is added to the graph and no Low value is sent.
+	Bit 6 - Small dots - True will create the image with small dots rather than the larger ones.  Only relevant and used if the Time Series Data flag is false.
+ 	Bit 7 - Send IOB data - True will cause xDrip to send IOB value.  TBD
+    Bit 8 - Send Pump State - True will have xDrip send the pump status.  TBD
+    Bit 9 - Send Phone Battery (PHONEBAT) - True will send the Phone battery level.
+    Bit 10 - Send Pump Battery - TBD.  True will send the Pump battery level.  Note, while it could be more efficient to have one bit to select the phone OR the pump, some people may want both sent.
+    Bit 11 - Send Delta value (BGL)DELTA)
+    Bit 12 - Send slope arrow value - True will cause xDrip to send a value related to the slope arrows indicated on it's home screen.  (SLOPEVAL)
+	Bit 13 to 31 -  Not yet allocated.
    
-8. 16 bit integer describing the dimensions of the PNG image required by the watch.  This allows variations and more easily integrates with the Round watches.  This will only be sent IF Time Series Data is false.
+2.  Index 1001 - A 16 bit integer describing the dimensions of the PNG image required by the watch.  This allows variations and more easily integrates with the Round watches.  This will only be sent IF Time Series Data is false.
 The Most Signigicant Byte will hold the Trend width, while the Least Significant Byte will hold the Trend height.
+
+3.  Index 1002 - An 8 but integer representing control flags sent from the watch.
+	Bit 1 - Snooze Active Alert.
+	Bit 2 to 8 - Not yet allocated.
 
 ## Data sent from xDrip to the watch face/app
 The data sent to the watch will consist of a series of messages, depending on what the watch has requested.
-### Basic Data
-The first message sent to the watch will always be the current BGL, Delta, and Timestamp of the reading.  The watch will at the very least display these values.
+### BGL data
+xDrip will send the current BGL, Delta, and Timestamp of the reading.  The watch will at the very least display these values.
 The dictionary will be the following:
-|Key Name| Index | Description|
-|---|---|---|
-|CGM_ICON_KEY |0	| TUPLE_CSTRING, MAX 2 BYTES.  Displays an icon showing states from xDrip, such as Sensor Stopped or other error icons/states, and rising and falling BGL arrows. (Note, this may change as it is a hangover from the legacy Nightscout work.  Still useful, but may not be relevant these days)|
-|CGM_BG_KEY |1	| TUPLE_CSTRING, MAX 4 BYTES.  The current BGL value formatted in mg/dl or mmol/l depending on the xDrip settings.|
-|CGM_TCGM_KEY |2 | TUPLE_INT, 4 BYTES (CGM TIME).  Indicates ?|
-|CGM_TAPP_KEY |3 | TUPLE_INT, 4 BYTES (APP / PHONE TIME).  Current time from the phone from xDrip.  Not sure this is required anymore.|
-|CGM_DLTA_KEY |4 | TUPLE_CSTRING, MAX 5 BYTES (BG DELTA, -100 or -10.0). The current BG Delta from xDrip formatted in either mg/dl or mmol/l depending on the settings in xDrip.|
-|CGM_UBAT_KEY |5 | TUPLE_CSTRING, MAX 3 BYTES (UPLOADER BATTERY, 100). A hangover from Nightscout that send the phone battery to the watch.  A text value from 0-100.|
-|CGM_NAME_KEY |6 | TUPLE_CSTRING, MAX 9 BYTES (Christine).  A hangover from Nightscout, not used in xDrip and should probably be removed or repurposed.|
-|CGM_TREND_BEGIN_KEY |7	| TUPLE_INT, 4 BYTES (length of CGM_TREND_DATA_KEY).  Essenmtially the number of "chunks" of either the PNG OR the Timestamped data table being sent to the watch.|
-|CGM_TREND_DATA_KEY |8 | TUPLE_BYTE[], No Maximum, based on value found in CGM_TREND_DATA_KEY.  The "chunk" number being transferred.|
-|CGM_TREND_END_KEY |9 | TUPLE_INT, always 0.  This marks the end of the trend data transfer.|
-|CGM_MESSAGE_KEY |10 | TUPLE_BYTE[13], A small text string from xDrip to display on the watch. Used to display the "BAZINGA!" at 5.5mmol/l or 100 mg/dl.|
-|CGM_VIBE_KEY |11 | TUPLE_BYTE, The vibration pattern to use when an alert situation exists with xDrip.  May now be redundant and could be repurposed.|
-|CGM_LOW_ALERT_VALUE |12 | The value of the Low display alert.  Only sent if the watch is requesting time series data to be sent and allows the graph to display this line.|
-|CGM_HI_ALERT_VALUE |13 | The value of the HIgh display alert.  Only sent if the watch is requesting time series data to be sent and allows the graph to display this line.|
+|Key Name	| Index	| Type 		| Description|
+|BGL_TIME	| 0 	| uint32 	| The current timestamp of this BGL reading.|
+|BGL_VALUE	| 1 	| uint16 	| The BGL reading in mg/dl.  Values 40-400.  Note, the MSbit will indicate if this should be displayed as mmol/l, so the values will be 32808-11810880 |
+|BGL_DELTA	| 2 	| int8		| The delta from this reading to the previous reading in mg/dl.  This is only sent IF the watch face/app has requested it.  If the BGL_VALUE has the MSbit set, this will display in mmol/l.  Slope arrows, if displayed, will be determined by this value in the watch face or app.|
 
+Note, this could also be used to send any BGL reading for any time frame, but it is probably more efficient to fill the BGL trend buffer through a different means, rather than a series of these.
 
+Additional data that can be sent as part of any message from xDrip:
+|Key Name	| Index	| Type 		| Description |
+|PHONEBAT	| 3		| uint8		| Phone battery percent (0-100 value expected) |
+|MESSAGE	| 4		| char[]	| Message string to display on the face/app. |
+|HIGHLIMIT	| 5		| uint16	| High Alert Limit in mg/dl.  Values 40-400. Only sent if the watch indicates it wants it.|
+|LOWLIMIT	| 6`	| uint16	| Low Alert Limit in mg/dl.  Values 40-400.	 Only sent if the watch indicates it wants it.|
+|VIBE		| 7		| uint8		| Vibration pattern to initiate. | 
+|SLOPEVAL	| 8		| uint8		| Value indicating the sope arrow(s) to display.  0= No arrow, 1 = Double Up, 2 = Up, 3 = 45 Up , 4 = Flat arrow, 5 = 45 Down, 6 = Down, 7 = Double down, 8 = Error, 9 = Out of Range/No Signal
 
-Note, just because there is an dictionary index described, it does not mean the index has to be added to a dictionary for sending.  These are simply Key/Value pairs in the dicitonary, so if a key is missing, it is not missed by xDrip or the watch face/app.
-
-### Battery Data
-The phone battery value is a string representing 0-100.  It is converted in the watch to an integer for use in the watch code.
+Note, just because there is a dictionary index described, it does not mean the index has to be added to a dictionary for sending.  These are simply Key/Value pairs in the dicitonary, so if a key is missing, it is not missed by xDrip or the watch face/app.
 
 ### Trend Image (optional)
 The watch, if it has requested a PNG trend image, will then receive chunks of the image to reconstitute and display.  
@@ -89,6 +81,6 @@ The watch trend buffer will be a FIFO, so every new individual reading will caus
 The watch face/app will obviously send the heartbeat message described above to xDrip.  However, there are other pieces of information that could be of use for xDrip to get from the watch face/app.
 1. Alarm silence/snooze
 2. Carbohydrate intake
-3. Insuling dose.  (could this tell the pump to do this?  I'm not a pumper so don't know)
+3. Insulin dose.  (could this tell the pump to do this?  I'm not a pumper so don't know)
 4. Temporary Basal adjustment?  (I'm not a pumper, so not sure)
 

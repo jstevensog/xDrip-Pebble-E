@@ -368,6 +368,9 @@ static void health_handler(HealthEventType event, void *context) {
 		case HealthEventHeartRateUpdate:
 			LOG("health_handler: Heart rate Update");
 		break;
+		case HealthEventHRVUpdate:
+			LOG("health_handler: Heart rate HRV Update");
+
 	}
 	update_health_metric_displays();
 } //end health_handler
