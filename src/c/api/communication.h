@@ -89,10 +89,11 @@ typedef struct comm_bgl_data_t {
 
 typedef union  comm_bgl_delta_t {
     struct {
-        uint16_t        value : 13;
-        uint16_t        is_neg : 1;
-        uint16_t        display_units : 1;
-        uint16_t        is_mmol : 1;
+        int8_t          value;
+        uint8_t : 5;
+        uint8_t         undefined : 1; 
+        uint8_t         display_units : 1;
+        uint8_t         is_mmol : 1;
     };
     uint16_t raw;
 } comm_bgl_delta;
