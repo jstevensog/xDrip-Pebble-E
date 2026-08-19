@@ -85,15 +85,15 @@
 			"options": [
 				{
 					"label": "None",
-					"value": "no"
+					"value": 0 
 				},
 				{
 					"label": "Phone Battery",
-					"value": "pb"
+					"value": 1
 				},
 				{
 					"label": "Watch Battery",
-					"value": "wb"
+					"value": 2
 				}
 			]
 		  },
@@ -106,19 +106,19 @@
 			"options": [
 				{
 					"label": "None",
-					"value":"no"
+					"value": 0
 				},
 				{
 					"label": "Phone Battery",
-					"value":"pb"
+					"value": 1
 				},
 				{
 					"label": "Watch Battery",
-					"value":"wb"
+					"value": 2
 				},
 				{
 					"label": "Step Count",
-					"value":"sc"
+					"value": 3
 				}
 			]
 		  },
@@ -131,23 +131,23 @@
 			"options": [
 				{
 					"label": "None",
-					"value":"no"
+					"value": 0
 				},
 				{
 					"label": "Phone Battery",
-					"value":"pb"
+					"value": 1
 				},
 				{
 					"label": "Watch Battery",
-					"value":"wb"
+					"value": 2
 				},
 				{
 					"label": "Step Count",
-					"value":"sc"
+					"value": 3
 				},
 				{
 					"label": "Heart Rate",
-					"value":"hr"
+					"value": 4
 				}
 			]
 		  },
