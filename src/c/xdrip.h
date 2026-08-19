@@ -17,7 +17,7 @@
 #define DEBUG_APP_INFO 1
 #define DEBUG_APP_NONE 0
 
-/* #define DEBUG_LEVEL DEBUG_APP_TRACE  */
+#define DEBUG_LEVEL DEBUG_APP_TRACE 
 
 /* The line below, if defined, will only indicate test values on the display.
 this is for testing purposes only until I can get the PebbleKit.JS code operating with the emulator.
@@ -97,6 +97,10 @@ static void bitmapLayerUpdate(struct Layer *layer, GContext *ctx);
 #define SET_LINE_WIDTH          313
 #define SET_TREND_STYLE         314
 #define SET_TREND_WIDTH         315
+#define SET_HIGH_LIMIT          316
+#define SET_HIGH_LINE_VALUE     317
+#define SET_LOW_LIMIT           318
+#define SET_LOW_LINE_VALUE      319
 #define CGM_SYNC_KEY			1000	// key pebble will use to request an update.	This should probably include the "capabilities" bits
 #define PBL_PLATFORM			1001	// key pebble will use to send it's platform	This is probably not required under the new famework.
 #define PBL_APP_VER			1002	// key pebble will use to send the face/app version.	This is probably not required under the new framework.
