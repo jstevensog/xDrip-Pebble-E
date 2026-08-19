@@ -82,6 +82,21 @@ static void bitmapLayerUpdate(struct Layer *layer, GContext *ctx);
 #define SET_BOLD_TIMEAGO		114	// Setting key - Meke the TimeAgo text bold if true
 #define SET_BOTTOM_LEFT_TEXT	        115	// Setting key - What to display in the bottom left text field
 #define SET_BOTTOM_RIGHT_TEXT	        116	// Setting key - What to display in the bottom right text field
+#define SET_BGL_CRITICAL_COLOUR  301
+#define SET_BGL_HIGH_COLOUR      302
+#define SET_BGL_AVERAGE_COLOUR   303
+#define SET_BGL_GOOD_COLOUR      304
+#define SET_BGL_LOW_COLOUR       305
+#define SET_BGL_LOW             306
+#define SET_BGL_AVERAGE         307
+#define SET_BGL_HIGH            308
+#define SET_BGL_CRITICAL        309
+#define SET_LOW_LINE_COLOUR      310
+#define SET_HIGH_LINE_COLOUR     311
+#define SET_LINE_STYLE          312
+#define SET_LINE_WIDTH          313
+#define SET_TREND_STYLE         314
+#define SET_TREND_WIDTH         315
 #define CGM_SYNC_KEY			1000	// key pebble will use to request an update.	This should probably include the "capabilities" bits
 #define PBL_PLATFORM			1001	// key pebble will use to send it's platform	This is probably not required under the new famework.
 #define PBL_APP_VER			1002	// key pebble will use to send the face/app version.	This is probably not required under the new framework.
