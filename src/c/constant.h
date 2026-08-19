@@ -5,11 +5,6 @@
 #include <pebble.h>
 
 // Metric Display defines
-#define METRIC_NONE_STR		"no"
-#define METRIC_PHONEBATT_STR	"pb"
-#define METRIC_WATCHBATT_STR	"wb"
-#define METRIC_STEPS_STR	"sc"
-#define METRIC_HEARTRATE_STR	"hr"
 #define METRIC_NONE		0
 #define METRIC_PHONEBATT	1
 #define METRIC_WATCHBATT	2

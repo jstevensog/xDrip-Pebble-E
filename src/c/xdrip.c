@@ -136,8 +136,7 @@ static uint8_t minutes_cgm = 0;
 //Metric Display Left/Right
 static uint8_t bottom_left_metric = 1;
 static uint8_t bottom_right_metric = 1;
-static char  bottom_left_metric_str[] = "pb";
-static char  bottom_right_metric_str[] = "wb";
+
 #ifdef PBL_HEALTH
 TextLayer *step_count_text_layer = NULL;
 #if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_FLINT) || defined(PBL_PLATFORM_GABBRO)
@@ -2086,20 +2085,17 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 				}
 			break;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wzero-length-bounds"
 			//Bottom left metric to display
 			case SET_BOTTOM_LEFT_TEXT:
 				LOG("Got bottom_left_metric message is \"%s\"", data->value->cstring);
 				bottom_left_metric = METRIC_PHONEBATT;
-				if(strcmp(data->value->cstring,METRIC_NONE_STR) == 0) bottom_left_metric = METRIC_NONE;
-				if(strcmp(data->value->cstring,METRIC_PHONEBATT_STR) == 0) {
-					bottom_left_metric = METRIC_PHONEBATT;
+				if(data->value->data[0]-0x30 == METRIC_PHONEBATT) {
 					text_layer_set_text(bottom_left_text_layer, "Wait..");
 				}
-				if(strcmp(data->value->cstring,METRIC_WATCHBATT_STR) == 0) bottom_left_metric = METRIC_WATCHBATT;
-				if(strcmp(data->value->cstring,METRIC_STEPS_STR) == 0) bottom_left_metric = METRIC_STEPS;
-				if(strcmp(data->value->cstring,METRIC_HEARTRATE_STR) == 0) bottom_left_metric = METRIC_HEARTRATE;
 				LOG("Set bottom_left_metric to \"%u\"", bottom_left_metric);
-				persist_write_string(SET_BOTTOM_LEFT_TEXT, data->value->cstring);
+				persist_write_int(SET_BOTTOM_LEFT_TEXT, data->value->data[0] - 0x30);
 				if(bottom_left_metric == METRIC_NONE) {
 					text_layer_set_text(bottom_left_text_layer, "");
 				} else {
@@ -2116,16 +2112,11 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 			case SET_BOTTOM_RIGHT_TEXT:
 				LOG("Got bottom_right_metric message is \"%s\"", data->value->cstring);
 				bottom_right_metric = METRIC_WATCHBATT;
-				if(strcmp(data->value->cstring,METRIC_NONE_STR) == 0) bottom_right_metric = METRIC_NONE;
-				if(strcmp(data->value->cstring,METRIC_PHONEBATT_STR) == 0) {
-					bottom_right_metric = METRIC_PHONEBATT;
+				if(data->value->data[0]-0x30 == METRIC_PHONEBATT) {
 					text_layer_set_text(bottom_right_text_layer, "Wait..");
 				}
-				if(strcmp(data->value->cstring,METRIC_WATCHBATT_STR) == 0) bottom_right_metric = METRIC_WATCHBATT;
-				if(strcmp(data->value->cstring,METRIC_STEPS_STR) == 0) bottom_right_metric = METRIC_STEPS;
-				if(strcmp(data->value->cstring,METRIC_HEARTRATE_STR) == 0) bottom_right_metric = METRIC_HEARTRATE;
 				LOG("Set bottom_right_metric to \"%u\"", bottom_right_metric);
-				persist_write_string(SET_BOTTOM_RIGHT_TEXT, data->value->cstring);
+				persist_write_int(SET_BOTTOM_RIGHT_TEXT, data->value->data[0] - 0x30);
 				if(bottom_right_metric == METRIC_NONE) {
 					text_layer_set_text(bottom_right_text_layer, "");
 				} else {
@@ -2137,6 +2128,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 					//load_battlevel();
 				}
 			break;
+#pragma GCC diagnostic pop
 
             /**
              * trend config colors
@@ -2176,19 +2168,22 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
                 t_config.high_line_color = GColorFromHEX(data->value->int32);
                 trend_draw();
                 break;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wzero-length-bounds"
             case SET_LINE_STYLE:
-                persist_write_int(SET_LINE_STYLE, data->value->cstring[0] - 0x30);
-                t_config.line_style = data->value->cstring[0] - 0x30;
-                trend_draw();
-                break;
-            case SET_LINE_WIDTH:
-                persist_write_int(SET_LINE_WIDTH, data->value->int32);
-                t_config.line_width = data->value->int32;
+                persist_write_int(SET_LINE_STYLE, data->value->data[0] - 0x30);
+                t_config.line_style = data->value->data[0] - 0x30;
                 trend_draw();
                 break;
             case SET_TREND_STYLE:
-                persist_write_int(SET_TREND_STYLE, data->value->cstring[0] - 0x30);
-                t_config.style = data->value->cstring[0] - 0x30;
+                persist_write_int(SET_TREND_STYLE, data->value->data[0] - 0x30);
+                t_config.style = data->value->data[0] - 0x30;
+                trend_draw();
+                break;
+#pragma GCC diagnostic pop
+            case SET_LINE_WIDTH:
+                persist_write_int(SET_LINE_WIDTH, data->value->int32);
+                t_config.line_width = data->value->int32;
                 trend_draw();
                 break;
             case SET_TREND_WIDTH:
@@ -2988,23 +2983,9 @@ static void init_cgm(void)
 	LOG("init_cgm: BacklightOnCharge \"%u\".", BacklightOnCharge);
 	TimeAgoBold = persist_exists(SET_BOLD_TIMEAGO)? persist_read_bool(SET_BOLD_TIMEAGO) : false;
 	LOG("init_cgm: TimeAgoBold \"%u\".", TimeAgoBold);
-	if(persist_exists(SET_BOTTOM_LEFT_TEXT)) persist_read_string(SET_BOTTOM_LEFT_TEXT,bottom_left_metric_str,sizeof(bottom_left_metric_str));
-	else persist_write_string(SET_BOTTOM_LEFT_TEXT, METRIC_PHONEBATT_STR);
-	LOG("init_cgm: bottom_left_metric_str \"%s\".", bottom_left_metric_str);
-	if(strcmp(bottom_left_metric_str, METRIC_NONE_STR) == 0) bottom_left_metric = 0;
-	if(strcmp(bottom_left_metric_str, METRIC_PHONEBATT_STR) == 0) bottom_left_metric = 1;
-	if(strcmp(bottom_left_metric_str, METRIC_WATCHBATT_STR) == 0) bottom_left_metric = 2;
-	if(strcmp(bottom_left_metric_str, METRIC_STEPS_STR) == 0) bottom_left_metric = 3;
-	if(strcmp(bottom_left_metric_str, METRIC_HEARTRATE_STR) == 0) bottom_left_metric = 4;
+	bottom_left_metric = persist_exists(SET_BOTTOM_LEFT_TEXT) ? persist_read_int(SET_BOTTOM_LEFT_TEXT) : METRIC_PHONEBATT;
+	bottom_right_metric = persist_exists(SET_BOTTOM_RIGHT_TEXT) ? persist_read_int(SET_BOTTOM_RIGHT_TEXT) : METRIC_WATCHBATT;
 	LOG("init_cgm: bottom_left_metric \"%u\".", bottom_left_metric);
-	if(persist_exists(SET_BOTTOM_RIGHT_TEXT)) persist_read_string(SET_BOTTOM_RIGHT_TEXT,bottom_right_metric_str,sizeof(bottom_right_metric_str));
-	else persist_write_string(SET_BOTTOM_RIGHT_TEXT, METRIC_WATCHBATT_STR);
-	LOG("init_cgm: bottom_right_metric_str \"%s\".", bottom_right_metric_str);
-	if(strcmp(bottom_right_metric_str, METRIC_NONE_STR) == 0) bottom_right_metric = 0;
-	if(strcmp(bottom_right_metric_str, METRIC_PHONEBATT_STR) == 0) bottom_right_metric = 1;
-	if(strcmp(bottom_right_metric_str, METRIC_WATCHBATT_STR) == 0) bottom_right_metric = 2;
-	if(strcmp(bottom_right_metric_str, METRIC_STEPS_STR) == 0) bottom_right_metric = 3;
-	if(strcmp(bottom_right_metric_str, METRIC_HEARTRATE_STR) == 0) bottom_right_metric = 4;
 	LOG("init_cgm: bottom_right_metric \"%u\".", bottom_right_metric);
 
     /*
