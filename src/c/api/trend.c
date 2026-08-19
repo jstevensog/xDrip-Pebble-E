@@ -47,7 +47,8 @@ static inline void draw_bgl_point(trend_bgl_value value, int16_t x, trend_config
 
     GColor color = config->good_color;
 
-    if (value > config->bgl_high) color = config->high_color;
+    if (value > config->bgl_high) color = config->critical_color;
+    else if (value > config->bgl_high) color = config->high_color;
     else if (value > config->bgl_average) color = config->average_color;
     else if (value < config->bgl_low) color = config->low_color;
 

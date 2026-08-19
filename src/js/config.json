@@ -283,6 +283,138 @@
 		]
   },
   {
+	  "type": "section",
+	  "items": [
+		  {
+			  "type": "heading",
+			  "defaultValue": "Trend line graphics"
+		  },
+          {
+              "type": "color",
+              "messageKey": "trend_critical_color",
+              "label": "Critical Color",
+              "defaultValue": "ff0000",
+              "capabilities": ["COLOR"]
+          },
+          {
+              "type": "color",
+              "messageKey": "trend_high_color",
+              "label": "High Color",
+              "defaultValue": "ff5500",
+              "capabilities": ["COLOR"]
+          },
+          {
+              "type": "color",
+              "messageKey": "trend_average_color",
+              "label": "Average Color",
+              "defaultValue": "ffaa00",
+              "capabilities": ["COLOR"]
+          },
+          {
+              "type": "color",
+              "messageKey": "trend_good_color",
+              "label": "Good Color",
+              "defaultValue": "00ff00",
+              "capabilities": ["COLOR"]
+          },
+          {
+              "type": "color",
+              "messageKey": "trend_low_color",
+              "label": "Low Color",
+              "defaultValue": "0055ff",
+              "capabilities": ["COLOR"]
+          },
+          {
+              "type": "slider",
+              "messageKey": "trend_low",
+              "label": "Low threshold",
+              "defaultValue": 72,
+              "min": 40,
+              "max": 400
+          },
+          {
+              "type": "slider",
+              "messageKey": "trend_average",
+              "label": "Average threshold",
+              "defaultValue": 144,
+              "min": 40,
+              "max": 400
+          },
+          {
+              "type": "slider",
+              "messageKey": "trend_high",
+              "label": "High threshold",
+              "defaultValue": 190,
+              "min": 40,
+              "max": 400
+          },
+          {
+              "type": "slider",
+              "messageKey": "trend_critical",
+              "label": "Critical threshold",
+              "defaultValue": 216,
+              "min": 40,
+              "max": 400
+          },
+          {
+              "type": "color",
+              "messageKey": "trend_high_line_color",
+              "label": "High line Color",
+              "defaultValue": "ff5555",
+              "capabilities": ["COLOR"]
+          },
+          {
+              "type": "color",
+              "messageKey": "trend_low_line_color",
+              "label": "Low line Color",
+              "defaultValue": "55aaff",
+              "capabilities": ["COLOR"]
+          },
+          {
+              "type": "select",
+              "messageKey": "trend_line_style",
+              "label": "Low/High line style",
+              "defaultValue": 0,
+              "group": "trend_lines",
+              "options": [
+                  { "label": "Solid", "value": 0 },
+                  { "label": "Dotted", "value": 1 },
+                  { "label": "Dotted - sparse", "value": 2 },
+                  { "label": "Dashed", "value": 3 },
+                  { "label": "Dashed - wide", "value": 4}
+              ]
+          },
+          {
+              "type": "slider",
+              "messageKey": "trend_line_width",
+              "label": "High/low line width",
+              "defaultValue": 4,
+              "min": 1,
+              "max": 10,
+              "group": "trend_lines"
+          },
+          {
+              "type": "select",
+              "messageKey": "trend_style",
+              "label": "Trend line drawing style",
+              "description": "Circles will be drawn every horizontal pixel and interpolated, lines will be drawn from value to value.",
+              "defaultValue": 0,
+              "options": [
+                  { "label": "Circles", "value": 0 },
+                  { "label": "Lines", "value": 1 }
+              ]
+          },
+          {
+              "type": "slider",
+              "messageKey": "trend_width",
+              "label": "Line/circle width/diameter",
+              "defaultValue": 4,
+              "min": 1,
+              "max": 10
+          }
+      ]
+  },
+  {
     "type": "submit",
     "defaultValue": "Save Settings"
   }

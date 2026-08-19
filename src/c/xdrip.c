@@ -159,6 +159,7 @@ trend_config t_config = {
     .bgl_average = 126,
     .bgl_low = 72,
     .bgl_high = 216,
+    .bgl_critical = 250,
     .bgl_high_line = 216,
     .bgl_low_line = 72,
     .bgl_high_limit = 270,
@@ -2136,6 +2137,86 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 					//load_battlevel();
 				}
 			break;
+
+            /**
+             * trend config colors
+             */
+            case SET_BGL_CRITICAL_COLOUR:
+                persist_write_int(SET_BGL_CRITICAL_COLOUR, data->value->int32);
+                t_config.critical_color = GColorFromHEX(data->value->int32);
+                trend_draw();
+                break;
+            case SET_BGL_HIGH_COLOUR:
+                persist_write_int(SET_BGL_HIGH_COLOUR, data->value->int32);
+                t_config.high_color = GColorFromHEX(data->value->int32);
+                trend_draw();
+                break;
+            case SET_BGL_AVERAGE_COLOUR:
+                persist_write_int(SET_BGL_AVERAGE_COLOUR, data->value->int32);
+                t_config.average_color = GColorFromHEX(data->value->int32);
+                trend_draw();
+                break;
+            case SET_BGL_GOOD_COLOUR:
+                persist_write_int(SET_BGL_GOOD_COLOUR, data->value->int32);
+                t_config.good_color = GColorFromHEX(data->value->int32);
+                trend_draw();
+                break;
+            case SET_BGL_LOW_COLOUR:
+                persist_write_int(SET_BGL_LOW_COLOUR, data->value->int32);
+                t_config.low_color = GColorFromHEX(data->value->int32);
+                trend_draw();
+                break;
+            case SET_LOW_LINE_COLOUR:
+                persist_write_int(SET_LOW_LINE_COLOUR, data->value->int32);
+                t_config.low_line_color = GColorFromHEX(data->value->int32);
+                trend_draw();
+                break;
+            case SET_HIGH_LINE_COLOUR:
+                persist_write_int(SET_HIGH_LINE_COLOUR, data->value->int32);
+                t_config.high_line_color = GColorFromHEX(data->value->int32);
+                trend_draw();
+                break;
+            case SET_LINE_STYLE:
+                persist_write_int(SET_LINE_STYLE, data->value->cstring[0] - 0x30);
+                t_config.line_style = data->value->cstring[0] - 0x30;
+                trend_draw();
+                break;
+            case SET_LINE_WIDTH:
+                persist_write_int(SET_LINE_WIDTH, data->value->int32);
+                t_config.line_width = data->value->int32;
+                trend_draw();
+                break;
+            case SET_TREND_STYLE:
+                persist_write_int(SET_TREND_STYLE, data->value->cstring[0] - 0x30);
+                t_config.style = data->value->cstring[0] - 0x30;
+                trend_draw();
+                break;
+            case SET_TREND_WIDTH:
+                persist_write_int(SET_TREND_WIDTH, data->value->int32);
+                t_config.trend_width = data->value->int32;
+                trend_draw();
+                break;
+            case SET_BGL_LOW:
+                persist_write_int(SET_BGL_LOW, data->value->int32);
+                t_config.bgl_low = data->value->int32;
+                trend_draw();
+                break;
+            case SET_BGL_AVERAGE:
+                persist_write_int(SET_BGL_AVERAGE, data->value->int32);
+                t_config.bgl_average = data->value->int32;
+                trend_draw();
+                break;
+            case SET_BGL_HIGH:
+                persist_write_int(SET_BGL_HIGH, data->value->int32);
+                t_config.bgl_high = data->value->int32;
+                trend_draw();
+                break;
+            case SET_BGL_CRITICAL:
+                persist_write_int(SET_BGL_CRITICAL, data->value->int32);
+                t_config.bgl_critical = data->value->int32;
+                trend_draw();
+                break;
+
             case FRAMEWORK_HEARTBEAT:
             case FRAMEWORK_VIBE:
             case FRAMEWORK_MESSAGE:
@@ -2925,6 +3006,25 @@ static void init_cgm(void)
 	if(strcmp(bottom_right_metric_str, METRIC_STEPS_STR) == 0) bottom_right_metric = 3;
 	if(strcmp(bottom_right_metric_str, METRIC_HEARTRATE_STR) == 0) bottom_right_metric = 4;
 	LOG("init_cgm: bottom_right_metric \"%u\".", bottom_right_metric);
+
+    /*
+     * trend settings
+     */
+    t_config.critical_color = persist_exists(SET_BGL_CRITICAL_COLOUR) ? GColorFromHEX(persist_read_int(SET_BGL_CRITICAL_COLOUR)) : COLOR_FALLBACK(GColorRed, GColorWhite);
+    t_config.high_color = persist_exists(SET_BGL_HIGH_COLOUR) ? GColorFromHEX(persist_read_int(SET_BGL_HIGH_COLOUR)) : COLOR_FALLBACK(GColorOrange, GColorWhite);
+    t_config.average_color = persist_exists(SET_BGL_AVERAGE_COLOUR) ? GColorFromHEX(persist_read_int(SET_BGL_AVERAGE_COLOUR)) : COLOR_FALLBACK(GColorYellow, GColorWhite);
+    t_config.good_color = persist_exists(SET_BGL_GOOD_COLOUR) ? GColorFromHEX(persist_read_int(SET_BGL_GOOD_COLOUR)) : COLOR_FALLBACK(GColorGreen, GColorWhite);
+    t_config.low_color = persist_exists(SET_BGL_LOW_COLOUR) ? GColorFromHEX(persist_read_int(SET_BGL_LOW_COLOUR)) : COLOR_FALLBACK(GColorBlue, GColorWhite);
+    t_config.bgl_low = persist_exists(SET_BGL_LOW) ? persist_read_int(SET_BGL_LOW) : 72;
+    t_config.bgl_average = persist_exists(SET_BGL_AVERAGE) ? persist_read_int(SET_BGL_AVERAGE) : 144;
+    t_config.bgl_high = persist_exists(SET_BGL_HIGH) ? persist_read_int(SET_BGL_HIGH) : 190;
+    t_config.bgl_critical = persist_exists(SET_BGL_CRITICAL) ? persist_read_int(SET_BGL_CRITICAL) : 210;
+    t_config.high_line_color = persist_exists(SET_HIGH_LINE_COLOUR) ? GColorFromHEX(persist_read_int(SET_HIGH_LINE_COLOUR)) : COLOR_FALLBACK(GColorRed, GColorWhite);
+    t_config.low_line_color = persist_exists(SET_LOW_LINE_COLOUR) ? GColorFromHEX(persist_read_int(SET_LOW_LINE_COLOUR)) : COLOR_FALLBACK(GColorBlue, GColorWhite);
+    t_config.trend_width = persist_exists(SET_TREND_WIDTH) ? persist_read_int(SET_TREND_WIDTH) : 4;
+    t_config.style = persist_exists(SET_TREND_STYLE) ? persist_read_int(SET_TREND_WIDTH) : TREND_STYLE_DOTS;
+    t_config.line_style = persist_exists(SET_LINE_STYLE) ? persist_read_int(SET_LINE_STYLE) : TREND_LINE_STYLE_SOLID;
+    t_config.line_width = persist_exists(SET_LINE_WIDTH) ? persist_read_int(SET_LINE_WIDTH) : 4;
 	
 	LOG("display_seconds: %i", display_seconds);
 	//initialise the Time Fonts

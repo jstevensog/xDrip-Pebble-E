@@ -49,6 +49,7 @@ typedef struct {
     int16_t     bgl_low;
     int16_t     bgl_average;
     int16_t     bgl_high;
+    int16_t     bgl_critical;
     int16_t     bgl_high_line;
     int16_t     bgl_low_line;
     int16_t     bgl_high_limit;
