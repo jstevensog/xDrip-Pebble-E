@@ -181,6 +181,7 @@ void set_vibrate(comm_vibe value);
 void set_bgl_delta(comm_bgl_delta value);
 void set_bgl_timestamp(uint32_t timestamp); 
 void set_bgl_value(comm_bgl_value value);
+void set_bgl_data(comm_bgl_data *value); 
 #endif
 
 /**
@@ -3025,7 +3026,7 @@ static void init_cgm(void)
     comm_callbacks.vibe = set_vibrate;
     comm_callbacks.bgl_delta = set_bgl_delta;
     comm_callbacks.bgl_series = trend_set_series;
-    comm_callbacks.bgl_data = trend_set_value;
+    comm_callbacks.bgl_data = set_bgl_data;
     comm_callbacks.bgl_timestamp = set_bgl_timestamp;
     comm_callbacks.bgl_value = set_bgl_value;
     comm_init(&comm_callbacks);
@@ -3160,13 +3161,25 @@ void set_bgl_timestamp(uint32_t timestamp) {
 
 void set_bgl_value(comm_bgl_value value) {
     if (value.is_mmol) {
-        int delta_point = MGDL_TO_MMOL_DEC(value.value);
-        int delta = MGDL_TO_MMOL(value.value);
-        snprintf(last_bg, sizeof(last_bg), "%d.%d", delta, delta_point);
+        mgdl_to_mmoll_str(value.value, last_bg, sizeof(last_bg), 0);
     } else {
         snprintf(last_bg, sizeof(last_bg), "%d", value.value);
     }
     load_bg();
+}
+
+/**
+ * update bgl values and timestamp
+ */
+void set_bgl_data(comm_bgl_data *value) {
+    if (value->timestamp - current_cgm_time > 360) {
+        // we likely missed a value, set minutes timer to zero and wait for global udpate
+        minutes_cgm = 0;
+    } else {
+        set_bgl_timestamp(value->timestamp);
+        set_bgl_value(value->bgl);
+        trend_set_value(value);
+    }
 }
 #endif
 
