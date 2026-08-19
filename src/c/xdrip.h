@@ -2,6 +2,7 @@
 #ifndef __XDRIP_H__
 #define __XDRIP_H__
 
+#include <math.h>
 #include "constant.h"
 /**
  * Defines for testing modes
@@ -109,7 +110,7 @@ static void bitmapLayerUpdate(struct Layer *layer, GContext *ctx);
 #endif
 
 #define MGDL_TO_MMOL(x)      ((int) ((float) x / 18.016)) 
-#define MGDL_TO_MMOL_DEC(x)  ((int) (10.0 * (((float) x / 18.016) - MGDL_TO_MMOL(x))))
+#define MGDL_TO_MMOL_DEC(x)  ((int) round(10.0 * (((float) x / 18.016) - MGDL_TO_MMOL(x))))
 
 // Function Prototypes
 // These two are only used if DEBUG_LEVEL is defined.  The code is conditinally compiled otherwise there are warnings.
