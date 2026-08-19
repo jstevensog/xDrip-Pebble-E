@@ -49,8 +49,8 @@ void comm_handle(Tuple *data) {
             TRACE(CM "Update value");
             comm_bgl_data *value = (comm_bgl_data *) data->value->data;
             if (cb->bgl_data != NULL) cb->bgl_data(value);
-            if (cb->bgl_timestamp != NULL) cb->bgl_timestamp(value->timestamp);
-            if (cb->bgl_value != NULL) cb->bgl_value(value->bgl);
+            /* if (cb->bgl_timestamp != NULL) cb->bgl_timestamp(value->timestamp); */
+            /* if (cb->bgl_value != NULL) cb->bgl_value(value->bgl); */
             break;
         case FRAMEWORK_BGL_SERIES:
             TRACE(CM "BGL Data stream");
