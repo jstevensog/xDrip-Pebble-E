@@ -17,7 +17,7 @@
 #define DEBUG_APP_INFO 1
 #define DEBUG_APP_NONE 0
 
-#define DEBUG_LEVEL DEBUG_APP_TRACE 
+/* #define DEBUG_LEVEL DEBUG_APP_TRACE  */
 
 /* The line below, if defined, will only indicate test values on the display.
 this is for testing purposes only until I can get the PebbleKit.JS code operating with the emulator.
