@@ -2172,7 +2172,7 @@ void timer_callback_cgm(void *data)
 	TRACE("timer_callback_cgm: minutes_cgm: %d", minutes_cgm);
 	if (minutes_cgm == 0)
 		{
-			minutes_cgm = 6;
+			/* minutes_cgm = 6; */
 			// send message
 			LOG("timer_callback_cgm: minutes_cgm is 0, setting to 6 and invoking send_cmd_cgm.");
 			send_cmd_cgm();
@@ -3128,22 +3128,21 @@ void set_phone_battery(comm_phonebat value) {
 
 // snprintf does not support float!
 void set_bgl_delta(comm_bgl_delta value) {
-    DEBUG("Delta units: neg: %d mmol: %d display: %d value: %d", value.is_neg, value.is_mmol, value.display_units, value.value);
-    if (value.value == 0x3FFF) {
+    DEBUG("Delta units: undefined: %d mmol: %d display: %d value: %d", value.undefined, value.is_mmol, value.display_units, value.value);
+    if (value.undefined) {
         snprintf(current_bg_delta, sizeof(current_bg_delta), "???");
     } else if (value.is_mmol && value.display_units) {
         TRACE("MMOL + Display");
-        mgdl_to_mmoll_str(value.is_neg ? value.value * -1 : value.value, current_bg_delta, sizeof(current_bg_delta), 1);
+        mgdl_to_mmoll_str(value.value, current_bg_delta, sizeof(current_bg_delta), 1);
     } else if (value.display_units && !value.is_mmol) {
         TRACE("MG + Display");
-        int16_t delta = value.is_neg ? -1 * value.value : value.value;
-        snprintf(current_bg_delta, sizeof(current_bg_delta), "%hd mg/dL", delta);
+        snprintf(current_bg_delta, sizeof(current_bg_delta), "%hd mg/dL", value.value);
     } else if (value.is_mmol) {
         TRACE("MMOL");
-        mgdl_to_mmoll_str(value.is_neg ? value.value * -1 : value.value, current_bg_delta, sizeof(current_bg_delta), 0);
+        mgdl_to_mmoll_str(value.value, current_bg_delta, sizeof(current_bg_delta), 0);
     } else {
         TRACE("MG");
-        int16_t delta = value.is_neg ? -1 * value.value : value.value;
+        int16_t delta = value.value;
         snprintf(current_bg_delta, sizeof(current_bg_delta), "%hd", delta);
     }
     load_bg_delta();
@@ -3155,6 +3154,7 @@ void set_vibrate(comm_vibe value) {
 
 void set_bgl_timestamp(uint32_t timestamp) {
     current_cgm_time = timestamp;
+    minutes_cgm = 5; 
     load_cgmtime();
 }
 
