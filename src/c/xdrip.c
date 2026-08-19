@@ -144,39 +144,12 @@ TextLayer *heart_rate_text_layer = NULL;
 #endif
 #endif
 
-// trend config
-#ifdef ENABLE_TREND_RENDERER
-trend_config t_config = {
-    .bgl_type = BGL_TYPE_MG_DL,
-    .average_color = GColorOrange,
-    .good_color = GColorGreen,
-    .critical_color = GColorFromRGBA(255, 0, 0, 255),
-    .low_color = GColorBlue,
-    .high_color = GColorRed,
-    .high_line_color = (GColor) {.r = 3, .a = 2},
-    .low_line_color = (GColor) {.g = 3, .a = 2},
-    .bgl_average = 126,
-    .bgl_low = 72,
-    .bgl_high = 216,
-    .bgl_critical = 250,
-    .bgl_high_line = 216,
-    .bgl_low_line = 72,
-    .bgl_high_limit = 270,
-    .bgl_low_limit = 36,
-    .line_width = 2,
-    .trend_width = 5,
-    .style = TREND_STYLE_DOTS,
-    .line_style = TREND_LINE_STYLE_DASHED_WIDE,
-};
-#endif
 // comms framework
 #ifdef ENABLE_COMM_FRAMEWORK
 comm_callback comm_callbacks;
 
 void set_icon(comm_slopeval value);
 void set_phone_battery(comm_phonebat value);
-void set_low_limit(comm_low_limit value);
-void set_high_limit(comm_high_limit value);
 void set_vibrate(comm_vibe value);
 void set_bgl_delta(comm_bgl_delta value);
 void set_bgl_timestamp(uint32_t timestamp); 
@@ -1642,7 +1615,7 @@ static void send_cmd_cgm(void)
     hb.time_series = 1;
 
     // trend values
-    if (!t_config.bgl.initialized) { 
+    if (!trend_isinitialized()) { 
         hb.high_limit = 1;
         hb.low_limit = 1;
     }
@@ -2090,7 +2063,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 			//Bottom left metric to display
 			case SET_BOTTOM_LEFT_TEXT:
 				LOG("Got bottom_left_metric message is \"%s\"", data->value->cstring);
-				bottom_left_metric = METRIC_PHONEBATT;
+                bottom_left_metric = data->value->data[0] - 0x30;
 				if(data->value->data[0]-0x30 == METRIC_PHONEBATT) {
 					text_layer_set_text(bottom_left_text_layer, "Wait..");
 				}
@@ -2111,7 +2084,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 			//Bottom right metric to display
 			case SET_BOTTOM_RIGHT_TEXT:
 				LOG("Got bottom_right_metric message is \"%s\"", data->value->cstring);
-				bottom_right_metric = METRIC_WATCHBATT;
+                bottom_right_metric = data->value->data[0] - 0x30;
 				if(data->value->data[0]-0x30 == METRIC_PHONEBATT) {
 					text_layer_set_text(bottom_right_text_layer, "Wait..");
 				}
@@ -2134,84 +2107,26 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
              * trend config colors
              */
             case SET_BGL_CRITICAL_COLOUR:
-                persist_write_int(SET_BGL_CRITICAL_COLOUR, data->value->int32);
-                t_config.critical_color = GColorFromHEX(data->value->int32);
-                trend_draw();
-                break;
             case SET_BGL_HIGH_COLOUR:
-                persist_write_int(SET_BGL_HIGH_COLOUR, data->value->int32);
-                t_config.high_color = GColorFromHEX(data->value->int32);
-                trend_draw();
-                break;
             case SET_BGL_AVERAGE_COLOUR:
-                persist_write_int(SET_BGL_AVERAGE_COLOUR, data->value->int32);
-                t_config.average_color = GColorFromHEX(data->value->int32);
-                trend_draw();
-                break;
             case SET_BGL_GOOD_COLOUR:
-                persist_write_int(SET_BGL_GOOD_COLOUR, data->value->int32);
-                t_config.good_color = GColorFromHEX(data->value->int32);
-                trend_draw();
-                break;
             case SET_BGL_LOW_COLOUR:
-                persist_write_int(SET_BGL_LOW_COLOUR, data->value->int32);
-                t_config.low_color = GColorFromHEX(data->value->int32);
-                trend_draw();
-                break;
             case SET_LOW_LINE_COLOUR:
-                persist_write_int(SET_LOW_LINE_COLOUR, data->value->int32);
-                t_config.low_line_color = GColorFromHEX(data->value->int32);
-                trend_draw();
-                break;
             case SET_HIGH_LINE_COLOUR:
-                persist_write_int(SET_HIGH_LINE_COLOUR, data->value->int32);
-                t_config.high_line_color = GColorFromHEX(data->value->int32);
-                trend_draw();
-                break;
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wzero-length-bounds"
             case SET_LINE_STYLE:
-                persist_write_int(SET_LINE_STYLE, data->value->data[0] - 0x30);
-                t_config.line_style = data->value->data[0] - 0x30;
-                trend_draw();
-                break;
             case SET_TREND_STYLE:
-                persist_write_int(SET_TREND_STYLE, data->value->data[0] - 0x30);
-                t_config.style = data->value->data[0] - 0x30;
-                trend_draw();
-                break;
-#pragma GCC diagnostic pop
             case SET_LINE_WIDTH:
-                persist_write_int(SET_LINE_WIDTH, data->value->int32);
-                t_config.line_width = data->value->int32;
-                trend_draw();
-                break;
             case SET_TREND_WIDTH:
-                persist_write_int(SET_TREND_WIDTH, data->value->int32);
-                t_config.trend_width = data->value->int32;
-                trend_draw();
-                break;
             case SET_BGL_LOW:
-                persist_write_int(SET_BGL_LOW, data->value->int32);
-                t_config.bgl_low = data->value->int32;
-                trend_draw();
-                break;
             case SET_BGL_AVERAGE:
-                persist_write_int(SET_BGL_AVERAGE, data->value->int32);
-                t_config.bgl_average = data->value->int32;
-                trend_draw();
-                break;
             case SET_BGL_HIGH:
-                persist_write_int(SET_BGL_HIGH, data->value->int32);
-                t_config.bgl_high = data->value->int32;
-                trend_draw();
-                break;
             case SET_BGL_CRITICAL:
-                persist_write_int(SET_BGL_CRITICAL, data->value->int32);
-                t_config.bgl_critical = data->value->int32;
-                trend_draw();
+                trend_process_config(data);
                 break;
 
+            /**
+             * New Comms framework messages
+             */
             case FRAMEWORK_HEARTBEAT:
             case FRAMEWORK_VIBE:
             case FRAMEWORK_MESSAGE:
@@ -2905,10 +2820,7 @@ void window_load_cgm(Window *window_cgm)
 
 #ifdef ENABLE_TREND_RENDERER
     // default config
-    t_config.layer = (Layer *) bg_trend_layer;
-    t_config.bgl.index = 0;
-    t_config.bgl.initialized = 0;
-    trend_set_config(&t_config);
+    trend_init((Layer *)bg_trend_layer);
 #endif
 
 //	TRACE("WINDOW LOAD, ABOUT TO CALL APP SYNC INIT");
@@ -2988,24 +2900,6 @@ static void init_cgm(void)
 	LOG("init_cgm: bottom_left_metric \"%u\".", bottom_left_metric);
 	LOG("init_cgm: bottom_right_metric \"%u\".", bottom_right_metric);
 
-    /*
-     * trend settings
-     */
-    t_config.critical_color = persist_exists(SET_BGL_CRITICAL_COLOUR) ? GColorFromHEX(persist_read_int(SET_BGL_CRITICAL_COLOUR)) : COLOR_FALLBACK(GColorRed, GColorWhite);
-    t_config.high_color = persist_exists(SET_BGL_HIGH_COLOUR) ? GColorFromHEX(persist_read_int(SET_BGL_HIGH_COLOUR)) : COLOR_FALLBACK(GColorOrange, GColorWhite);
-    t_config.average_color = persist_exists(SET_BGL_AVERAGE_COLOUR) ? GColorFromHEX(persist_read_int(SET_BGL_AVERAGE_COLOUR)) : COLOR_FALLBACK(GColorYellow, GColorWhite);
-    t_config.good_color = persist_exists(SET_BGL_GOOD_COLOUR) ? GColorFromHEX(persist_read_int(SET_BGL_GOOD_COLOUR)) : COLOR_FALLBACK(GColorGreen, GColorWhite);
-    t_config.low_color = persist_exists(SET_BGL_LOW_COLOUR) ? GColorFromHEX(persist_read_int(SET_BGL_LOW_COLOUR)) : COLOR_FALLBACK(GColorBlue, GColorWhite);
-    t_config.bgl_low = persist_exists(SET_BGL_LOW) ? persist_read_int(SET_BGL_LOW) : 72;
-    t_config.bgl_average = persist_exists(SET_BGL_AVERAGE) ? persist_read_int(SET_BGL_AVERAGE) : 144;
-    t_config.bgl_high = persist_exists(SET_BGL_HIGH) ? persist_read_int(SET_BGL_HIGH) : 190;
-    t_config.bgl_critical = persist_exists(SET_BGL_CRITICAL) ? persist_read_int(SET_BGL_CRITICAL) : 210;
-    t_config.high_line_color = persist_exists(SET_HIGH_LINE_COLOUR) ? GColorFromHEX(persist_read_int(SET_HIGH_LINE_COLOUR)) : COLOR_FALLBACK(GColorRed, GColorWhite);
-    t_config.low_line_color = persist_exists(SET_LOW_LINE_COLOUR) ? GColorFromHEX(persist_read_int(SET_LOW_LINE_COLOUR)) : COLOR_FALLBACK(GColorBlue, GColorWhite);
-    t_config.trend_width = persist_exists(SET_TREND_WIDTH) ? persist_read_int(SET_TREND_WIDTH) : 4;
-    t_config.style = persist_exists(SET_TREND_STYLE) ? persist_read_int(SET_TREND_WIDTH) : TREND_STYLE_DOTS;
-    t_config.line_style = persist_exists(SET_LINE_STYLE) ? persist_read_int(SET_LINE_STYLE) : TREND_LINE_STYLE_SOLID;
-    t_config.line_width = persist_exists(SET_LINE_WIDTH) ? persist_read_int(SET_LINE_WIDTH) : 4;
 	
 	LOG("display_seconds: %i", display_seconds);
 	//initialise the Time Fonts
@@ -3100,8 +2994,10 @@ static void init_cgm(void)
 #ifdef ENABLE_COMM_FRAMEWORK
     comm_callbacks.bgl_data = NULL;
     comm_callbacks.bgl_series = NULL;
-    comm_callbacks.low_limit = set_low_limit;
-    comm_callbacks.high_limit = set_high_limit;
+#ifdef ENABLE_TREND_RENDERER
+    comm_callbacks.low_limit = trend_set_low_line;
+    comm_callbacks.high_limit = trend_set_high_line;
+#endif
     comm_callbacks.phonebat = set_phone_battery;
     comm_callbacks.slopeval = set_icon;
     comm_callbacks.vibe = set_vibrate;
@@ -3187,20 +3083,6 @@ int mgdl_to_mmoll_str(int mgdl, char *result, const int size, int unit) {
 void set_icon(comm_slopeval value) {
     current_icon = value;
     load_icon();
-}
-
-void set_high_limit(comm_high_limit value) {
-    DEBUG("High line limit: %hd %hd", value.high_line, value.high_limit);
-    t_config.bgl_high_line = value.high_line;
-    t_config.bgl_high_limit = value.high_limit;
-    trend_draw();
-}
-
-void set_low_limit(comm_low_limit value) {
-    DEBUG("Low line limit: %hd %hd", value.low_line, value.low_limit);
-    t_config.bgl_low_line = value.low_line;
-    t_config.bgl_low_limit = value.low_limit;
-    trend_draw();
 }
 
 void set_phone_battery(comm_phonebat value) {
