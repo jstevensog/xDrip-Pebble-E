@@ -65,36 +65,3 @@ void comm_handle(Tuple *data) {
             break;
     }
 }
-
-            /* case CGM_TREND_BEGIN_NEW_KEY: */
-            /*     TRACE("New Trend data begin"); */
-			/* 	expected_trend_buffer_length = data->value->uint16; */
-			/* 	LOG("TREND_BEGIN; About to receive Trend data of %i size.", expected_trend_buffer_length); */
-            /*     t_config.bgl.size = expected_trend_buffer_length; */
-            /*     break; */
-            /* case CGM_TREND_DATA_NEW_KEY: */
-            /*     TRACE("New Trend data blob of size %d", data->length >> 1); */
-            /*     data16 = (int16_t *) data->value->data; */
-            /*     for (int i = 0; i < data->length >> 1; i++) { */
-            /*         #<{(| TRACE("TREND DATA: %d", *data16); |)}># */
-            /*         t_config.bgl.values[t_config.bgl.index % (t_config.bgl.size)] = *data16++; */
-            /*         t_config.bgl.index++; */
-            /*         t_config.bgl.index = t_config.bgl.index % (t_config.bgl.size); */
-            /*     } */
-            /*     #<{(| if (data->length < 100 && t_config.bgl.initialized == 0) t_config.bgl.initialized = 1; |)}># */
-            /*     break; */
-            /* case CGM_TREND_END_NEW_KEY: */
-            /*     TRACE("New Trend data end"); */
-            /*     t_config.bgl.initialized = 1; */
-            /*     // draw trend */
-            /*     trend_draw(); */
-            /*     break; */
-            /* case CGM_TREND_UPDATE_NEW_KEY: */
-            /*     TRACE("New Trend data update: %hd", data->value->int16); */
-            /*     data16 = (int16_t *) data->value->data; */
-            /*     t_config.bgl.values[t_config.bgl.index % (t_config.bgl.size - 1)] = *data16; */
-            /*     t_config.bgl.index++; */
-            /*     t_config.bgl.index = t_config.bgl.index % (t_config.bgl.size - 1); */
-            /*     trend_draw(); */
-            /*     break; */
-            /*  */
