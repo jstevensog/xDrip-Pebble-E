@@ -1,4 +1,5 @@
 #include <pebble.h>
+#include <stdarg.h>
 #include "xdrip.h" // set DEBUG_LEVEL in here or on the pebble build command line
 #include "debug.h" // must be included after xdrip.h
 #include "api/communication.h"
@@ -3084,6 +3085,19 @@ static void deinit_cgm(void)
 	TRACE("DEINIT CODE OUT");
 } // end deinit_cgm
 
+
+/**
+ * Pebble SDK does not support varargs, so we result to simply writing a string
+ */
+int mgdl_to_mmoll_str(int mgdl, char *result, const int size, int unit) {
+    const char *fmt = unit ? "%d.%d mmol/l" : "%d.%d";
+    
+    int val = MGDL_TO_MMOL(mgdl);
+    int dec = MGDL_TO_MMOL_DEC(mgdl);
+    
+    return snprintf(result, size, fmt, val, dec < 0 ? dec * -1 : dec);
+}
+
 #ifdef ENABLE_COMM_FRAMEWORK
 /*
  * Comm framework callback functions
@@ -3119,18 +3133,14 @@ void set_bgl_delta(comm_bgl_delta value) {
         snprintf(current_bg_delta, sizeof(current_bg_delta), "???");
     } else if (value.is_mmol && value.display_units) {
         TRACE("MMOL + Display");
-        int delta_point = MGDL_TO_MMOL_DEC(value.is_neg ? value.value * -1 : value.value);
-        int delta = MGDL_TO_MMOL(value.is_neg ? value.value * -1 : value.value);
-        snprintf(current_bg_delta, sizeof(current_bg_delta), "%d.%d mmol/l", delta, delta_point);
+        mgdl_to_mmoll_str(value.is_neg ? value.value * -1 : value.value, current_bg_delta, sizeof(current_bg_delta), 1);
     } else if (value.display_units && !value.is_mmol) {
         TRACE("MG + Display");
         int16_t delta = value.is_neg ? -1 * value.value : value.value;
         snprintf(current_bg_delta, sizeof(current_bg_delta), "%hd mg/dL", delta);
     } else if (value.is_mmol) {
         TRACE("MMOL");
-        int delta_point = MGDL_TO_MMOL_DEC(value.is_neg ? value.value * -1 : value.value);
-        int delta = MGDL_TO_MMOL(value.is_neg ? value.value * -1 : value.value);
-        snprintf(current_bg_delta, sizeof(current_bg_delta), "%d.%d", delta, delta_point);
+        mgdl_to_mmoll_str(value.is_neg ? value.value * -1 : value.value, current_bg_delta, sizeof(current_bg_delta), 0);
     } else {
         TRACE("MG");
         int16_t delta = value.is_neg ? -1 * value.value : value.value;
