@@ -157,6 +157,20 @@ void set_bgl_value(comm_bgl_value value);
 void set_bgl_data(comm_bgl_data *value); 
 #endif
 
+
+/**
+ * Dirty markers
+ */
+typedef struct {
+    uint32_t delta : 1;     // mark delta layer as dirty and update 
+    uint32_t need_cgm : 1;  // make the heartbeat request delta and slope
+} dirty_markers;
+
+dirty_markers dirty = {
+    .delta = 1,
+    .need_cgm = 1,
+}; // init one 
+
 /**
  * predefines
  */
@@ -1151,6 +1165,7 @@ static void load_bg()
 
 	// set special value alert to false no matter what
 	specvalue_alert = false;
+    dirty.need_cgm = 0;
 
 	INFO("load_bg: last_bg: %s", last_bg);
 
@@ -1176,6 +1191,7 @@ static void load_bg()
 			if (!TurnOff_NOBLUETOOTH_Msg)
 			{
 				text_layer_set_text(delta_layer, "NO BLUETOOTH");
+                
 			} // if turnoff nobluetooth msg
 		}
 		else
@@ -1377,6 +1393,10 @@ static void load_bg_delta()
 //	LOG("BG DELTA FUNCTION START");
 	LOG("load_bg_delta: current_bg_delta is \"%s\"", current_bg_delta);
 
+    if (!dirty.delta) {
+        TRACE("Delta not dirty, not changing");
+        return;
+    }
 
 	// VARIABLES
 	// NOTE: buffers have to be static and hardcoded
@@ -1393,6 +1413,8 @@ static void load_bg_delta()
 		// Bluetooth is out; BT message already set, so return
 		return;
 	}
+
+    dirty.delta = 0; // all next escapes are dirty
 
 	// check for CHECK PHONE condition, if true set message
 	if ((PhoneOffAlert) && (!TurnOff_CHECKPHONE_Msg))
@@ -1468,7 +1490,7 @@ static void load_battlevel()
 
 	// VARIABLES
 	// NOTE: buffers have to be static and hardcoded
-	int current_battlevel = 0;
+	uint32_t current_battlevel = 0;
 	static char battlevel_percent[9];
 
 	// CODE START
@@ -1503,6 +1525,11 @@ static void load_battlevel()
 		return;
 	}
 
+    if (current_battlevel == last_battlevel) {
+        TRACE("Battery level early exit to not mark layers dirty");
+        return;
+    }
+
 	current_battlevel = last_battlevel;
 
 	INFO("load_battlevel: current_battlevel: %i", current_battlevel);
@@ -1518,11 +1545,11 @@ static void load_battlevel()
 
 	// get current battery level and set battery level text with percent
 #ifdef PBL_ROUND
-	snprintf(battlevel_percent, BATTLEVEL_FORMATTED_SIZE, " %i%%", current_battlevel);
+	snprintf(battlevel_percent, BATTLEVEL_FORMATTED_SIZE, " %lu%%", current_battlevel);
 #elif PBL_COLOR
-	snprintf(battlevel_percent, BATTLEVEL_FORMATTED_SIZE, " B:%i%%", current_battlevel);
+	snprintf(battlevel_percent, BATTLEVEL_FORMATTED_SIZE, " B:%lu%%", current_battlevel);
 #else
-	snprintf(battlevel_percent, BATTLEVEL_FORMATTED_SIZE, "B:%i%%", current_battlevel);
+	snprintf(battlevel_percent, BATTLEVEL_FORMATTED_SIZE, "B:%lu%%", current_battlevel);
 #endif
 	LOG("load_battlevel: %s\%", battlevel_percent);
 #ifndef PBL_ROUND
@@ -1625,14 +1652,16 @@ static void send_cmd_cgm(void)
     /* hb.send_pump_state = 1; */
     /* hb.send_pump_battery = 1; */
     
-    // function is called when BGL times out, send data
-    hb.send_slope_arrow = 1;
-    hb.send_delta_value = 1;
+    // function is called when BGL times out, send data if more than 5 mins ago
+    if (dirty.need_cgm) {
+        hb.send_slope_arrow = 1;
+        hb.send_delta_value = 1;
+        dict_write_uint32(iter, FRAMEWORK_BGL_VALUE, current_cgm_time); // request update
+    }
 
     if (bottom_right_metric == METRIC_PHONEBATT || bottom_left_metric == METRIC_PHONEBATT) hb.send_phone_battery = 1;
 
 	dict_write_uint32(iter, FRAMEWORK_HEARTBEAT, hb.raw);
-    dict_write_uint32(iter, FRAMEWORK_BGL_VALUE, current_cgm_time); // request update
 #else
 	comm_trend_size trend_size;
 	LOG("send_cmd_cgm called.");
@@ -2148,37 +2177,22 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 	}
 } // end sync_tuple_changed_callback_cgm()
 
+void reset_timer_callback_cgm(uint32_t timestamp) {
+    if (timer_cgm == NULL || !app_timer_reschedule(timer_cgm, (timestamp - time(NULL)) * MS_IN_A_SECOND)) {
+        timer_cgm = app_timer_register((timestamp - time(NULL)) * MS_IN_A_SECOND, timer_callback_cgm, NULL);
+    }
+}
+
 void timer_callback_cgm(void *data)
 {
-
-	TRACE("timer_callback_cgm: start");
-	// reset msg timer to NULL
-	if (timer_cgm != NULL)
-		{
-			timer_cgm = NULL;
-		}
-	//minutes_cgm tracks the minutes since the last update sent from the pebble.
-	// if it reaches 0, we have not received an update in 6 minutes, so we ask for one.
-	//This limits the number of messages the pebble sends, and therefore improves battery life.
-
-	TRACE("timer_callback_cgm: minutes_cgm: %d", minutes_cgm);
-	if (minutes_cgm == 0)
-		{
-			/* minutes_cgm = 6; */
-			// send message
-			LOG("timer_callback_cgm: minutes_cgm is 0, setting to 6 and invoking send_cmd_cgm.");
-			send_cmd_cgm();
-		}
-	else
-		{
-			minutes_cgm--;
-			load_cgmtime();
-			load_bg_delta();
-		}
-	LOG("timer_callback_cgm: minutes_cgm: %d", minutes_cgm);
 	TRACE("timer_callback_cgm: register timer");
 	// set msg timer
-	timer_cgm = app_timer_register((WATCH_MSGSEND_SECS*MS_IN_A_SECOND), timer_callback_cgm, NULL);
+    if ((long) (current_cgm_time + 360) < time(NULL)) {
+        dirty.need_cgm = 1;
+        send_cmd_cgm();
+        reset_timer_callback_cgm(time(NULL) + WATCH_MSGSEND_SECS);
+        // try again in 60 seconds
+    }
 
 	TRACE("timer_callback_cgm: done");
 
@@ -2269,6 +2283,12 @@ void handle_minute_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
 			text_layer_set_text(date_app_layer, date_app_text);
 		}
 	}
+
+
+    // We wake up every minute anyway and the resolution of all display time items
+    // is 1m except for the clock
+    load_cgmtime();
+    load_bg_delta();
 
 } // end handle_minute_tick_cgm
 
@@ -2827,11 +2847,7 @@ void window_load_cgm(Window *window_cgm)
 	//app_sync_init(&sync_cgm, sync_buffer_cgm, sizeof(sync_buffer_cgm), initial_values_cgm, ARRAY_LENGTH(initial_values_cgm), sync_tuple_changed_callback_cgm, sync_error_callback_cgm, NULL);
 	// init timer to null if needed, and register timer
 	TRACE("window_load_cgm: build done, init timer");
-	if (timer_cgm != NULL)
-	{
-		timer_cgm = NULL;
-	}
-	timer_cgm = app_timer_register((LOADING_MSGSEND_SECS*MS_IN_A_SECOND), timer_callback_cgm, NULL);
+    reset_timer_callback_cgm((time(NULL) + LOADING_MSGSEND_SECS));
 	TRACE("window_load_cgm: timer registered");
 
 } // end window_load_cgm
@@ -3072,7 +3088,12 @@ int mgdl_to_mmoll_str(int mgdl, char *result, const int size, int unit) {
     
     int val = MGDL_TO_MMOL(mgdl);
     int dec = MGDL_TO_MMOL_DEC(mgdl);
-    
+  
+    // fix rounding up
+    if (dec == 10) {
+        val++;
+        dec = 0;
+    }
     return snprintf(result, size, fmt, val, dec < 0 ? dec * -1 : dec);
 }
 
@@ -3109,6 +3130,7 @@ void set_bgl_delta(comm_bgl_delta value) {
         int16_t delta = value.value;
         snprintf(current_bg_delta, sizeof(current_bg_delta), "%hd", delta);
     }
+    dirty.delta = 1;
     load_bg_delta();
 }
 
@@ -3118,7 +3140,7 @@ void set_vibrate(comm_vibe value) {
 
 void set_bgl_timestamp(uint32_t timestamp) {
     current_cgm_time = timestamp;
-    minutes_cgm = 5; 
+    reset_timer_callback_cgm(timestamp + (60 * 6));
     load_cgmtime();
 }
 
@@ -3136,8 +3158,10 @@ void set_bgl_value(comm_bgl_value value) {
  */
 void set_bgl_data(comm_bgl_data *value) {
     if (value->timestamp - current_cgm_time > 360) {
+        dirty.need_cgm;
+        send_cmd_cgm();
         // we likely missed a value, set minutes timer to zero and wait for global udpate
-        minutes_cgm = 0;
+        reset_timer_callback_cgm(value->timestamp + (60 * 6));
     } else {
         set_bgl_timestamp(value->timestamp);
         set_bgl_value(value->bgl);
