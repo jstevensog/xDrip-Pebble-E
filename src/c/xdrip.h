@@ -31,6 +31,15 @@ Make sure you udefine this before building a release.
 #define ENABLE_COMM_FRAMEWORK
 #define ENABLE_TREND_RENDERER
 
+
+/**
+ * feature flag guards
+ */
+#if ! defined(PBL_COLOR)
+#undef ENABLE_TREND_RENDERER
+#undef ENABLE_COMM_FRAMEWORK
+#endif
+
 /** 
  * Face name
  */
@@ -150,6 +159,7 @@ void sync_error_callback_cgm(DictionaryResult appsync_dict_error, AppMessageResu
 time_t get_UTC_offset(struct tm *t);
 //updates the display colours when they are changed in settings
 void updateColours();
+void reset_timer_callback_cgm(int32_t seconds);
 
 //Health and Metric Display functions
 #ifdef PBL_HEALTH
