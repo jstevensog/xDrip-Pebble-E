@@ -18,6 +18,8 @@ AppSync sync_cgm;
 static bool handling_second = false;
 static bool doing_trend = false;
 static bool global_lock = false;
+static bool use_png = false;
+
 //#ifdef PBL_PLATFORM_BASALT
 uint8_t *trend_buffer = NULL;
 static uint16_t trend_buffer_length = 0;
@@ -44,6 +46,8 @@ static uint32_t last_battlevel = 100;
 static uint32_t current_cgm_time = 0;
 static uint32_t current_app_time = 0;
 static char current_bg_delta[14];
+static int current_step_count = 0;
+static int current_hbm = 0;
 
 // global BG snooze timer
 static uint8_t lastAlertTime = 0;
@@ -103,11 +107,7 @@ TextLayer *date_app_layer = NULL;
 
 // bitmap layer definitions
 BitmapLayer *icon_layer = NULL;
-#ifdef ENABLE_TREND_RENDERER
-Layer *bg_trend_layer = NULL;
-#else
 BitmapLayer *bg_trend_layer = NULL;
-#endif
 BitmapLayer *upper_face_layer = NULL;
 BitmapLayer *lower_face_layer = NULL;
 
@@ -123,9 +123,7 @@ static GColor bg_colour;
 GBitmap *icon_bitmap = NULL;
 GBitmap *appicon_bitmap = NULL;
 GBitmap *specialvalue_bitmap = NULL;
-#ifndef ENABLE_TREND_RENDERER
 GBitmap *bg_trend_bitmap = NULL;
-#endif
 
 static char time_watch_format[9] = TIME_24H_FORMAT;
 static char time_watch_text[] = "00:00:00";
@@ -161,6 +159,7 @@ void set_bgl_delta(comm_bgl_delta value);
 void set_bgl_timestamp(uint32_t timestamp); 
 void set_bgl_value(comm_bgl_value value);
 void set_bgl_data(comm_bgl_data *value); 
+void set_png(comm_png_data data);
 #endif
 
 
@@ -170,11 +169,15 @@ void set_bgl_data(comm_bgl_data *value);
 typedef struct {
     uint32_t delta : 1;     // mark delta layer as dirty and update 
     uint32_t need_cgm : 1;  // make the heartbeat request delta and slope
+    uint32_t step_count : 1;
+    uint32_t hbm : 1;
 } dirty_markers;
 
 dirty_markers dirty = {
     .delta = 1,
     .need_cgm = 1,
+    .step_count = 0,
+    .hbm = 1,
 }; // init one 
 
 /**
@@ -261,45 +264,6 @@ int myAtoi(char *str)
 	INFO("MYATOI, FINAL RESULT OUT: %i", res );
 	return res;
 } // end myAtoi
-
-
-int myBGAtoi(char *str)
-{
-
-	// VARIABLES
-	int res = 0; // Initialize result
-
-	// CODE START
-
-	// If we have the "???" special value, return 0
-	if (strcmp(str, "???") == 0) return res;
-	if (strcmp(str, "LOW") == 0) return 13;
-	if (strcmp(str, "HIGH") == 0) return 410;
-
-	// initialize currentBG_isMMOL flag
-	currentBG_isMMOL = false;
-	LOG("myBGAtoi, START str is MMOL: %s", str );
-	// Iterate through all characters of input string and update result
-	for (int i = 0; str[i] != '\0'; ++i)
-	{
-		DEBUG("myBGAtoi, STRING IN: %s", &str[i] );
-		if (str[i] == ('.')||str[i] == (','))
-		{
-			currentBG_isMMOL = true;
-		}
-		else if ( (str[i] >= ('0')) && (str[i] <= ('9')) )
-		{
-			res = res*10 + str[i] - '0';
-		}
-
-		TRACE("myBGAtoi, FOR RESULT OUT: %i", res );
-	}
-
-	INFO("myBGAtoi, currentBG is MMOL: %i", currentBG_isMMOL );
-	INFO("myBGAtoi, FINAL RESULT OUT: %i", res );
-
-	return res;
-} // end myBGAtoi
 
 static void destroy_null_GBitmap(GBitmap **GBmp_image)
 {
@@ -425,22 +389,28 @@ static void update_health_metric_displays() {
 		time_t end = time(NULL);
 
 		// Check the metric has data available for today
-		HealthServiceAccessibilityMask mask = health_service_metric_accessible(metric,start, end);
+		HealthServiceAccessibilityMask mask = health_service_metric_accessible(metric, start, end);
 
 		if(mask & HealthServiceAccessibilityMaskAvailable) {
 			// Data is available!
 			step_count = health_service_sum_today(metric);
-  			LOG("Steps today: %d", step_count);
-			snprintf(step_count_text,8, "%i s", step_count);
+            if (step_count != current_step_count)  {
+                dirty.step_count = 1;
+                current_step_count = step_count;
+                LOG("Steps today: %d", step_count);
+                snprintf(step_count_text,8, "%i s", step_count);
+            }
 		} else {
 			// No data recorded yet today
 			LOG("Data unavailable!");
 		}
-		if(bottom_left_metric == METRIC_STEPS) {
+		if(bottom_left_metric == METRIC_STEPS && dirty.step_count) {
 		 	text_layer_set_text(bottom_left_text_layer, step_count_text);
+            dirty.step_count = 0;
 		}
-		if(bottom_right_metric == METRIC_STEPS) {
-		 	 text_layer_set_text(bottom_right_text_layer, step_count_text);
+		if(bottom_right_metric == METRIC_STEPS && dirty.step_count) {
+		    text_layer_set_text(bottom_right_text_layer, step_count_text);
+            dirty.step_count = 0;
 		}
 	}	
 #if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_FLINT) || defined(PBL_PLATFORM_GABBRO)
@@ -451,21 +421,21 @@ static void update_health_metric_displays() {
 		if (hr & HealthServiceAccessibilityMaskAvailable) {
 			val = health_service_peek_current_value(HealthMetricHeartRateBPM);
 			LOG("Heart Rate data is \"%lu\"", (uint32_t)val);
-			if(val > 0) {
+			if(val > 0 && val != current_hbm) {
 				// Display HRM value
-//				snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "%lu BPM", (uint32_t)val);
+                current_hbm = val;
+                dirty.hbm = 1;
 				snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "%lu \U0001F493", (uint32_t)val);
 			}
-		}
-		else {
+		} else if (current_hbm == 0 && dirty.hbm) {
 			snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "Wait.. \U0001F493");
 		}
-		if(bottom_left_metric == METRIC_HEARTRATE) {
-			LOG("Setting bottom left metric to \"%lu\"", (uint32_t)val);
+		if(bottom_left_metric == METRIC_HEARTRATE && dirty.hbm) {
+			DEBUG("Setting bottom left metric to \"%lu\"", (uint32_t)val);
 			text_layer_set_text(bottom_left_text_layer, s_hrm_buffer);
 		}
-		if(bottom_right_metric == METRIC_HEARTRATE) {
-			LOG("Setting bottom right metric to \"%lu\"", (uint32_t)val);
+		if(bottom_right_metric == METRIC_HEARTRATE && dirty.hbm) {
+			DEBUG("Setting bottom right metric to \"%lu\"", (uint32_t)val);
 			text_layer_set_text(bottom_right_text_layer, s_hrm_buffer);
 		}
 	}
@@ -481,7 +451,6 @@ static void battery_handler(BatteryChargeState charge_state)
 	static char watch_battlevel_percent[9];
 	// If there are no battery level metric display elements, exit
 	if(bottom_left_metric != METRIC_WATCHBATT && bottom_right_metric != METRIC_WATCHBATT) {
-		//LOG(" battery_handler: no watch battery metrics set.  Exiting.");
 		return;
 	}
 
@@ -516,11 +485,8 @@ static void battery_handler(BatteryChargeState charge_state)
 	{
 		LOG("Charging.  BacklightOnCharge:%u", BacklightOnCharge);
 		if(bottom_left_metric == METRIC_WATCHBATT) {
-//			LOG("Charging.  Processing bottom_left_text_layer:");
 #ifdef PBL_COLOR
 			TRACE("COLOR DETECTED");
-//			text_layer_set_text_color(bottom_left_text_layer, GColorDukeBlue);
-//			text_layer_set_background_color(bottom_left_text_layer, GColorGreen);
 			text_layer_set_text_color(bottom_left_text_layer, bg_colour);
 			text_layer_set_background_color(bottom_left_text_layer, GColorGreen);
 #else
@@ -530,11 +496,8 @@ static void battery_handler(BatteryChargeState charge_state)
 #endif
 		}
 		if(bottom_right_metric == METRIC_WATCHBATT) {
-//			LOG("Charging.  Processing bottom_right_text_layer:");
 #ifdef PBL_COLOR
 			TRACE("COLOR DETECTED");
-//			text_layer_set_text_color(bottom_right_text_layer, GColorDukeBlue);
-//			text_layer_set_background_color(bottom_right_text_layer, GColorGreen);
 			text_layer_set_text_color(bottom_right_text_layer, bg_colour);
 			text_layer_set_background_color(bottom_right_text_layer, GColorGreen);
 #else
@@ -554,12 +517,10 @@ static void battery_handler(BatteryChargeState charge_state)
 			TRACE("battery_handler: BATTERY > 40");
 			if(bottom_left_metric == METRIC_WATCHBATT) {
 				LOG("battery_handler: >40%% bottom_left_text_layer: GColorGreen");
-//				text_layer_set_text_color(bottom_left_text_layer, GColorGreen);
 				text_layer_set_text_color(bottom_left_text_layer, fg_colour);
 			}
 			if(bottom_right_metric == METRIC_WATCHBATT) {
 				LOG("battery_handler: >40%% bottom_right_text_layer: GColorGreen");
-//				text_layer_set_text_color(bottom_right_text_layer, GColorGreen);
 				text_layer_set_text_color(bottom_right_text_layer, fg_colour);
 			}
 		}
@@ -1351,13 +1312,10 @@ static void load_cgmtime()
 			time_now = abs(time_now + get_UTC_offset(localtime(&time_now)));
 		}
 #endif
-//		TRACE("load_cgmtime:  CURRENT CGM TIME: %lu", current_cgm_time);
 		LOG("load_cgmtime:  time_now: %lu, current_cgm_time: %lu", time_now, current_cgm_time);
 
 		//current_cgm_timeago = abs(time_now - current_cgm_time);
 		current_cgm_timeago = (time_now - current_cgm_time);
-
-//		TRACE("LOAD CGMTIME, CURRENT CGM TIMEAGO: %lu", current_cgm_timeago);
 
 		TRACE("load_cgmtime: cgm_label_buffer: %s, current_cgm_timeago\"%lu\"", cgm_label_buffer);
 
@@ -1402,7 +1360,6 @@ static void load_cgmtime()
 
 static void load_bg_delta()
 {
-//	LOG("BG DELTA FUNCTION START");
 	LOG("load_bg_delta: current_bg_delta is \"%s\"", current_bg_delta);
 
     if (!dirty.delta) {
@@ -1412,7 +1369,6 @@ static void load_bg_delta()
 
 	// VARIABLES
 	// NOTE: buffers have to be static and hardcoded
-	//static char delta_label_buffer[BGDELTA_LABEL_SIZE];
 	static char formatted_bg_delta[BGDELTA_FORMATTED_SIZE];
 
 	// CODE START
@@ -1639,8 +1595,6 @@ static void send_cmd_cgm(void)
 		LOG("send_cmd_cgm: ERR CODE: %i RES: %s", sendcmd_openerr, translate_app_error(sendcmd_openerr));
 		return;
 	}
-#ifdef ENABLE_COMM_FRAMEWORK
-
     comm_heartbeat hb;
     hb.raw = 0; // reset
 
@@ -1650,11 +1604,15 @@ static void send_cmd_cgm(void)
     hb.colour = 0;
 #endif
 
-    hb.time_period = 3; // has no effect as the xdrip value will be used
-    hb.time_series = 1;
+    hb.time_series = use_png ? 0 : 1;
+#ifdef PBL_PLATFORM_GABBRO
+    hb.time_period = 1;
+#else
+    hb.time_period = 3;
+#endif
 
     // trend values
-    if (!trend_isinitialized()) { 
+    if (!trend_isinitialized() && !use_png) { 
         hb.high_limit = 1;
         hb.low_limit = 1;
     }
@@ -1663,40 +1621,20 @@ static void send_cmd_cgm(void)
     /* hb.send_iob = 1; */
     /* hb.send_pump_state = 1; */
     /* hb.send_pump_battery = 1; */
-    
+   
     // function is called when BGL times out, send data if more than 5 mins ago
     if (dirty.need_cgm) {
         hb.send_slope_arrow = 1;
         hb.send_delta_value = 1;
         dict_write_uint32(iter, FRAMEWORK_BGL_VALUE, current_cgm_time); // request update
+        if (use_png) {
+            comm_request_png(iter, layer_get_bounds(bitmap_layer_get_layer(bg_trend_layer)));
+        }
     }
 
     if (bottom_right_metric == METRIC_PHONEBATT || bottom_left_metric == METRIC_PHONEBATT) hb.send_phone_battery = 1;
 
 	dict_write_uint32(iter, FRAMEWORK_HEARTBEAT, hb.raw);
-#else
-	comm_trend_size trend_size;
-	LOG("send_cmd_cgm called.");
-
-    trend_size.raw = 0;
-	//set up the trend size and colour depth to send.  Note: Gabbro requires PNG8/64 colours, so we set the MSbit to true for that platform.
-    trend_size.width = PBL_DISPLAY_WIDTH;
-    trend_size.height = TREND_HEIGHT;
-#ifdef PBL_PLATFORM_GABBRO
-	trend_size.rgb8 = 1; 
-#endif
-
-	LOG("send_cmd_cgm: Creating Dictionary.");
-
-	dict_write_uint32(iter, CGM_SYNC_KEY, CGM_SYNC_KEY);
-	dict_write_uint8(iter, PBL_PLATFORM, (uint8_t) PLATFORM);
-	dict_write_cstring(iter, PBL_APP_VER, FACE_VERSION);
-// Set the trend size to send to xDrip+.  See xdrip.h
-	dict_write_uint32(iter, PBL_TREND_SIZE, trend_size.raw);
-	dict_write_end(iter);
-
-
-#endif
 
 	TRACE("send_cmd_cgm: Opening outbox");
 	sendcmd_senderr = app_message_outbox_send();
@@ -1760,55 +1698,6 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 		LOG("inbox_received_handler_cgm: key is %lu", data->key);
 		switch (data->key)
 		{
-
-			case CGM_ICON_KEY:
-			;
-				LOG("SYNC TUPLE: ICON ARROW");
-				TRACE("Current icon: %lu", current_icon);
-				/* char *strend = NULL; */
-				//current_icon = strtol(data->value->cstring, &strend, 10);
-				current_icon = atoi(data->value->cstring);
-				TRACE("New icon: %lu", current_icon);
-				TRACE("String: %s", data->value->cstring);
-				load_icon();
-			break; // break for CGM_ICON_KEY
-
-			case CGM_BG_KEY:
-			;
-				LOG("SYNC TUPLE: BG CURRENT");
-				strncpy(last_bg, data->value->cstring, BG_MSGSTR_SIZE);
-				load_bg();
-			break; // break for CGM_BG_KEY
-
-			case CGM_TCGM_KEY:
-			;
-				LOG("SYNC TUPLE: READ CGM TIME");
-				current_cgm_time = data->value->uint32;
-				load_cgmtime();
-				// as long as current_cgm_time is not zero, we know we have gotten an update from the app,
-				// so we reset minutes_cgm to 6, so the pebble doesn't request another one.
-				if (current_cgm_time != 0)
-				{
-					minutes_cgm = 6;
-				}
-			break; // break for CGM_TCGM_KEY
-
-			case CGM_DLTA_KEY:
-			;
-				strncpy(current_bg_delta, data->value->cstring, BGDELTA_MSGSTR_SIZE);
-				LOG("SYNC TUPLE: BG DELTA - %s", current_bg_delta);
-				load_bg_delta();
-			break; // break for CGM_DLTA_KEY
-
-			case CGM_UBAT_KEY:
-			;
-				LOG("SYNC TUPLE: UPLOADER BATTERY LEVEL");
-//				TRACE("SYNC TUPLE: BATTERY LEVEL IN, COPY LAST BATTLEVEL");
-				last_battlevel = atoi(data->value->cstring);
-//				TRACE("SYNC TUPLE: BATTERY LEVEL, CALL LOAD BATTLEVEL");
-				load_battlevel();
-				TRACE("SYNC TUPLE: BATTERY LEVEL OUT");
-			break; // break for CGM_UBAT_KEY
 
 
 			case CGM_TREND_BEGIN_KEY:
@@ -1931,19 +1820,6 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 				
 			break;
 
-			case CGM_VIBE_KEY:
-				LOG("Got Vibe Key, message is \"%u\"", data->value->uint8);
-				if((data->value->uint8 <4) && ! BluetoothAlert)
-				{
-					alert_handler_cgm(data->value->uint8);
-				}
-			break;
-
-			case CGM_SYNC_KEY:
-				LOG("Got Sync Key, message is \"%u\"", data->value->uint8);
-				send_cmd_cgm();
-			break;
-			
 			case SET_SAMECOLOUR:
 				LOG("Got SET_SAMECOLOUR Key, message is \"%u\"", data->value->uint8);
 				SameColourTopAndBottom = data->value->uint8;
@@ -2150,6 +2026,19 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 			break;
 #pragma GCC diagnostic pop
 
+            case SET_USE_PNG:
+                LOG("Switching PNG settings");
+                use_png = data->value->int8 != 0;
+                DEBUG("PNG set to %d %d", use_png, data->value->int32);
+                persist_write_bool(SET_USE_PNG, use_png);
+                // reinit
+                if (!use_png) trend_init(bitmap_layer_get_layer(bg_trend_layer));
+                else trend_deinit();
+                // reset
+                dirty.need_cgm = 1;
+                current_cgm_time = 0; // force update all
+                reset_timer_callback_cgm(2);
+                break;
             /**
              * trend config colors
              */
@@ -2185,6 +2074,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
             case FRAMEWORK_BGL_VALUE:
             case FRAMEWORK_BGL_SERIES:
             case FRAMEWORK_BGL_DELTA:
+            case FRAMEWORK_PNG_IMAGE:
 #ifdef ENABLE_COMM_FRAMEWORK
                 comm_handle(data);
 #endif
@@ -2218,7 +2108,7 @@ void timer_callback_cgm(void *data)
         dirty.need_cgm = 1;
         send_cmd_cgm();
         // try again in 60 seconds until we get something
-        reset_timer_callback_cgm(WATCH_MSGSEND_SECS);
+        reset_timer_callback_cgm(60);
     } else {
         // schedule normal checkup for 6 minutes from now
         reset_timer_callback_cgm(360);
@@ -2423,12 +2313,8 @@ void window_load_cgm(Window *window_cgm)
 	// icon layer dimensions
 	icon_layer = bitmap_layer_create(GRect(85, -7, 78, 51));
 	// trend bitmap layer dimensions
-#ifdef ENABLE_TREND_RENDERER
-	bg_trend_layer = layer_create(GRect(0,24,144,64));
-#else
 	bg_trend_layer = bitmap_layer_create(GRect(0,24,144,64));
 	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
-#endif
 	// delta layer dimensions
 	delta_layer = text_layer_create(GRect(0, 58, 143, 50));
 	text_layer_set_text_alignment(delta_layer, GTextAlignmentRight);
@@ -2468,12 +2354,8 @@ void window_load_cgm(Window *window_cgm)
 	icon_layer = bitmap_layer_create(GRect(85, -9, 78, 49));
 	bitmap_layer_set_compositing_mode(icon_layer, GCompOpSet);
 	// trend bitmap layer dimensions and composition mode
-#ifdef ENABLE_TREND_RENDERER
-	bg_trend_layer = layer_create(GRect(0,0,144,84));
-#else
 	bg_trend_layer = bitmap_layer_create(GRect(0,0,144,84));
 	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
-#endif
 	// delta layer dimensions
 	delta_layer = text_layer_create(GRect(0, 58, 143, 50));
 	layer_set_bounds((Layer *) delta_layer, GRect(0, -2, 143, 50)); // fixes bounding box with latest sdk
@@ -2518,12 +2400,8 @@ void window_load_cgm(Window *window_cgm)
 	icon_layer = bitmap_layer_create(GRect(120, 30, 78, 50));
 	bitmap_layer_set_compositing_mode(icon_layer, GCompOpSet);
 	// trend bitmap layer dimensions and composition mode
-#ifdef ENABLE_TREND_RENDERER
-	bg_trend_layer = layer_create(GRect(0,0,144,84));
-#else
 	bg_trend_layer = bitmap_layer_create(GRect(0,0,144,84));
 	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
-#endif
 	// delta layer dimensions
 	delta_layer = text_layer_create(GRect(0, 36, 180, 50));
 	text_layer_set_text_alignment(delta_layer, GTextAlignmentCenter);
@@ -2562,12 +2440,8 @@ void window_load_cgm(Window *window_cgm)
 	// icon layer dimensions
 	icon_layer = bitmap_layer_create(GRect(85, -7, 78, 51));
 	// trend bitmap layer dimensions
-#ifdef ENABLE_TREND_RENDERER
-	bg_trend_layer = layer_create(GRect(0,24,144,64));
-#else
 	bg_trend_layer = bitmap_layer_create(GRect(0,24,144,64));
 	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
-#endif
 	// delta layer dimensions
 	delta_layer = text_layer_create(GRect(0, 58, 143, 50));
 	text_layer_set_text_alignment(delta_layer, GTextAlignmentRight);
@@ -2597,9 +2471,6 @@ void window_load_cgm(Window *window_cgm)
 //EMERY (CORE TIME 2)
 #ifdef PBL_PLATFORM_EMERY
 	LOG("window_load_cgm: Detected Emery");
-	//monochrome colours
-	//static GColor8 fg_colour;
-	//static GColor8 bg_colour;
 	//upper and lower face layer dimensions
 	upper_face_layer = bitmap_layer_create(GRect(0,0,200,114));
 	lower_face_layer = bitmap_layer_create(GRect(0,115,200,228));
@@ -2607,12 +2478,8 @@ void window_load_cgm(Window *window_cgm)
 	icon_layer = bitmap_layer_create(GRect(146, -9, 78, 49));
 	bitmap_layer_set_compositing_mode(icon_layer, GCompOpSet);
 	// trend bitmap layer dimensions and composition mode
-#ifdef ENABLE_TREND_RENDERER
-	bg_trend_layer = layer_create(GRect(0,0,200,114));
-#else
 	bg_trend_layer = bitmap_layer_create(GRect(0,0,200,114));
 	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
-#endif
 	// delta layer dimensions
 	delta_layer = text_layer_create(GRect(2, 78, 198, 50));
 	text_layer_set_text_alignment(delta_layer, GTextAlignmentLeft);
@@ -2659,12 +2526,8 @@ void window_load_cgm(Window *window_cgm)
 	// icon layer dimensions
 	icon_layer = bitmap_layer_create(GRect(85, -7, 78, 51));
 	// trend bitmap layer dimensions
-#ifdef ENABLE_TREND_RENDERER
-	bg_trend_layer = layer_create(GRect(0,24,144,64));
-#else
 	bg_trend_layer = bitmap_layer_create(GRect(0,24,144,64));
 	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
-#endif
 	// delta layer dimensions
 	delta_layer = text_layer_create(GRect(0, 58, 143, 50));
 	text_layer_set_text_alignment(delta_layer, GTextAlignmentLeft);
@@ -2706,12 +2569,8 @@ void window_load_cgm(Window *window_cgm)
 	icon_layer = bitmap_layer_create(GRect(173,  43, 112,  72));
 	bitmap_layer_set_compositing_mode(icon_layer, GCompOpSet);
 	// trend bitmap layer dimensions and composition mode
-#ifdef ENABLE_TREND_RENDERER
-	bg_trend_layer = layer_create(GRect(0,0,207,121));
-#else
-	bg_trend_layer = bitmap_layer_create(GRect(  0,   0, 207, 121));
+	bg_trend_layer = bitmap_layer_create(GRect(  0,   0, 260, 121));
 	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
-#endif
 	// delta layer dimensions
 	delta_layer = text_layer_create(GRect(  0,  52, 260,  72));
 	text_layer_set_text_alignment(delta_layer, GTextAlignmentCenter);
@@ -2792,20 +2651,13 @@ void window_load_cgm(Window *window_cgm)
 	text_layer_set_font(message_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28));
 	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
 #endif
-#ifdef PBL_COLOR
-#ifdef ENABLE_TREND_RENDERER
-	layer_add_child(window_layer_cgm, bg_trend_layer);
-#else
+
 	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(bg_trend_layer));
-#endif
-#else
-	layer_set_update_proc(bitmap_layer_get_layer(bg_trend_layer),bitmapLayerUpdate);
-#endif
 
 	// ARROW OR SPECIAL VALUE
 	LOG("Creating Arrow Bitmap layer");
-#ifdef ENABLE_TREND_RENDERER
-	layer_add_child(bg_trend_layer, bitmap_layer_get_layer(icon_layer));
+#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_GABBRO)
+	layer_add_child(bitmap_layer_get_layer(bg_trend_layer), bitmap_layer_get_layer(icon_layer));
 #else
 	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(icon_layer));
 #endif
@@ -2840,16 +2692,8 @@ void window_load_cgm(Window *window_cgm)
 
 	// CGM TIME AGO READING
 	LOG("Creating CGM Time Ago Bitmap layer");
-//if it is not for a COLOR platform, it is monochrome
-	//text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentRight);
-	//text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentCenter);
 	layer_add_child(window_layer_cgm, text_layer_get_layer(cgmtime_layer));
 
-// if this is not COLOR platform, it is monochrome.
-#ifndef PBL_COLOR
-	// top layer on pebble classic
-	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(bg_trend_layer));
-#endif
 
 	// CURRENT ACTUAL TIME FROM WATCH
 	LOG("Creating Watch Time Text layer");
@@ -2902,6 +2746,9 @@ void window_load_cgm(Window *window_cgm)
 	load_cgmtime();
 	current_app_time = 0;
 	snprintf(current_bg_delta, BGDELTA_MSGSTR_SIZE, "LOAD");
+//if it is not for a COLOR platform, it is monochrome
+	//text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentRight);
+	//text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentCenter);
 #ifdef TEST_MODE
 	snprintf(current_bg_delta, BGDELTA_MSGSTR_SIZE, "+0.08");
 #endif
@@ -2912,10 +2759,8 @@ void window_load_cgm(Window *window_cgm)
 #endif
 	load_battlevel();
 
-#ifdef ENABLE_TREND_RENDERER
     // default config
-    trend_init(bg_trend_layer);
-#endif
+    if (!use_png) trend_init(bitmap_layer_get_layer(bg_trend_layer));
 
 //	TRACE("WINDOW LOAD, ABOUT TO CALL APP SYNC INIT");
 	//app_sync_init(&sync_cgm, sync_buffer_cgm, sizeof(sync_buffer_cgm), initial_values_cgm, ARRAY_LENGTH(initial_values_cgm), sync_tuple_changed_callback_cgm, sync_error_callback_cgm, NULL);
@@ -2936,12 +2781,8 @@ void window_unload_cgm(Window *window_cgm)
 	app_sync_deinit(&sync_cgm);
 
 	//destroy the trend bitmap and layer
-#ifdef ENABLE_TREND_RENDERER
-	if(bg_trend_layer != NULL) layer_destroy(bg_trend_layer);
-#else
 	if(bg_trend_bitmap != NULL) destroy_null_GBitmap(&bg_trend_bitmap);
 	if(bg_trend_layer != NULL) destroy_null_BitmapLayer(&bg_trend_layer);
-#endif
 	TRACE("window_unload_cgm: destroy existing GBitmaps");
 	if(icon_bitmap != NULL) destroy_null_GBitmap(&icon_bitmap);
 	if(appicon_bitmap != NULL) destroy_null_GBitmap(&appicon_bitmap);
@@ -2970,8 +2811,7 @@ void window_unload_cgm(Window *window_cgm)
 static void init_cgm(void)
 {
 	LOG("init_cgm");
-	//if(persist_exists(SET_BOTTOM_LEFT_TEXT)) persist_delete(SET_BOTTOM_LEFT_TEXT);
-	//if(persist_exists(SET_BOTTOM_RIGHT_TEXT)) persist_delete(SET_BOTTOM_RIGHT_TEXT);
+    use_png = persist_exists(SET_USE_PNG) ? persist_read_bool(SET_USE_PNG) : false;
 	//Load persistent settings
 	display_seconds = persist_exists(SET_DISP_SECS)? persist_read_bool(SET_DISP_SECS) : false;
 	LOG("init_cgm: display_seccongs \"%u\".", display_seconds);
@@ -3102,6 +2942,7 @@ static void init_cgm(void)
     comm_callbacks.bgl_data = set_bgl_data;
     comm_callbacks.bgl_timestamp = set_bgl_timestamp;
     comm_callbacks.bgl_value = set_bgl_value;
+    comm_callbacks.png = set_png;
     comm_init(&comm_callbacks);
 #endif
 
@@ -3221,12 +3062,14 @@ void set_vibrate(comm_vibe value) {
 }
 
 void set_bgl_timestamp(uint32_t timestamp) {
+    TRACE("Set BGL Timestamp");
     current_cgm_time = timestamp;
     reset_timer_callback_cgm((timestamp - time(NULL)) + (60 * 6));
     load_cgmtime();
 }
 
 void set_bgl_value(comm_bgl_value value) {
+    TRACE("Set BGL Value");
     if (value.is_mmol) {
         mgdl_to_mmoll_str(value.value, last_bg, sizeof(last_bg), 0);
     } else {
@@ -3239,21 +3082,45 @@ void set_bgl_value(comm_bgl_value value) {
  * update bgl values and timestamp
  */
 void set_bgl_data(comm_bgl_data *value) {
-    if (value->timestamp - current_cgm_time > 360) {
-        dirty.need_cgm = 1;
-        send_cmd_cgm();
-        // we likely missed a value, set minutes timer to zero and wait for global udpate
-        reset_timer_callback_cgm((value->timestamp - time(NULL)) + (60 * 6));
+    TRACE("Set BGL Data");
+    if (value->timestamp != current_cgm_time) {
+        set_bgl_timestamp(value->timestamp);
+        set_bgl_value(value->bgl);
+        if (value->timestamp - current_cgm_time > 360) {
+            dirty.need_cgm = 1;
+            // we likely missed a value, set minutes timer to zero and wait for global udpate
+            reset_timer_callback_cgm((value->timestamp - time(NULL)) + (60));
+        } else if (!use_png) trend_set_value(value);
     } else {
-        if (value->timestamp != current_cgm_time) {
-            set_bgl_timestamp(value->timestamp);
-            set_bgl_value(value->bgl);
-            trend_set_value(value);
-        } else {
-            WARNING("Received same bgl value twice!");
-        }
-
+        WARNING("Received same bgl value twice!");
     }
+
+}
+
+/**
+ * Since all data is in flight and copied by the Bitmap creation we 
+ * do not have to copy it
+ */
+void set_png(comm_png_data data) {
+    TRACE("Setting PNG");
+    if(bg_trend_bitmap != NULL)
+    {
+        INFO("Destroying bg_trend_bitmap");
+        gbitmap_destroy(bg_trend_bitmap);
+        bg_trend_bitmap = NULL;
+    }
+
+    bg_trend_bitmap = gbitmap_create_from_png_data(data.data, data.length);
+    if(bg_trend_bitmap != NULL)
+    {
+        LOG("bg_trend_bitmap created, setting to layer");
+        bitmap_layer_set_bitmap(bg_trend_layer, bg_trend_bitmap);
+    }
+    else
+    {
+        WARNING("bg_trend_bitmap creation FAILED!");
+    }
+    dirty.need_cgm = 0;
 }
 #endif
 

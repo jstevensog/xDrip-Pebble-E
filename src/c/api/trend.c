@@ -58,6 +58,12 @@ void trend_init(Layer *layer) {
     layer_set_update_proc((Layer *) config.layer, trend_layer_callback);
 }
 
+void trend_deinit(void) {
+    if (config.layer != NULL) layer_set_update_proc(config.layer, NULL); // discard
+    config.layer = NULL;
+    config.bgl.initialized = 0;
+}
+
 
 static inline void draw_bgl_point(trend_bgl_value value, int16_t x, GRect bounds, GContext *ctx) {
     /**
@@ -258,7 +264,7 @@ void trend_layer_callback(Layer *layer, GContext *ctx) {
 void trend_draw(void) {
     DEBUG(TREND_LOG "Marking trend layer dirty");
     config.redraw = 1;
-    layer_mark_dirty(config.layer);
+    if (config.layer != NULL) layer_mark_dirty(config.layer);
 }
 
 

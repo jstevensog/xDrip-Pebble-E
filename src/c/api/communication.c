@@ -60,8 +60,29 @@ void comm_handle(Tuple *data) {
             if (cb->bgl_timestamp != NULL) cb->bgl_timestamp(series->timestamp);
             if (cb->bgl_value != NULL) cb->bgl_value(series->bgl_values[series->length - 1]);
             break;
+        case FRAMEWORK_PNG_IMAGE:
+            TRACE(CM "PNG image data");
+            comm_png_data pngdata = {
+                .length = data->length,
+                .data = data->value->data
+            };
+            if (cb->png != NULL) cb->png(pngdata);
+            break;
         default:
             WARNING(CM "id %ld not handled by communications framework", key);
             break;
     }
+}
+
+void comm_request_png(DictionaryIterator *iter, GRect bounds) {
+    TRACE(CM "Sending PNG Request");
+    comm_trend_size ts;
+
+    ts.width = bounds.size.w;
+    ts.height = bounds.size.h;
+
+#ifdef PBL_PLATFORM_GABBRO
+    ts.rgb8 = 1;
+#endif
+    dict_write_uint32(iter, FRAMEWORK_PNG_IMAGE, ts.raw);
 }

@@ -17,6 +17,7 @@
 #define FRAMEWORK_VIBE              2007
 #define FRAMEWORK_SLOPEVAL          2008 
 #define FRAMEWORK_BGL_SERIES        2009
+#define FRAMEWORK_PNG_IMAGE         2010
 
 /**
  * Struct definitions for communication
@@ -28,17 +29,10 @@
  */
 typedef union comm_trend_size_t {
     struct {
-        union {
-            struct {
-                uint32_t height : 8;    // Height value of PNG
-                uint32_t width : 8;     // Width value of PNG
-                uint32_t : 8;
-            };
-            uint32_t size : 24;         // Alternative size
-        };
+        uint32_t width : 14;
+        uint32_t height : 14;
+        uint32_t : 3;
         uint32_t rgb8 : 1;              // Send RGB8 png
-        uint32_t data_only : 1;         // Send trend series instead of PNG
-        uint32_t : 6;                   // RFU
     };
     uint32_t raw;                       // Data Blob
 } comm_trend_size;
@@ -127,6 +121,10 @@ typedef union {
 } comm_low_limit;
 typedef uint8_t comm_vibe;
 typedef uint8_t comm_slopeval;
+typedef struct {
+    uint16_t length;
+    uint8_t  *data;
+} comm_png_data;
 
 #pragma pack()
 
@@ -144,9 +142,11 @@ typedef struct comm_callback_t {
     void (*bgl_delta)(comm_bgl_delta value);
     void (*bgl_value)(comm_bgl_value value);
     void (*bgl_timestamp)(uint32_t timestamp);
+    void (*png)(comm_png_data data);
 } comm_callback;
 
 
 void comm_init(comm_callback *cb);
 void comm_handle(Tuple *data);
+void comm_request_png(DictionaryIterator *iter, GRect bounds);
 #endif // __COMMUNICATION_H__
