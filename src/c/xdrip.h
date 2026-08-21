@@ -83,6 +83,10 @@ static void bitmapLayerUpdate(struct Layer *layer, GContext *ctx);
 #define SET_BOTTOM_LEFT_TEXT	        115	// Setting key - What to display in the bottom left text field
 #define SET_BOTTOM_RIGHT_TEXT	        116	// Setting key - What to display in the bottom right text field
 #define SET_USE_PNG             117
+#define SET_SHOW_UNIT           118
+#define SET_SHOW_DELTA          119
+#define SET_SHOW_SLOPE          120
+#define SET_SHOW_TREND          121
 #define SET_BGL_CRITICAL_COLOUR  301
 #define SET_BGL_HIGH_COLOUR      302
 #define SET_BGL_AVERAGE_COLOUR   303

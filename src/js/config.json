@@ -70,6 +70,33 @@
       "description": "seconds"
   },
   {
+      "type": "toggle",
+      "messageKey": "show_delta",
+      "defaultValue": true,
+      "label": "Show delta value",
+      "description": "Show the delta between in the top-left-bottom part"
+  },
+  {
+      "type": "toggle",
+      "messageKey": "show_unit",
+      "defaultValue": false,
+      "label": "Show delta unit",
+      "description": "Show the unit of the delta value (mmol/L or mg/dL)"
+  },
+  {
+      "type": "toggle",
+      "messageKey": "show_slope",
+      "defaultValue": true,
+      "label": "Show the delta slope arrow",
+      "description": "Show the slope arrow in the right top, errors will always be shown"
+  },
+  {
+      "type": "toggle",
+      "messageKey": "show_trend",
+      "defaultValue": true,
+      "label": "Show trend graph"
+  },
+  {
 	  "type": "section",
 	  "items": [
 		  {
