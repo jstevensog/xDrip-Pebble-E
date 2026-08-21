@@ -19,6 +19,10 @@ static bool handling_second = false;
 static bool doing_trend = false;
 static bool global_lock = false;
 static bool use_png = false;
+static bool show_trend = true;
+static bool show_delta = true;
+static bool show_unit = false;
+static bool show_slope = true;
 
 //#ifdef PBL_PLATFORM_BASALT
 uint8_t *trend_buffer = NULL;
@@ -125,7 +129,7 @@ GBitmap *appicon_bitmap = NULL;
 GBitmap *specialvalue_bitmap = NULL;
 GBitmap *bg_trend_bitmap = NULL;
 
-static char time_watch_format[9] = TIME_24H_FORMAT;
+static char time_watch_format[10] = TIME_24H_FORMAT;
 static char time_watch_text[] = "00:00:00";
 static char date_app_text[] = "Wed 13 Jan";
 static char message_layer_text[13];
@@ -1119,6 +1123,7 @@ static void load_icon()
 		TRACE("load_icon: DONE");
 	} // else specvalue_alert == true
 
+    layer_set_hidden(bitmap_layer_get_layer(icon_layer), !show_slope);
 } // end load_icon
 
 static void load_bg()
@@ -1181,6 +1186,8 @@ static void load_bg()
 
 	else
 	{
+        // always show icon if need be
+        layer_set_hidden(bitmap_layer_get_layer(icon_layer), false);
 		// valid BG
 		// check for special value, if special value, then replace icon and blank BG; else send current BG
 		TRACE("load_bg: BEFORE CREATE SPEC VALUE BITMAP");
@@ -1361,11 +1368,7 @@ static void load_cgmtime()
 static void load_bg_delta()
 {
 	LOG("load_bg_delta: current_bg_delta is \"%s\"", current_bg_delta);
-
-    if (!dirty.delta) {
-        TRACE("Delta not dirty, not changing");
-        return;
-    }
+ 
 
 	// VARIABLES
 	// NOTE: buffers have to be static and hardcoded
@@ -1387,6 +1390,7 @@ static void load_bg_delta()
 	// check for CHECK PHONE condition, if true set message
 	if ((PhoneOffAlert) && (!TurnOff_CHECKPHONE_Msg))
 	{
+        layer_set_hidden(text_layer_get_layer(delta_layer), false);
 		text_layer_set_text(delta_layer, "CHECK PHONE");
 		return;
 	}
@@ -1394,6 +1398,7 @@ static void load_bg_delta()
 	// check for special messages; if no string, set no message
 	if (strcmp(current_bg_delta, "") == 0)
 	{
+        layer_set_hidden(text_layer_get_layer(delta_layer), false);
 		strncpy(formatted_bg_delta, "", MSGLAYER_BUFFER_SIZE);
 		text_layer_set_text(delta_layer, formatted_bg_delta);
 		return;
@@ -1406,6 +1411,7 @@ static void load_bg_delta()
 	{
 		LOG("load_bg_delta: Found \"LOAD\"");
 
+        layer_set_hidden(text_layer_get_layer(delta_layer), false);
 		strncpy(formatted_bg_delta, "LOADING...", MSGLAYER_BUFFER_SIZE);
 		text_layer_set_text(delta_layer, formatted_bg_delta);
 		text_layer_set_text(bg_layer, " ");
@@ -1417,6 +1423,7 @@ static void load_bg_delta()
 	//check for "--" indicating an indeterminate delta.  Display it.
 	if (strcmp(current_bg_delta, "???") == 0)
 	{
+        layer_set_hidden(text_layer_get_layer(delta_layer), false);
 		strncpy(formatted_bg_delta, current_bg_delta, BGDELTA_FORMATTED_SIZE);
 		text_layer_set_text(delta_layer, formatted_bg_delta);
 		return;
@@ -1425,6 +1432,7 @@ static void load_bg_delta()
 	//check for "ERR" indicating an indeterminate delta.  Display it.
 	if (strcmp(current_bg_delta, "ERR") == 0)
 	{
+        layer_set_hidden(text_layer_get_layer(delta_layer), false);
 		strncpy(formatted_bg_delta, current_bg_delta, BGDELTA_FORMATTED_SIZE);
 		text_layer_set_text(delta_layer, formatted_bg_delta);
 		return;
@@ -1436,6 +1444,12 @@ static void load_bg_delta()
 	strncpy(formatted_bg_delta, current_bg_delta, BGDELTA_FORMATTED_SIZE);
 
 	LOG("load_bg_delta: All good. Setting \"%s\"", formatted_bg_delta);
+   
+    if (!dirty.delta) {
+        TRACE("Delta not dirty, not changing");
+        return;
+    }
+    layer_set_hidden(text_layer_get_layer(delta_layer), !show_delta);
 
 	text_layer_set_text(delta_layer, formatted_bg_delta);
 #ifdef PBL_COLOR
@@ -1698,99 +1712,6 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 		LOG("inbox_received_handler_cgm: key is %lu", data->key);
 		switch (data->key)
 		{
-
-
-			case CGM_TREND_BEGIN_KEY:
-#ifndef ENABLE_TREND_RENDERER
-				expected_trend_buffer_length = data->value->uint16;
-				LOG("TREND_BEGIN; About to receive Trend Image of %i size.", expected_trend_buffer_length);
-				if(trend_buffer)
-				{
-					LOG("TREND_BEGIN; Freeing trend_buffer.");
-					free(trend_buffer);
-				}
-				LOG("TREND_BEGIN; Allocating trend_buffer.");
-				trend_buffer = malloc(expected_trend_buffer_length);
-				trend_buffer_length = 0;
-				if(trend_buffer == NULL)
-				{
-					DEBUG("TREND_BEGIN: Could not allocate trend_buffer");
-					break;
-				}
-				DEBUG("TREND_BEGIN: trend_buffer is %lx, trend_buffer_length is %i", (uint32_t)trend_buffer, trend_buffer_length);
-#endif
-			break;
-			case CGM_TREND_DATA_KEY:
-#ifndef ENABLE_TREND_RENDERER
-				LOG("TREND_DATA: receiving Trend Image chunk");
-				if(trend_buffer)
-				{
-					if ((trend_buffer_length + data->length) <= expected_trend_buffer_length)
-					{
-						memcpy((trend_buffer+trend_buffer_length), data->value->data, data->length);
-						trend_buffer_length += data->length;
-						LOG("TREND_DATA: received %u of %u so far", trend_buffer_length, expected_trend_buffer_length);
-					}
-					else
-					{
-						LOG("TREND_DATA: EXCEEDED BUFFER received %u of %u so far", trend_buffer_length, expected_trend_buffer_length);
-
-					}
-				}
-				else
-				{
-					DEBUG("TREND_DATA: trend_buffer not allocated, ignoring");
-				}
-				if(trend_buffer_length == expected_trend_buffer_length) doing_trend = true;
-#endif
-			break;
-
-			case CGM_TREND_END_KEY:
-#ifndef ENABLE_TREND_RENDERER
-				if(!doing_trend)
-				{
-					LOG("Got a TREND_END without TREND_START");
-					break;
-				}
-				LOG("Finished receiving Trend Image");
-				if(bg_trend_bitmap != NULL)
-				{
-					INFO("Destroying bg_trend_bitmap");
-					gbitmap_destroy(bg_trend_bitmap);
-					bg_trend_bitmap = NULL;
-				}
-
-				LOG("Creating Trend Image");
-				LOG("TREND_END: trend_buffer is %lx, trend_buffer_length is %i", (uint32_t)trend_buffer, trend_buffer_length);
-
-				if ((trend_buffer != NULL) && (trend_buffer_length > 0) && (trend_buffer_length == expected_trend_buffer_length))
-				{
-					bg_trend_bitmap = gbitmap_create_from_png_data(trend_buffer, trend_buffer_length);
-				}
-				else
-				{
-					break;
-				}
-
-				if(bg_trend_bitmap != NULL)
-				{
-					LOG("bg_trend_bitmap created, setting to layer");
-					bitmap_layer_set_bitmap(bg_trend_layer, bg_trend_bitmap);
-				}
-
-				else
-				{
-					INFO("bg_trend_bitmap creation FAILED!");
-				}
-				if (trend_buffer)
-				{
-					LOG("Free trend buffer 2");
-					free(trend_buffer);
-					trend_buffer = NULL;
-				}
-#endif
-			break;
-
 			case CGM_MESSAGE_KEY:
 				LOG("Got Message Key, message is \"%s\"", data->value->cstring);
 				snprintf(message_layer_text,sizeof(message_layer_text),"%s",data->value->cstring);
@@ -1891,22 +1812,22 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 				{
 					if(display_seconds)
 					{
-						snprintf(time_watch_format, 10, "%s", TIME_24HS_FORMAT);
+						snprintf(time_watch_format, sizeof(time_watch_format), "%s", TIME_24HS_FORMAT);
 					}
 					else
 					{
-						snprintf(time_watch_format, 6, "%s", TIME_24H_FORMAT);
+						snprintf(time_watch_format, sizeof(time_watch_format), "%s", TIME_24H_FORMAT);
 					}
 				}
 				else
 				{
 					if(display_seconds)
 					{
-						snprintf(time_watch_format, 10, "%s", TIME_12HS_FORMAT);
+						snprintf(time_watch_format, sizeof(time_watch_format), "%s", TIME_12HS_FORMAT);
 					}
 					else
 					{
-						snprintf(time_watch_format, 6, "%s", TIME_12H_FORMAT);
+						snprintf(time_watch_format, sizeof(time_watch_format), "%s", TIME_12H_FORMAT);
 					}
 				}
 				draw_date_from_app();
@@ -1915,40 +1836,19 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 
 			case SET_VIBE_REPEAT:
 				LOG("Got background Key, message is \"%lx\"", data->value->uint32);
-				if(data->value->uint8 > 0)
-				{
-					vibe_repeat = true;
-				}
-				else
-				{
-					vibe_repeat = false;
-				}
+                vibe_repeat = data->value->uint8 != 0;
 				persist_write_bool(SET_VIBE_REPEAT, vibe_repeat);
 			break;
 
 			case SET_NO_VIBE:
 				LOG("Got No Vibe Key, message is \"%lx\"", data->value->uint32);
-				if(data->value->uint8 > 0)
-				{
-					TurnOffAllVibrations = true;
-				}
-				else
-				{
-					TurnOffAllVibrations = false;
-				}
+                TurnOffAllVibrations = data->value->uint8 != 0;
 				persist_write_bool(SET_NO_VIBE, TurnOffAllVibrations);
 			break;
 
 			case SET_LIGHT_ON_CHG:
 				LOG("Got Backlight on Charge key, message is \"%lx\"", data->value->uint32);
-				if(data->value->uint8 > 0)
-				{
-					BacklightOnCharge = true;
-				}
-				else
-				{
-					BacklightOnCharge = false;
-				}
+                BacklightOnCharge = data->value->uint8 != 0;
 				persist_write_bool(SET_LIGHT_ON_CHG, BacklightOnCharge);
 			break;
 
@@ -1959,7 +1859,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 					message_tick_timer = app_timer_register(message_tick_timeout, handle_message_tick, NULL);
 				}
 				persist_write_int(SET_MESSAGE_TIMEOUT, data->value->uint32);
-			break;
+                break;
 
 			case SET_BOLD_TIMEAGO:
 				LOG("Got timeago bold, message is \"%lx\"", data->value->uint32);
@@ -2038,6 +1938,27 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
                 dirty.need_cgm = 1;
                 current_cgm_time = 0; // force update all
                 reset_timer_callback_cgm(2);
+                break;
+
+            case SET_SHOW_UNIT:
+                show_unit = data->value->uint8 != 0;
+                persist_write_bool(SET_SHOW_UNIT, show_unit);
+                text_layer_set_text(delta_layer, "???"); // temp set
+                break;
+            case SET_SHOW_DELTA:
+                show_delta = data->value->uint8 != 0;
+                persist_write_bool(SET_SHOW_DELTA, show_delta);
+                layer_set_hidden(text_layer_get_layer(delta_layer), !show_delta);
+                break;
+            case SET_SHOW_SLOPE:
+                show_slope = data->value->uint8 != 0;
+                persist_write_bool(SET_SHOW_SLOPE, show_trend);
+                layer_set_hidden(bitmap_layer_get_layer(icon_layer), !show_slope);
+                break;
+            case SET_SHOW_TREND:
+                show_trend = data->value->uint8 != 0;
+                persist_write_bool(SET_SHOW_TREND, show_trend);
+                layer_set_hidden(bitmap_layer_get_layer(bg_trend_layer), !show_trend);
                 break;
             /**
              * trend config colors
@@ -2812,6 +2733,11 @@ static void init_cgm(void)
 {
 	LOG("init_cgm");
     use_png = persist_exists(SET_USE_PNG) ? persist_read_bool(SET_USE_PNG) : false;
+    show_unit = persist_exists(SET_SHOW_UNIT) ? persist_read_bool(SET_SHOW_UNIT) : false;
+    show_slope = persist_exists(SET_SHOW_SLOPE) ? persist_read_bool(SET_SHOW_SLOPE) : false;
+    show_delta = persist_exists(SET_SHOW_DELTA) ? persist_read_bool(SET_SHOW_DELTA) : true;
+    show_trend = persist_exists(SET_SHOW_TREND) ? persist_read_bool(SET_SHOW_TREND) : true;
+
 	//Load persistent settings
 	display_seconds = persist_exists(SET_DISP_SECS)? persist_read_bool(SET_DISP_SECS) : false;
 	LOG("init_cgm: display_seccongs \"%u\".", display_seconds);
@@ -3037,6 +2963,7 @@ void set_phone_battery(comm_phonebat value) {
 // snprintf does not support float!
 void set_bgl_delta(comm_bgl_delta value) {
     DEBUG("Delta units: undefined: %d mmol: %d display: %d value: %d", value.undefined, value.is_mmol, value.display_units, value.value);
+    if (value.display_units != show_unit) value.display_units = show_unit;
     if (value.undefined) {
         snprintf(current_bg_delta, sizeof(current_bg_delta), "???");
     } else if (value.is_mmol && value.display_units) {
@@ -3120,6 +3047,7 @@ void set_png(comm_png_data data) {
     {
         WARNING("bg_trend_bitmap creation FAILED!");
     }
+    layer_set_hidden(bitmap_layer_get_layer(bg_trend_layer), !show_trend);
     dirty.need_cgm = 0;
 }
 #endif
