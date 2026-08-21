@@ -103,7 +103,11 @@ TextLayer *date_app_layer = NULL;
 
 // bitmap layer definitions
 BitmapLayer *icon_layer = NULL;
+#ifdef ENABLE_TREND_RENDERER
+Layer *bg_trend_layer = NULL;
+#else
 BitmapLayer *bg_trend_layer = NULL;
+#endif
 BitmapLayer *upper_face_layer = NULL;
 BitmapLayer *lower_face_layer = NULL;
 
@@ -119,7 +123,9 @@ static GColor bg_colour;
 GBitmap *icon_bitmap = NULL;
 GBitmap *appicon_bitmap = NULL;
 GBitmap *specialvalue_bitmap = NULL;
+#ifndef ENABLE_TREND_RENDERER
 GBitmap *bg_trend_bitmap = NULL;
+#endif
 
 static char time_watch_format[9] = TIME_24H_FORMAT;
 static char time_watch_text[] = "00:00:00";
@@ -754,6 +760,9 @@ void handle_bluetooth_cgm(bool bt_connected)
 			text_layer_set_text_color(delta_layer, GColorRed);
 #endif
 			text_layer_set_text(delta_layer, "NO BLUETOOTH");
+            // make sure we get the data we need
+            dirty.need_cgm = 1;
+            reset_timer_callback_cgm(2);
 		}
 
 		// erase cgm and app ago times
@@ -1192,6 +1201,9 @@ static void load_bg()
 			{
 				text_layer_set_text(delta_layer, "NO BLUETOOTH");
                 
+                // make sure we get the data we need
+                dirty.need_cgm = 1;
+                reset_timer_callback_cgm(2);
 			} // if turnoff nobluetooth msg
 		}
 		else
@@ -1800,6 +1812,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 
 
 			case CGM_TREND_BEGIN_KEY:
+#ifndef ENABLE_TREND_RENDERER
 				expected_trend_buffer_length = data->value->uint16;
 				LOG("TREND_BEGIN; About to receive Trend Image of %i size.", expected_trend_buffer_length);
 				if(trend_buffer)
@@ -1816,8 +1829,10 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 					break;
 				}
 				DEBUG("TREND_BEGIN: trend_buffer is %lx, trend_buffer_length is %i", (uint32_t)trend_buffer, trend_buffer_length);
+#endif
 			break;
 			case CGM_TREND_DATA_KEY:
+#ifndef ENABLE_TREND_RENDERER
 				LOG("TREND_DATA: receiving Trend Image chunk");
 				if(trend_buffer)
 				{
@@ -1838,9 +1853,11 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 					DEBUG("TREND_DATA: trend_buffer not allocated, ignoring");
 				}
 				if(trend_buffer_length == expected_trend_buffer_length) doing_trend = true;
+#endif
 			break;
 
 			case CGM_TREND_END_KEY:
+#ifndef ENABLE_TREND_RENDERER
 				if(!doing_trend)
 				{
 					LOG("Got a TREND_END without TREND_START");
@@ -1882,6 +1899,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 					free(trend_buffer);
 					trend_buffer = NULL;
 				}
+#endif
 			break;
 
 			case CGM_MESSAGE_KEY:
@@ -1915,7 +1933,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 
 			case CGM_VIBE_KEY:
 				LOG("Got Vibe Key, message is \"%u\"", data->value->uint8);
-				if((data->value->uint8 > 0 || data->value->uint8 <4) && ! BluetoothAlert)
+				if((data->value->uint8 <4) && ! BluetoothAlert)
 				{
 					alert_handler_cgm(data->value->uint8);
 				}
@@ -2150,7 +2168,9 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
             case SET_BGL_AVERAGE:
             case SET_BGL_HIGH:
             case SET_BGL_CRITICAL:
+#ifdef ENABLE_TREND_RENDERER
                 trend_process_config(data);
+#endif
                 break;
 
             /**
@@ -2165,7 +2185,9 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
             case FRAMEWORK_BGL_VALUE:
             case FRAMEWORK_BGL_SERIES:
             case FRAMEWORK_BGL_DELTA:
+#ifdef ENABLE_COMM_FRAMEWORK
                 comm_handle(data);
+#endif
                 break;
 
 			default:
@@ -2177,21 +2199,29 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 	}
 } // end sync_tuple_changed_callback_cgm()
 
-void reset_timer_callback_cgm(uint32_t timestamp) {
-    if (timer_cgm == NULL || !app_timer_reschedule(timer_cgm, (timestamp - time(NULL)) * MS_IN_A_SECOND)) {
-        timer_cgm = app_timer_register((timestamp - time(NULL)) * MS_IN_A_SECOND, timer_callback_cgm, NULL);
+void reset_timer_callback_cgm(int32_t seconds) {
+    int32_t retimer = (seconds) * MS_IN_A_SECOND;
+    if (retimer < 0) retimer = 1000; // schedule for 1s
+    if (timer_cgm == NULL || !app_timer_reschedule(timer_cgm, retimer)) {
+        timer_cgm = app_timer_register(retimer, timer_callback_cgm, NULL);
     }
 }
 
 void timer_callback_cgm(void *data)
 {
+    // set timer to null, as it has beenh called and does not need rescheduling
+    timer_cgm = NULL;
 	TRACE("timer_callback_cgm: register timer");
-	// set msg timer
+    // if we have not received anything for over 6 minutes, keep checking
     if ((long) (current_cgm_time + 360) < time(NULL)) {
+        // mark cgm data as dirty, send heartbeat
         dirty.need_cgm = 1;
         send_cmd_cgm();
-        reset_timer_callback_cgm(time(NULL) + WATCH_MSGSEND_SECS);
-        // try again in 60 seconds
+        // try again in 60 seconds until we get something
+        reset_timer_callback_cgm(WATCH_MSGSEND_SECS);
+    } else {
+        // schedule normal checkup for 6 minutes from now
+        reset_timer_callback_cgm(360);
     }
 
 	TRACE("timer_callback_cgm: done");
@@ -2199,7 +2229,6 @@ void timer_callback_cgm(void *data)
 } // end timer_callback_cgm
 
 // format current time from watch
-//
 
 // message/delta tick layer
 void handle_message_tick(void *data) 
@@ -2283,6 +2312,11 @@ void handle_minute_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
 			text_layer_set_text(date_app_layer, date_app_text);
 		}
 	}
+
+    // detect some error in rescheduling
+    if (time(NULL) - current_cgm_time > (10 * 60)) {
+        reset_timer_callback_cgm(2);
+    }
 
 
     // We wake up every minute anyway and the resolution of all display time items
@@ -2389,7 +2423,12 @@ void window_load_cgm(Window *window_cgm)
 	// icon layer dimensions
 	icon_layer = bitmap_layer_create(GRect(85, -7, 78, 51));
 	// trend bitmap layer dimensions
+#ifdef ENABLE_TREND_RENDERER
+	bg_trend_layer = layer_create(GRect(0,24,144,64));
+#else
 	bg_trend_layer = bitmap_layer_create(GRect(0,24,144,64));
+	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
+#endif
 	// delta layer dimensions
 	delta_layer = text_layer_create(GRect(0, 58, 143, 50));
 	text_layer_set_text_alignment(delta_layer, GTextAlignmentRight);
@@ -2429,8 +2468,12 @@ void window_load_cgm(Window *window_cgm)
 	icon_layer = bitmap_layer_create(GRect(85, -9, 78, 49));
 	bitmap_layer_set_compositing_mode(icon_layer, GCompOpSet);
 	// trend bitmap layer dimensions and composition mode
+#ifdef ENABLE_TREND_RENDERER
+	bg_trend_layer = layer_create(GRect(0,0,144,84));
+#else
 	bg_trend_layer = bitmap_layer_create(GRect(0,0,144,84));
 	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
+#endif
 	// delta layer dimensions
 	delta_layer = text_layer_create(GRect(0, 58, 143, 50));
 	layer_set_bounds((Layer *) delta_layer, GRect(0, -2, 143, 50)); // fixes bounding box with latest sdk
@@ -2475,8 +2518,12 @@ void window_load_cgm(Window *window_cgm)
 	icon_layer = bitmap_layer_create(GRect(120, 30, 78, 50));
 	bitmap_layer_set_compositing_mode(icon_layer, GCompOpSet);
 	// trend bitmap layer dimensions and composition mode
+#ifdef ENABLE_TREND_RENDERER
+	bg_trend_layer = layer_create(GRect(0,0,144,84));
+#else
 	bg_trend_layer = bitmap_layer_create(GRect(0,0,144,84));
 	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
+#endif
 	// delta layer dimensions
 	delta_layer = text_layer_create(GRect(0, 36, 180, 50));
 	text_layer_set_text_alignment(delta_layer, GTextAlignmentCenter);
@@ -2515,7 +2562,12 @@ void window_load_cgm(Window *window_cgm)
 	// icon layer dimensions
 	icon_layer = bitmap_layer_create(GRect(85, -7, 78, 51));
 	// trend bitmap layer dimensions
+#ifdef ENABLE_TREND_RENDERER
+	bg_trend_layer = layer_create(GRect(0,24,144,64));
+#else
 	bg_trend_layer = bitmap_layer_create(GRect(0,24,144,64));
+	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
+#endif
 	// delta layer dimensions
 	delta_layer = text_layer_create(GRect(0, 58, 143, 50));
 	text_layer_set_text_alignment(delta_layer, GTextAlignmentRight);
@@ -2555,8 +2607,12 @@ void window_load_cgm(Window *window_cgm)
 	icon_layer = bitmap_layer_create(GRect(146, -9, 78, 49));
 	bitmap_layer_set_compositing_mode(icon_layer, GCompOpSet);
 	// trend bitmap layer dimensions and composition mode
+#ifdef ENABLE_TREND_RENDERER
+	bg_trend_layer = layer_create(GRect(0,0,200,114));
+#else
 	bg_trend_layer = bitmap_layer_create(GRect(0,0,200,114));
 	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
+#endif
 	// delta layer dimensions
 	delta_layer = text_layer_create(GRect(2, 78, 198, 50));
 	text_layer_set_text_alignment(delta_layer, GTextAlignmentLeft);
@@ -2603,7 +2659,12 @@ void window_load_cgm(Window *window_cgm)
 	// icon layer dimensions
 	icon_layer = bitmap_layer_create(GRect(85, -7, 78, 51));
 	// trend bitmap layer dimensions
+#ifdef ENABLE_TREND_RENDERER
+	bg_trend_layer = layer_create(GRect(0,24,144,64));
+#else
 	bg_trend_layer = bitmap_layer_create(GRect(0,24,144,64));
+	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
+#endif
 	// delta layer dimensions
 	delta_layer = text_layer_create(GRect(0, 58, 143, 50));
 	text_layer_set_text_alignment(delta_layer, GTextAlignmentLeft);
@@ -2645,8 +2706,12 @@ void window_load_cgm(Window *window_cgm)
 	icon_layer = bitmap_layer_create(GRect(173,  43, 112,  72));
 	bitmap_layer_set_compositing_mode(icon_layer, GCompOpSet);
 	// trend bitmap layer dimensions and composition mode
+#ifdef ENABLE_TREND_RENDERER
+	bg_trend_layer = layer_create(GRect(0,0,207,121));
+#else
 	bg_trend_layer = bitmap_layer_create(GRect(  0,   0, 207, 121));
 	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
+#endif
 	// delta layer dimensions
 	delta_layer = text_layer_create(GRect(  0,  52, 260,  72));
 	text_layer_set_text_alignment(delta_layer, GTextAlignmentCenter);
@@ -2719,9 +2784,6 @@ void window_load_cgm(Window *window_cgm)
 	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(upper_face_layer));
 	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(lower_face_layer));
 
-	// ARROW OR SPECIAL VALUE
-	LOG("Creating Arrow Bitmap layer");
-	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(icon_layer));
 
 	//create the bg_trend_layer
 	INFO("Creating BG Trend Bitmap layer");
@@ -2731,9 +2793,21 @@ void window_load_cgm(Window *window_cgm)
 	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
 #endif
 #ifdef PBL_COLOR
+#ifdef ENABLE_TREND_RENDERER
+	layer_add_child(window_layer_cgm, bg_trend_layer);
+#else
 	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(bg_trend_layer));
+#endif
 #else
 	layer_set_update_proc(bitmap_layer_get_layer(bg_trend_layer),bitmapLayerUpdate);
+#endif
+
+	// ARROW OR SPECIAL VALUE
+	LOG("Creating Arrow Bitmap layer");
+#ifdef ENABLE_TREND_RENDERER
+	layer_add_child(bg_trend_layer, bitmap_layer_get_layer(icon_layer));
+#else
+	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(icon_layer));
 #endif
 
 	// DELTA BG
@@ -2840,14 +2914,16 @@ void window_load_cgm(Window *window_cgm)
 
 #ifdef ENABLE_TREND_RENDERER
     // default config
-    trend_init((Layer *)bg_trend_layer);
+    trend_init(bg_trend_layer);
 #endif
 
 //	TRACE("WINDOW LOAD, ABOUT TO CALL APP SYNC INIT");
 	//app_sync_init(&sync_cgm, sync_buffer_cgm, sizeof(sync_buffer_cgm), initial_values_cgm, ARRAY_LENGTH(initial_values_cgm), sync_tuple_changed_callback_cgm, sync_error_callback_cgm, NULL);
 	// init timer to null if needed, and register timer
 	TRACE("window_load_cgm: build done, init timer");
-    reset_timer_callback_cgm((time(NULL) + LOADING_MSGSEND_SECS));
+    // mark dirty and request data
+    dirty.need_cgm = 1;
+    reset_timer_callback_cgm(LOADING_MSGSEND_SECS);
 	TRACE("window_load_cgm: timer registered");
 
 } // end window_load_cgm
@@ -2860,8 +2936,12 @@ void window_unload_cgm(Window *window_cgm)
 	app_sync_deinit(&sync_cgm);
 
 	//destroy the trend bitmap and layer
+#ifdef ENABLE_TREND_RENDERER
+	if(bg_trend_layer != NULL) layer_destroy(bg_trend_layer);
+#else
 	if(bg_trend_bitmap != NULL) destroy_null_GBitmap(&bg_trend_bitmap);
 	if(bg_trend_layer != NULL) destroy_null_BitmapLayer(&bg_trend_layer);
+#endif
 	TRACE("window_unload_cgm: destroy existing GBitmaps");
 	if(icon_bitmap != NULL) destroy_null_GBitmap(&icon_bitmap);
 	if(appicon_bitmap != NULL) destroy_null_GBitmap(&appicon_bitmap);
@@ -3084,8 +3164,7 @@ static void deinit_cgm(void)
  * Pebble SDK does not support varargs, so we result to simply writing a string
  */
 int mgdl_to_mmoll_str(int mgdl, char *result, const int size, int unit) {
-    const char *fmt = unit ? "%d.%d mmol/l" : "%d.%d";
-    
+    const char *fmt = unit ? "%s%d.%d mmol/l" : "%s%d.%d";
     int val = MGDL_TO_MMOL(mgdl);
     int dec = MGDL_TO_MMOL_DEC(mgdl);
   
@@ -3093,8 +3172,11 @@ int mgdl_to_mmoll_str(int mgdl, char *result, const int size, int unit) {
     if (dec == 10) {
         val++;
         dec = 0;
+    } else if (dec == -10) {
+        val--;
+        dec = 0;
     }
-    return snprintf(result, size, fmt, val, dec < 0 ? dec * -1 : dec);
+    return snprintf(result, size, fmt, (dec < 0 && val == 0) || val < 0 ? "-" : "", abs(val), abs(dec));
 }
 
 #ifdef ENABLE_COMM_FRAMEWORK
@@ -3140,7 +3222,7 @@ void set_vibrate(comm_vibe value) {
 
 void set_bgl_timestamp(uint32_t timestamp) {
     current_cgm_time = timestamp;
-    reset_timer_callback_cgm(timestamp + (60 * 6));
+    reset_timer_callback_cgm((timestamp - time(NULL)) + (60 * 6));
     load_cgmtime();
 }
 
@@ -3158,14 +3240,19 @@ void set_bgl_value(comm_bgl_value value) {
  */
 void set_bgl_data(comm_bgl_data *value) {
     if (value->timestamp - current_cgm_time > 360) {
-        dirty.need_cgm;
+        dirty.need_cgm = 1;
         send_cmd_cgm();
         // we likely missed a value, set minutes timer to zero and wait for global udpate
-        reset_timer_callback_cgm(value->timestamp + (60 * 6));
+        reset_timer_callback_cgm((value->timestamp - time(NULL)) + (60 * 6));
     } else {
-        set_bgl_timestamp(value->timestamp);
-        set_bgl_value(value->bgl);
-        trend_set_value(value);
+        if (value->timestamp != current_cgm_time) {
+            set_bgl_timestamp(value->timestamp);
+            set_bgl_value(value->bgl);
+            trend_set_value(value);
+        } else {
+            WARNING("Received same bgl value twice!");
+        }
+
     }
 }
 #endif
