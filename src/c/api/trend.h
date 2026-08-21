@@ -67,6 +67,7 @@ typedef struct {
  * @param Layer to draw in to
  */
 void trend_init(Layer *layer);
+void trend_deinit(void);
 
 /**
  * Forse a redraw

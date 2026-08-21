@@ -31,15 +31,6 @@ Make sure you udefine this before building a release.
 #define ENABLE_COMM_FRAMEWORK
 #define ENABLE_TREND_RENDERER
 
-
-/**
- * feature flag guards
- */
-#if ! defined(PBL_COLOR)
-#undef ENABLE_TREND_RENDERER
-#undef ENABLE_COMM_FRAMEWORK
-#endif
-
 /** 
  * Face name
  */
@@ -91,6 +82,7 @@ static void bitmapLayerUpdate(struct Layer *layer, GContext *ctx);
 #define SET_BOLD_TIMEAGO		114	// Setting key - Meke the TimeAgo text bold if true
 #define SET_BOTTOM_LEFT_TEXT	        115	// Setting key - What to display in the bottom left text field
 #define SET_BOTTOM_RIGHT_TEXT	        116	// Setting key - What to display in the bottom right text field
+#define SET_USE_PNG             117
 #define SET_BGL_CRITICAL_COLOUR  301
 #define SET_BGL_HIGH_COLOUR      302
 #define SET_BGL_AVERAGE_COLOUR   303

@@ -29,11 +29,21 @@ qemu_cmd = [
     "-serial", "null",
     "-serial", "tcp::%d,server=on,wait=off" % port,
     "-kernel", os.path.expanduser("~/.pebble-sdk/SDKs/4.33.1/sdk-core/pebble/%s/qemu/qemu_micro_flash.bin" % device_type),
-    "-machine", "pebble-%s" % device_type,
-    "-cpu", "cortex-m33",
-    "-drive", "if=mtd,format=raw,file=%s" % (os.path.expanduser("~/.pebble-sdk/4.33.1/%s/qemu_spi_flash.bin" % device_type)),
+    "-machine", "pebble-%s" % device_type if device_type in ['emery', 'gabbro', 'flint'] else "pebble-silk-bb" if device_type == 'diorite' else "cortex-s4-bb" if device_type == "chalk" else "pebble-snowy-bb" if device_type == "basalt" else "pebble-bb2",
+    "-cpu", "cortex-m33" if device_type in ["emery", "gabbro"] else "cortex-m3" if device_type in ['aplite'] else "cortex-m4",
     "-audio", "driver=none,id=audio0"
 ]
+if device_type in ['gabbro', 'emery', 'flint']:
+    qemu_cmd.append("-drive")
+    qemu_cmd.append("if=mtd,format=raw,file=%s" % (os.path.expanduser("~/.pebble-sdk/4.33.1/%s/qemu_spi_flash.bin" % device_type)))
+elif device_type in ["aplite", "diorite"]:
+    qemu_cmd.append("-mtdblock")
+    qemu_cmd.append(os.path.expanduser("~/.pebble-sdk/4.33.1/%s/qemu_spi_flash.bin" % device_type))
+else:
+    qemu_cmd.append("-drive")
+    qemu_cmd.append('if=none,id=spi-flash,file=%s,format=raw' % (os.path.expanduser("~/.pebble-sdk/4.33.1/%s/qemu_spi_flash.bin" % device_type)))
+
+
 p_qemu = subprocess.Popen(qemu_cmd)
 sleep(4)
 zf = zipfile.ZipFile('build/xDrip-Pebble-E.pbw')
@@ -49,7 +59,7 @@ except Exception as e:
     print(f"Failed to connect: {e}")
     exit(1)
 # Create sine wave
-bgl_list = [int(126 + sin((4*pi) * (i/48)) * 108) for i in range(0, 49)]
+bgl_list = [int(126 + sin((4*pi) * (i/49)) * 108) for i in range(0, 49)]
 bgl_index = 0
 
 def FRAMEWORK_BGL_SERIES(lst):

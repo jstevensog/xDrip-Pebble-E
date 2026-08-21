@@ -147,6 +147,7 @@
       "boldtimeago": 114,
       "bottomlefttext": 115,
       "bottomrighttext": 116,
+      "use_png": 117,
       "trend_critical_color": 301,
       "trend_high_color": 302,
       "trend_average_color": 303,
