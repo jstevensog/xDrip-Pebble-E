@@ -68,8 +68,25 @@ void comm_handle(Tuple *data) {
             };
             if (cb->png != NULL) cb->png(pngdata);
             break;
+        case FRAMEWORK_SENSOR_TIME_LEFT:
+            TRACE(CM "Sensor expiry time left");
+            if (cb->sensor_time_left != NULL) cb->sensor_time_left(data->value->uint32);
+            break;
+        case FRAMEWORK_BWP_VALUE:
+            TRACE(CM "Bolus wizard previes value");
+            if (cb->bwp_value != NULL) cb->bwp_value(data->value->uint32);
+            break;
+        case FRAMEWORK_MESSAGE:
+            TRACE(CM "Message received");
+            // avoid malformed cstrings crashing the watch via OOB
+            if (data->length - 1 != data->value->data[0]) {
+                ERROR("Invalid message received");
+            } else {
+                if (cb->message != NULL) cb->message((comm_message *) data->value->data);
+            }
+            break;
         default:
-            WARNING(CM "id %ld not handled by communications framework", key);
+            DEBUG(CM "id %ld not handled by communications framework", key);
             break;
     }
 }

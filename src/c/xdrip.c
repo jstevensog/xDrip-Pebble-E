@@ -24,11 +24,6 @@ static bool show_delta = true;
 static bool show_unit = false;
 static bool show_slope = true;
 
-//#ifdef PBL_PLATFORM_BASALT
-uint8_t *trend_buffer = NULL;
-static uint16_t trend_buffer_length = 0;
-static uint16_t expected_trend_buffer_length = 0;
-//#endif
 bool display_message = false;
 
 // variables for settings from Pebble Phone App.
@@ -163,6 +158,7 @@ void set_bgl_delta(comm_bgl_delta value);
 void set_bgl_timestamp(uint32_t timestamp); 
 void set_bgl_value(comm_bgl_value value);
 void set_bgl_data(comm_bgl_data *value); 
+void set_bgl_series(comm_bgl_series *series); 
 void set_png(comm_png_data data);
 #endif
 
@@ -187,7 +183,6 @@ dirty_markers dirty = {
 /**
  * predefines
  */
-#ifdef DEBUG_LEVEL
 static char *translate_app_error(AppMessageResult result)
 {
 	switch (result)
@@ -243,7 +238,6 @@ static char *translate_dict_error(DictionaryResult result)
 			return "DICT UNKNOWN ERROR";
 	}
 }
-#endif
 
 int myAtoi(char *str)
 {
@@ -727,6 +721,7 @@ void handle_bluetooth_cgm(bool bt_connected)
 			text_layer_set_text(delta_layer, "NO BLUETOOTH");
             // make sure we get the data we need
             dirty.need_cgm = 1;
+            current_cgm_time = 0;
             reset_timer_callback_cgm(2);
 		}
 
@@ -1094,8 +1089,37 @@ static void load_icon()
 			{
 				create_update_bitmap(&icon_bitmap,icon_layer, DOWNDOWN_ICON);
 				DoubleDownAlert = true; // does nothing
+                break;
 			}
-			break;
+            case NO_ANTENNA:
+            {
+                create_update_bitmap(&icon_bitmap, icon_layer,  BROKEN_ANTENNA_ICON);
+			    break;
+            }
+            case NOT_CALIBRATED:
+            {
+                create_update_bitmap(&icon_bitmap, icon_layer, BLOOD_DROP_ICON);
+                break;
+            }
+            case SENSOR_NOT_ACTIVE:
+            {
+                create_update_bitmap(&icon_bitmap, icon_layer, STOP_LIGHT_ICON);
+                break;
+            }
+            case HOURGLASS:
+            {
+                create_update_bitmap(&icon_bitmap, icon_layer, HOURGLASS_ICON);
+                break;
+            }
+            case QUESTIONMARK:
+            {
+                create_update_bitmap(&icon_bitmap, icon_layer, QUESTION_MARKS_ICON);
+                break;
+            }
+            case SPECIAL_VALUE:
+            {
+                break;
+            }
 			default:
 			{
 				// check for special cases and set icon accordingly
@@ -1140,22 +1164,16 @@ static void load_bg()
 
 	// set special value alert to false no matter what
 	specvalue_alert = false;
-    dirty.need_cgm = 0;
 
 	INFO("load_bg: last_bg: %s", last_bg);
 
-#ifdef TEST_MODE
-	snprintf(last_bg,sizeof(last_bg),"%s","100");
-#endif
-	// BG parse, check snooze, and set text
-
-	// check for init code or error code
-	if (last_bg[0] == '-')
+    // check if bt is broken if > 10m no item
+	if (time(NULL) - current_cgm_time > 600)
 	{
 		lastAlertTime = 0;
 
 		// check bluetooth
-	 	bluetooth_connected_cgm = bluetooth_connection_service_peek();
+	 	bluetooth_connected_cgm = connection_service_peek_pebble_app_connection();
 #ifdef TEST_MODE
 		bluetooth_connected_cgm = true;
 #endif
@@ -1165,71 +1183,18 @@ static void load_bg()
 			TRACE("load_bg: NO BT, SET NO BT MESSAGE");
 			if (!TurnOff_NOBLUETOOTH_Msg)
 			{
+                WARNING("Bluetooth connection lost: app conn: %d, pkit: %d", connection_service_peek_pebble_app_connection(), connection_service_peek_pebblekit_connection());
 				text_layer_set_text(delta_layer, "NO BLUETOOTH");
-                
                 // make sure we get the data we need
                 dirty.need_cgm = 1;
+                current_cgm_time = 0;
                 reset_timer_callback_cgm(2);
 			} // if turnoff nobluetooth msg
 		}
-		else
-		{
-			// if init code, we will set it right in message layer
-			TRACE("load_bg: UNEXPECTED BG: SET ERR ICON");
-			text_layer_set_text(bg_layer, "ERR");
-			create_update_bitmap(&icon_bitmap,icon_layer, NONE_SPECVALUE_ICON);
-			specvalue_alert = true;
-		}
-
 	} 
-	// if current_bg <= 0
 
 	else
 	{
-        // always show icon if need be
-        layer_set_hidden(bitmap_layer_get_layer(icon_layer), false);
-		// valid BG
-		// check for special value, if special value, then replace icon and blank BG; else send current BG
-		TRACE("load_bg: BEFORE CREATE SPEC VALUE BITMAP");
-		if (strcmp(last_bg, NO_ANTENNA_VALUE) == 0 || strcmp(last_bg, BAD_RF_VALUE) == 0)
-		{
-			TRACE("load_bg: last_bg: \"%s\"", last_bg);
-			text_layer_set_text(bg_layer, "");
-			create_update_bitmap(&specialvalue_bitmap,icon_layer,  BROKEN_ANTENNA_ICON);
-			specvalue_alert = true;
-		}
-		else if (strcmp(last_bg, SENSOR_NOT_CALIBRATED_VALUE) == 0)
-		{
-			TRACE("load_bg: SET BLOOD DROP");
-			text_layer_set_text(bg_layer, "");
-			create_update_bitmap(&specialvalue_bitmap,icon_layer, BLOOD_DROP_ICON);
-			specvalue_alert = true;
-		}
-		else if (strcmp(last_bg, SENSOR_NOT_ACTIVE_VALUE) == 0 || strcmp(last_bg, MINIMAL_DEVIATION_VALUE) == 0
-				 || strcmp(last_bg, STOP_LIGHT_VALUE) == 0)
-		{
-			TRACE("load_bg: SET STOP LIGHT");
-			text_layer_set_text(bg_layer, "");
-			create_update_bitmap(&specialvalue_bitmap,icon_layer, STOP_LIGHT_ICON);
-			specvalue_alert = true;
-		}
-		else if (strcmp(last_bg, HOURGLASS_VALUE) == 0)
-		{
-			TRACE("load_bg: SET HOUR GLASS");
-			text_layer_set_text(bg_layer, "");
-			create_update_bitmap(&specialvalue_bitmap,icon_layer, HOURGLASS_ICON);
-			specvalue_alert = true;
-		}
-		else if (strcmp(last_bg, QUESTION_MARKS_VALUE) == 0)
-		{
-			//INFO("LOAD BG, SPECIAL VALUE: SET QUESTION MARKS, CLEAR TEXT");
-			text_layer_set_text(bg_layer, "");
-			TRACE("load_bg: SET QUESTION MARKS, SET BITMAP");
-			create_update_bitmap(&specialvalue_bitmap,icon_layer, QUESTION_MARKS_ICON);
-			TRACE("load_bg: SET QUESTION MARKS, DONE");
-			specvalue_alert = true;
-		}
-
 		TRACE("load_bg: AFTER CREATE SPEC VALUE BITMAP");
 
 		if (specvalue_alert == false)
@@ -1239,7 +1204,6 @@ static void load_bg()
 			TRACE("load_bg: SET BG: %s ", last_bg);
 			text_layer_set_text(bg_layer, last_bg);
 		} // end bg checks (if special_value_bitmap)
-
 
 	}
 
@@ -1385,8 +1349,6 @@ static void load_bg_delta()
 		return;
 	}
 
-    dirty.delta = 0; // all next escapes are dirty
-
 	// check for CHECK PHONE condition, if true set message
 	if ((PhoneOffAlert) && (!TurnOff_CHECKPHONE_Msg))
 	{
@@ -1442,14 +1404,17 @@ static void load_bg_delta()
 	// set delta BG message
 
 	strncpy(formatted_bg_delta, current_bg_delta, BGDELTA_FORMATTED_SIZE);
-
 	LOG("load_bg_delta: All good. Setting \"%s\"", formatted_bg_delta);
-   
+
+    if (layer_get_hidden(text_layer_get_layer(delta_layer)) == show_delta) {
+        layer_set_hidden(text_layer_get_layer(delta_layer), !show_delta);
+    }
+
     if (!dirty.delta) {
+
         TRACE("Delta not dirty, not changing");
         return;
     }
-    layer_set_hidden(text_layer_get_layer(delta_layer), !show_delta);
 
 	text_layer_set_text(delta_layer, formatted_bg_delta);
 #ifdef PBL_COLOR
@@ -1458,6 +1423,8 @@ static void load_bg_delta()
 	} else {
 		text_layer_set_text_color(delta_layer,bg_colour);
 	}
+
+    dirty.delta = 0; // all next escapes are dirty
 #endif
 	LOG("load_bg_delta: delta_layer is \"%s\"", text_layer_get_text(delta_layer));
 
@@ -1606,7 +1573,7 @@ static void send_cmd_cgm(void)
 	}
 	if (sendcmd_openerr != APP_MSG_OK)
 	{
-		LOG("send_cmd_cgm: ERR CODE: %i RES: %s", sendcmd_openerr, translate_app_error(sendcmd_openerr));
+		ERROR("send_cmd_cgm: ERR CODE: %i RES: %s", sendcmd_openerr, translate_app_error(sendcmd_openerr));
 		return;
 	}
     comm_heartbeat hb;
@@ -1655,7 +1622,7 @@ static void send_cmd_cgm(void)
 
 	if (sendcmd_senderr != APP_MSG_OK && sendcmd_senderr != APP_MSG_BUSY && sendcmd_senderr != APP_MSG_SEND_REJECTED)
 	{
-		LOG("send_cmd_cgm: ERR CODE: %i RES: %s", sendcmd_senderr, translate_app_error(sendcmd_senderr));
+		ERROR("send_cmd_cgm: ERR CODE: %i RES: %s", sendcmd_senderr, translate_app_error(sendcmd_senderr));
 	}
 	//free(iter);
 	TRACE("send_cmd_cgm: done");
@@ -1960,49 +1927,15 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
                 persist_write_bool(SET_SHOW_TREND, show_trend);
                 layer_set_hidden(bitmap_layer_get_layer(bg_trend_layer), !show_trend);
                 break;
-            /**
-             * trend config colors
-             */
-            case SET_BGL_CRITICAL_COLOUR:
-            case SET_BGL_HIGH_COLOUR:
-            case SET_BGL_AVERAGE_COLOUR:
-            case SET_BGL_GOOD_COLOUR:
-            case SET_BGL_LOW_COLOUR:
-            case SET_LOW_LINE_COLOUR:
-            case SET_HIGH_LINE_COLOUR:
-            case SET_LINE_STYLE:
-            case SET_TREND_STYLE:
-            case SET_LINE_WIDTH:
-            case SET_TREND_WIDTH:
-            case SET_BGL_LOW:
-            case SET_BGL_AVERAGE:
-            case SET_BGL_HIGH:
-            case SET_BGL_CRITICAL:
+
+			default:
 #ifdef ENABLE_TREND_RENDERER
                 trend_process_config(data);
 #endif
-                break;
-
-            /**
-             * New Comms framework messages
-             */
-            case FRAMEWORK_HEARTBEAT:
-            case FRAMEWORK_VIBE:
-            case FRAMEWORK_MESSAGE:
-            case FRAMEWORK_LOWLIMIT:
-            case FRAMEWORK_HIGHLIMIT:
-            case FRAMEWORK_SLOPEVAL:
-            case FRAMEWORK_BGL_VALUE:
-            case FRAMEWORK_BGL_SERIES:
-            case FRAMEWORK_BGL_DELTA:
-            case FRAMEWORK_PNG_IMAGE:
 #ifdef ENABLE_COMM_FRAMEWORK
                 comm_handle(data);
 #endif
-                break;
-
-			default:
-				LOG("inbox_received_handler_cgm: Dictionary Key not recognised: %ld", data->key);
+				/* LOG("inbox_received_handler_cgm: Dictionary Key not recognised: %ld", data->key); */
 			break;
 		}
 		// end switch(key)
@@ -2011,7 +1944,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 } // end sync_tuple_changed_callback_cgm()
 
 void reset_timer_callback_cgm(int32_t seconds) {
-    int32_t retimer = (seconds) * MS_IN_A_SECOND;
+    int32_t retimer = (seconds) * 1000;
     if (retimer < 0) retimer = 1000; // schedule for 1s
     if (timer_cgm == NULL || !app_timer_reschedule(timer_cgm, retimer)) {
         timer_cgm = app_timer_register(retimer, timer_callback_cgm, NULL);
@@ -2023,10 +1956,12 @@ void timer_callback_cgm(void *data)
     // set timer to null, as it has beenh called and does not need rescheduling
     timer_cgm = NULL;
 	TRACE("timer_callback_cgm: register timer");
+    WARNING("timer %d %d", current_cgm_time, time(NULL));
     // if we have not received anything for over 6 minutes, keep checking
     if ((long) (current_cgm_time + 360) < time(NULL)) {
         // mark cgm data as dirty, send heartbeat
         dirty.need_cgm = 1;
+        // we do not reset time as likely we only missed a few messages
         send_cmd_cgm();
         // try again in 60 seconds until we get something
         reset_timer_callback_cgm(60);
@@ -2044,7 +1979,6 @@ void timer_callback_cgm(void *data)
 // message/delta tick layer
 void handle_message_tick(void *data) 
 {
-	if(display_message == 0) return;
 	INFO("handle_message_tick: Handling alert tick, display_message is %i", display_message);
 	if(display_message)
 	{
@@ -2864,7 +2798,7 @@ static void init_cgm(void)
     comm_callbacks.slopeval = set_icon;
     comm_callbacks.vibe = set_vibrate;
     comm_callbacks.bgl_delta = set_bgl_delta;
-    comm_callbacks.bgl_series = trend_set_series;
+    comm_callbacks.bgl_series = set_bgl_series; 
     comm_callbacks.bgl_data = set_bgl_data;
     comm_callbacks.bgl_timestamp = set_bgl_timestamp;
     comm_callbacks.bgl_value = set_bgl_value;
@@ -2962,7 +2896,8 @@ void set_phone_battery(comm_phonebat value) {
 
 // snprintf does not support float!
 void set_bgl_delta(comm_bgl_delta value) {
-    DEBUG("Delta units: undefined: %d mmol: %d display: %d value: %d", value.undefined, value.is_mmol, value.display_units, value.value);
+    DEBUG("Delta units: undefined: %d mmol: %d display: %d value: %d hidden: %d", 
+            value.undefined, value.is_mmol, value.display_units, value.value, value.hidden);
     if (value.display_units != show_unit) value.display_units = show_unit;
     if (value.undefined) {
         snprintf(current_bg_delta, sizeof(current_bg_delta), "???");
@@ -2980,6 +2915,13 @@ void set_bgl_delta(comm_bgl_delta value) {
         int16_t delta = value.value;
         snprintf(current_bg_delta, sizeof(current_bg_delta), "%hd", delta);
     }
+    show_delta = value.hidden ? false : true;
+    dirty.delta = 1;
+    load_bg_delta();
+}
+
+void set_bwp(comm_bwp_value value) {
+    snprintf(current_bg_delta, sizeof(current_bg_delta), BWP_SYMBOL "%lu", value);
     dirty.delta = 1;
     load_bg_delta();
 }
@@ -3013,6 +2955,7 @@ void set_bgl_data(comm_bgl_data *value) {
     if (value->timestamp != current_cgm_time) {
         set_bgl_timestamp(value->timestamp);
         set_bgl_value(value->bgl);
+        WARNING("%d vs %d %d", value->timestamp, current_cgm_time, value->timestamp - current_cgm_time);
         if (value->timestamp - current_cgm_time > 360) {
             dirty.need_cgm = 1;
             // we likely missed a value, set minutes timer to zero and wait for global udpate
@@ -3050,6 +2993,27 @@ void set_png(comm_png_data data) {
     layer_set_hidden(bitmap_layer_get_layer(bg_trend_layer), !show_trend);
     dirty.need_cgm = 0;
 }
+
+void set_bgl_series(comm_bgl_series *series) {
+    dirty.need_cgm = 0;
+    trend_set_series(series);
+}
+
+void set_message(comm_message *message) {
+    LOG("Setting message_layer visible");
+    memcpy(message_layer_text, message->message, message->length > sizeof(message_layer_text) - 1 ? sizeof(message_layer_text) : message->length);
+    text_layer_set_text(message_layer, message_layer_text);
+    display_message = true;
+    layer_set_hidden((Layer *)message_layer, false); // show and mark dirty
+#ifdef PBL_ROUND
+    layer_set_hidden((Layer *)delta_layer, true);
+#endif
+    // hide after
+    if (message_tick_timer == NULL || !app_timer_reschedule(message_tick_timer, message_tick_timeout)) {
+        message_tick_timer = app_timer_register(message_tick_timeout, handle_message_tick, NULL);
+    }
+}
+
 #endif
 
 int main(void)

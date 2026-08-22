@@ -26,7 +26,6 @@ static void trend_layer_callback(Layer *layer, GContext *ctx);
 void trend_init(Layer *layer) {
     config.layer = layer;
 
-
     /*
      * trend settings
      */
@@ -395,7 +394,7 @@ void trend_process_config(Tuple *data) {
             trend_draw();
             break;
         default:
-            DEBUG("Unknown key: %d", data->key);
+            DEBUG("Not a trend key: %d", data->key);
             break;
     }
 }
