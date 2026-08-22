@@ -196,6 +196,7 @@ static bool draw_trend(Layer *layer, GContext *ctx) {
 
 static bool draw_trend_lines(Layer *layer, GContext *ctx) {
     // top is 0,0
+    // excape if no line needs to be drawn
     GRect bounds = layer_get_bounds(layer);
     const int16_t h = BGL_TO_Y(config.bgl_high_line, config, bounds); 
     const int16_t l = BGL_TO_Y(config.bgl_low_line, config, bounds); 
@@ -208,10 +209,14 @@ static bool draw_trend_lines(Layer *layer, GContext *ctx) {
         default:
         case TREND_LINE_STYLE_SOLID:
             TRACE(TREND_LOG "Lines -> Solid");
-            graphics_context_set_stroke_color(ctx, COLOR_FALLBACK(config.high_line_color, GColorWhite));
-            graphics_draw_line(ctx, (GPoint) { 0, h }, (GPoint) { bounds.size.w, h});
-            graphics_context_set_stroke_color(ctx, COLOR_FALLBACK(config.low_line_color, GColorWhite));
-            graphics_draw_line(ctx, (GPoint) { 0, l }, (GPoint) { bounds.size.w, l});
+            if (config.bgl_high_line) {
+                graphics_context_set_stroke_color(ctx, COLOR_FALLBACK(config.high_line_color, GColorWhite));
+                graphics_draw_line(ctx, (GPoint) { 0, h }, (GPoint) { bounds.size.w, h});
+            }
+            if (config.bgl_low_line) {
+                graphics_context_set_stroke_color(ctx, COLOR_FALLBACK(config.low_line_color, GColorWhite));
+                graphics_draw_line(ctx, (GPoint) { 0, l }, (GPoint) { bounds.size.w, l});
+            }
             break;
         case TREND_LINE_STYLE_DOTTED_SPARSE:
             TRACE(TREND_LOG "Lines -> Dotted with extra space");
@@ -220,13 +225,17 @@ static bool draw_trend_lines(Layer *layer, GContext *ctx) {
         case TREND_LINE_STYLE_DOTTED:
             TRACE(TREND_LOG "Lines -> Dotted");
             s += 2;
-            graphics_context_set_stroke_color(ctx, COLOR_FALLBACK(config.high_line_color, GColorWhite));
-            for (int x = 0; x < bounds.size.w; x+=s) {
-                graphics_draw_pixel(ctx, (GPoint) { x, h });
+            if (config.bgl_high_line) {
+                graphics_context_set_stroke_color(ctx, COLOR_FALLBACK(config.high_line_color, GColorWhite));
+                for (int x = 0; x < bounds.size.w; x+=s) {
+                    graphics_draw_pixel(ctx, (GPoint) { x, h });
+                }
             }
-            graphics_context_set_stroke_color(ctx, COLOR_FALLBACK(config.low_line_color, GColorWhite));
-            for (int x = 0; x < bounds.size.w; x+=s) {
-                graphics_draw_pixel(ctx, (GPoint) { x, l });
+            if (config.bgl_low_line) {
+                graphics_context_set_stroke_color(ctx, COLOR_FALLBACK(config.low_line_color, GColorWhite));
+                for (int x = 0; x < bounds.size.w; x+=s) {
+                    graphics_draw_pixel(ctx, (GPoint) { x, l });
+                }
             }
             break;
         case TREND_LINE_STYLE_DASHED_WIDE:
@@ -238,13 +247,17 @@ static bool draw_trend_lines(Layer *layer, GContext *ctx) {
             TRACE(TREND_LOG "Lines -> Dashed");
             s += 5;
             w += 2;
-            graphics_context_set_stroke_color(ctx, COLOR_FALLBACK(config.high_line_color, GColorWhite));
-            for (int x = 0; x < bounds.size.w; x+=s) {
-                graphics_draw_line(ctx, (GPoint) { x, h }, (GPoint) { x+w, h});
+            if (config.bgl_high_line) {
+                graphics_context_set_stroke_color(ctx, COLOR_FALLBACK(config.high_line_color, GColorWhite));
+                for (int x = 0; x < bounds.size.w; x+=s) {
+                    graphics_draw_line(ctx, (GPoint) { x, h }, (GPoint) { x+w, h});
+                }
             }
-            graphics_context_set_stroke_color(ctx, COLOR_FALLBACK(config.low_line_color, GColorWhite));
-            for (int x = 0; x < bounds.size.w; x+=s) {
-                graphics_draw_line(ctx, (GPoint) { x, l }, (GPoint) { x+w, l});
+            if (config.bgl_low_line) {
+                graphics_context_set_stroke_color(ctx, COLOR_FALLBACK(config.low_line_color, GColorWhite));
+                for (int x = 0; x < bounds.size.w; x+=s) {
+                    graphics_draw_line(ctx, (GPoint) { x, l }, (GPoint) { x+w, l});
+                }
             }
             break;
     }
