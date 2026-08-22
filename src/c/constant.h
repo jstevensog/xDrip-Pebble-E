@@ -68,6 +68,12 @@
 #define DOUBLEDOWN_ARROW 7
 #define NOTCOMPUTE 8
 #define OUTOFRANGE 9
+#define NO_ANTENNA 10
+#define NOT_CALIBRATED 11
+#define SENSOR_NOT_ACTIVE 12
+#define HOURGLASS 13
+#define QUESTIONMARK 14
+#define SPECIAL_VALUE 15
 
 // message size constants
 #define ICON_MSGSTR_SIZE 4
@@ -79,7 +85,6 @@
 // BATTERY LEVEL FORMATTED SIZE used for Bridge/Phone and Watch battery indications
 #define BATTLEVEL_FORMATTED_SIZE 8
 
-
 // global constants for time durations
 #define MINUTEAGO ((uint8_t) 60)
 #define HOURAGO ((uint16_t) 60*(60))
@@ -89,6 +94,8 @@
 
 // Constants for string buffers
 // If add month to date, buffer size needs to increase to 12; also need to reformat date_app_text init string
+
+// global constants for t init string
 #define TIME_TEXTBUFF_SIZE ((uint8_t) 10)
 #define DATE_TEXTBUFF_SIZE ((uint8_t) 11)
 #define LABEL_BUFFER_SIZE ((uint8_t) 6)
@@ -140,5 +147,6 @@
 #define BGDELTA_LABEL_SIZE 14
 #define BGDELTA_FORMATTED_SIZE 14
 
+#define BWP_SYMBOL "😐"
 
 #endif // __CONSTANT_H__

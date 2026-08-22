@@ -18,6 +18,8 @@
 #define FRAMEWORK_SLOPEVAL          2008 
 #define FRAMEWORK_BGL_SERIES        2009
 #define FRAMEWORK_PNG_IMAGE         2010
+#define FRAMEWORK_BWP_VALUE         2011
+#define FRAMEWORK_SENSOR_TIME_LEFT  2012
 
 /**
  * Struct definitions for communication
@@ -84,7 +86,8 @@ typedef struct comm_bgl_data_t {
 typedef union  comm_bgl_delta_t {
     struct {
         int8_t          value;
-        uint8_t : 5;
+        uint8_t : 4;
+        uint8_t         hidden : 1;
         uint8_t         undefined : 1; 
         uint8_t         display_units : 1;
         uint8_t         is_mmol : 1;
@@ -126,6 +129,10 @@ typedef struct {
     uint8_t  *data;
 } comm_png_data;
 
+
+typedef uint32_t comm_sensor_time_left;
+typedef uint32_t comm_bwp_value;
+
 #pragma pack()
 
 /*
@@ -137,11 +144,14 @@ typedef struct comm_callback_t {
     void (*high_limit)(comm_high_limit value);
     void (*slopeval)(comm_slopeval value);
     void (*vibe)(comm_vibe value);
+    void (*message)(comm_message *message);
     void (*bgl_data)(comm_bgl_data *value);
     void (*bgl_series)(comm_bgl_series *value);
     void (*bgl_delta)(comm_bgl_delta value);
     void (*bgl_value)(comm_bgl_value value);
     void (*bgl_timestamp)(uint32_t timestamp);
+    void (*bwp_value)(comm_bwp_value value);
+    void (*sensor_time_left)(comm_sensor_time_left value);
     void (*png)(comm_png_data data);
 } comm_callback;
 
