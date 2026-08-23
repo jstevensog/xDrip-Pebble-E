@@ -86,7 +86,8 @@ typedef struct comm_bgl_data_t {
 typedef union  comm_bgl_delta_t {
     struct {
         int8_t          value;
-        uint8_t : 4;
+        uint8_t : 3;
+        uint8_t         expired : 1;
         uint8_t         hidden : 1;
         uint8_t         undefined : 1; 
         uint8_t         display_units : 1;
