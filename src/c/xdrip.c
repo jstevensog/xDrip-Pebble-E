@@ -2899,7 +2899,9 @@ void set_bgl_delta(comm_bgl_delta value) {
     DEBUG("Delta units: undefined: %d mmol: %d display: %d value: %d hidden: %d", 
             value.undefined, value.is_mmol, value.display_units, value.value, value.hidden);
     if (value.display_units != show_unit) value.display_units = show_unit;
-    if (value.undefined) {
+    if (value.expired) {
+        snprintf(current_bg_delta, sizeof(current_bg_delta), "Expired");
+    } else if (value.undefined) {
         snprintf(current_bg_delta, sizeof(current_bg_delta), "???");
     } else if (value.is_mmol && value.display_units) {
         TRACE("MMOL + Display");
