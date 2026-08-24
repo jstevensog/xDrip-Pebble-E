@@ -1679,35 +1679,9 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 		LOG("inbox_received_handler_cgm: key is %lu", data->key);
 		switch (data->key)
 		{
-			case CGM_MESSAGE_KEY:
-				LOG("Got Message Key, message is \"%s\"", data->value->cstring);
-				snprintf(message_layer_text,sizeof(message_layer_text),"%s",data->value->cstring);
-				//text_layer_set_text(message_layer,data->value->cstring);
-				text_layer_set_text(message_layer,message_layer_text);
-				if(strcmp(data->value->cstring, "")==0)
-				{
-					LOG("Setting message_layer hidden");
-					display_message = false;
-					layer_set_hidden((Layer *)message_layer, true);
-#ifdef PBL_ROUND
-					layer_set_hidden((Layer *)delta_layer, false);
-#endif
-				}
-				else
-				{
-					LOG("Setting message_layer visible");
-					display_message = true;
-					layer_set_hidden((Layer *)message_layer, false);
-#ifdef PBL_ROUND
-					layer_set_hidden((Layer *)delta_layer, true);
-#endif
-					if (!app_timer_reschedule(message_tick_timer, message_tick_timeout)) {
-						message_tick_timer = app_timer_register(message_tick_timeout, handle_message_tick, NULL);
-					}
-				}
-				
-			break;
-
+            /**
+             * Clay settings
+             */
 			case SET_SAMECOLOUR:
 				LOG("Got SET_SAMECOLOUR Key, message is \"%u\"", data->value->uint8);
 				SameColourTopAndBottom = data->value->uint8;
@@ -1907,6 +1881,8 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
                 reset_timer_callback_cgm(2);
                 break;
 
+                /*
+                 * Optional for testing, need clay settings items
             case SET_SHOW_UNIT:
                 show_unit = data->value->uint8 != 0;
                 persist_write_bool(SET_SHOW_UNIT, show_unit);
@@ -1927,7 +1903,10 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
                 persist_write_bool(SET_SHOW_TREND, show_trend);
                 layer_set_hidden(bitmap_layer_get_layer(bg_trend_layer), !show_trend);
                 break;
-
+*/
+            /**
+             * end of clay settings
+             */
 			default:
 #ifdef ENABLE_TREND_RENDERER
                 trend_process_config(data);
@@ -1956,7 +1935,7 @@ void timer_callback_cgm(void *data)
     // set timer to null, as it has beenh called and does not need rescheduling
     timer_cgm = NULL;
 	TRACE("timer_callback_cgm: register timer");
-    WARNING("timer %d %d", current_cgm_time, time(NULL));
+    DEBUG("timer %d %d", current_cgm_time, time(NULL));
     // if we have not received anything for over 6 minutes, keep checking
     if ((long) (current_cgm_time + 360) < time(NULL)) {
         // mark cgm data as dirty, send heartbeat
@@ -2955,9 +2934,9 @@ void set_bgl_value(comm_bgl_value value) {
 void set_bgl_data(comm_bgl_data *value) {
     TRACE("Set BGL Data");
     if (value->timestamp != current_cgm_time) {
+        DEBUG("%d vs %d %d", value->timestamp, current_cgm_time, value->timestamp - current_cgm_time);
         set_bgl_timestamp(value->timestamp);
         set_bgl_value(value->bgl);
-        WARNING("%d vs %d %d", value->timestamp, current_cgm_time, value->timestamp - current_cgm_time);
         if (value->timestamp - current_cgm_time > 360) {
             dirty.need_cgm = 1;
             // we likely missed a value, set minutes timer to zero and wait for global udpate
@@ -3024,4 +3003,4 @@ int main(void)
 	app_event_loop();
 	deinit_cgm();
 
-} // end main
+} // end mai

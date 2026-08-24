@@ -82,7 +82,7 @@ void comm_handle(Tuple *data) {
             if (data->length - 1 != data->value->data[0]) {
                 ERROR("Invalid message received");
             } else {
-                if (cb->message != NULL) cb->message((comm_message *) data->value->data);
+                if (cb->message != NULL) cb->message((comm_message *) data->value->cstring);
             }
             break;
         default:
