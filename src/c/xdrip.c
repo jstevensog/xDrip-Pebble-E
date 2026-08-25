@@ -31,6 +31,7 @@ static bool display_seconds = false;
 // variables for timers and time
 AppTimer *timer_cgm = NULL;
 AppTimer *BT_timer = NULL;
+AppTimer *hr_draw_timer = NULL;
 time_t time_now = 0;
 
 // global variable for bluetooth connection
@@ -373,6 +374,21 @@ static void health_handler(HealthEventType event, void *context) {
 	update_health_metric_displays();
 } //end health_handler
 
+static char s_hrm_buffer[16] = "Wait.. \U0001F493";
+static void hr_draw_callback(void *context) {
+    INFO("Drawing HRM");
+    // defer HR update untill measurement stabelizes
+    if(bottom_left_metric == METRIC_HEARTRATE && dirty.hbm) {
+        DEBUG("Setting bottom left metric to \"%lu\"", (uint32_t)val);
+        text_layer_set_text(bottom_left_text_layer, s_hrm_buffer);
+    }
+    if(bottom_right_metric == METRIC_HEARTRATE && dirty.hbm) {
+        DEBUG("Setting bottom right metric to \"%lu\"", (uint32_t)val);
+        text_layer_set_text(bottom_right_text_layer, s_hrm_buffer);
+    }
+    hr_draw_timer = NULL;
+}
+
 // update_health_metric_displays - Updates the bottom left and right metrics displays if they are displaying health metrics
 static void update_health_metric_displays() {
 	static char step_count_text[9];
@@ -413,7 +429,7 @@ static void update_health_metric_displays() {
 	}	
 #if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_FLINT) || defined(PBL_PLATFORM_GABBRO)
 	if(bottom_left_metric == METRIC_HEARTRATE || bottom_right_metric == METRIC_HEARTRATE) {
-		static char s_hrm_buffer[16] = "Wait.. \U0001F493";
+        snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "Wait.. \U0001F493");
 		HealthValue val = 0;
 		HealthServiceAccessibilityMask hr = health_service_metric_accessible(HealthMetricHeartRateBPM, time(NULL), time(NULL));
 		if (hr & HealthServiceAccessibilityMaskAvailable) {
@@ -428,14 +444,10 @@ static void update_health_metric_displays() {
 		} else if (current_hbm == 0 && dirty.hbm) {
 			snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "Wait.. \U0001F493");
 		}
-		if(bottom_left_metric == METRIC_HEARTRATE && dirty.hbm) {
-			DEBUG("Setting bottom left metric to \"%lu\"", (uint32_t)val);
-			text_layer_set_text(bottom_left_text_layer, s_hrm_buffer);
-		}
-		if(bottom_right_metric == METRIC_HEARTRATE && dirty.hbm) {
-			DEBUG("Setting bottom right metric to \"%lu\"", (uint32_t)val);
-			text_layer_set_text(bottom_right_text_layer, s_hrm_buffer);
-		}
+
+        if (dirty.hbm && (hr_draw_timer == NULL || !app_timer_reschedule(hr_draw_timer, 1000))) {
+            hr_draw_timer = app_timer_register(1000, hr_draw_callback, NULL);
+        }
 	}
 #endif
 
