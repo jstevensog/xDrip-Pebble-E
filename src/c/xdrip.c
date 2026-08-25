@@ -2980,9 +2980,9 @@ void set_bgl_series(comm_bgl_series *series) {
     trend_set_series(series);
 }
 
-void set_message(comm_message *message) {
+void set_message(comm_message message) {
     LOG("Setting message_layer visible");
-    memcpy(message_layer_text, message->message, message->length > sizeof(message_layer_text) - 1 ? sizeof(message_layer_text) : message->length);
+    memcpy(message_layer_text, message.message, message.length > sizeof(message_layer_text) - 1 ? sizeof(message_layer_text) : message.length);
     text_layer_set_text(message_layer, message_layer_text);
     display_message = true;
     layer_set_hidden((Layer *)message_layer, false); // show and mark dirty

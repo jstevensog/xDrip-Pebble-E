@@ -79,11 +79,7 @@ void comm_handle(Tuple *data) {
         case FRAMEWORK_MESSAGE:
             TRACE(CM "Message received");
             // avoid malformed cstrings crashing the watch via OOB
-            if (data->length - 1 != data->value->data[0]) {
-                ERROR("Invalid message received");
-            } else {
-                if (cb->message != NULL) cb->message((comm_message *) data->value->cstring);
-            }
+            if (cb->message != NULL) cb->message((comm_message){ .length = data->length, .message = data->value->cstring});
             break;
         default:
             DEBUG(CM "id %ld not handled by communications framework", key);

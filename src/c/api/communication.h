@@ -105,8 +105,8 @@ typedef struct comm_bgl_series_t {
 typedef uint8_t comm_phonebat;
 
 typedef struct comm_message_t {
-    uint8_t length;
-    char    message[];
+    uint32_t length;
+    char    *message;
 } comm_message;
 
 typedef union  {
@@ -145,7 +145,7 @@ typedef struct comm_callback_t {
     void (*high_limit)(comm_high_limit value);
     void (*slopeval)(comm_slopeval value);
     void (*vibe)(comm_vibe value);
-    void (*message)(comm_message *message);
+    void (*message)(comm_message message);
     void (*bgl_data)(comm_bgl_data *value);
     void (*bgl_series)(comm_bgl_series *value);
     void (*bgl_delta)(comm_bgl_delta value);
