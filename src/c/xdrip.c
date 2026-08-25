@@ -1980,7 +1980,7 @@ void handle_message_tick(void *data)
 #endif
 	}
 
-	message_tick_timer = app_timer_register(message_tick_timeout, handle_message_tick, NULL);
+	if (display_message) message_tick_timer = app_timer_register(message_tick_timeout, handle_message_tick, NULL);
 }
 
 void handle_second_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cgm)
@@ -2984,7 +2984,7 @@ void set_message(comm_message message) {
     LOG("Setting message_layer visible");
     memcpy(message_layer_text, message.message, message.length > sizeof(message_layer_text) - 1 ? sizeof(message_layer_text) : message.length);
     text_layer_set_text(message_layer, message_layer_text);
-    display_message = true;
+    display_message = message.length > 0 ? true : false;
     layer_set_hidden((Layer *)message_layer, false); // show and mark dirty
 #ifdef PBL_ROUND
     layer_set_hidden((Layer *)delta_layer, true);
