@@ -2913,7 +2913,7 @@ void set_vibrate(comm_vibe value) {
 
 void set_bgl_timestamp(uint32_t timestamp) {
     TRACE("Set BGL Timestamp");
-    current_cgm_time = timestamp;
+    if (!dirty.need_cgm) current_cgm_time = timestamp;
     reset_timer_callback_cgm((timestamp - time(NULL)) + (60 * 6));
     load_cgmtime();
 }
@@ -2935,13 +2935,13 @@ void set_bgl_data(comm_bgl_data *value) {
     TRACE("Set BGL Data");
     if (value->timestamp != current_cgm_time) {
         DEBUG("%d vs %d %d", value->timestamp, current_cgm_time, value->timestamp - current_cgm_time);
-        set_bgl_timestamp(value->timestamp);
-        set_bgl_value(value->bgl);
+        set_bgl_value(value->bgl); // always show bgl value
         if (value->timestamp - current_cgm_time > 360) {
             dirty.need_cgm = 1;
             // we likely missed a value, set minutes timer to zero and wait for global udpate
             reset_timer_callback_cgm((value->timestamp - time(NULL)) + (60));
-        } else if (!use_png) trend_set_value(value);
+        } else if (!use_png && !dirty.need_cgm) trend_set_value(value);
+        set_bgl_timestamp(value->timestamp); // can be marked dirty, so might not update
     } else {
         WARNING("Received same bgl value twice!");
     }
