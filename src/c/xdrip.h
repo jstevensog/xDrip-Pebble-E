@@ -46,9 +46,6 @@ Make sure you udefine this before building a release.
 
 #ifndef PBL_COLOR
 #define CHUNK_SIZE 256
-
-// function definition to update monochrome bitmap layers
-static void bitmapLayerUpdate(struct Layer *layer, GContext *ctx);
 #else
 #define CHUNK_SIZE 1024
 #endif

@@ -16,7 +16,6 @@ static bool vibe_repeat = false;
 AppSync sync_cgm;
 
 static bool handling_second = false;
-static bool doing_trend = false;
 static bool global_lock = false;
 static bool use_png = false;
 static bool show_trend = true;
@@ -41,13 +40,16 @@ bool bluetooth_connected_cgm = true;
 // buffers have to be static and hardcoded
 static uint32_t current_icon = 0;
 static char last_bg[6];
-static bool currentBG_isMMOL = false;
 static uint32_t last_battlevel = 100;
 static uint32_t current_cgm_time = 0;
 static uint32_t current_app_time = 0;
 static char current_bg_delta[14];
+#ifdef PBL_HEALTH
 static int current_step_count = 0;
+#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_FLINT)
 static int current_hbm = 0;
+#endif
+#endif
 
 // global BG snooze timer
 static uint8_t lastAlertTime = 0;
@@ -134,9 +136,6 @@ static char message_layer_text[13];
 static GFont time_font_small;
 static GFont time_font_normal;
 
-// Message Timer Wait Times, in Seconds
-static uint8_t minutes_cgm = 0;
-
 //Metric Display Left/Right
 static uint8_t bottom_left_metric = 1;
 static uint8_t bottom_right_metric = 1;
@@ -221,6 +220,7 @@ static char *translate_app_error(AppMessageResult result)
 	}
 }
 
+#if defined(DEBUG_LEVEL) && DEBUG_LEVEL > DEBUG_LEVEL_INFO
 static char *translate_dict_error(DictionaryResult result)
 {
 	switch (result)
@@ -239,30 +239,7 @@ static char *translate_dict_error(DictionaryResult result)
 			return "DICT UNKNOWN ERROR";
 	}
 }
-
-int myAtoi(char *str)
-{
-
-	// VARIABLES
-	int res = 0; // Initialize result
-
-	// CODE START
-	INFO("MYATOI: ENTER CODE");
-	// Iterate through all characters of input string and update result
-	for (int i = 0; str[i] != '\0'; ++i)
-	{
-
-	DEBUG("MYATOI, STRING IN: %s", &str[i] );
-
-		if ( (str[i] >= ('0')) && (str[i] <= ('9')) )
-		{
-			res = res*10 + str[i] - '0';
-		}
-		TRACE("MYATOI, FOR RESULT OUT: %i", res );
-	}
-	INFO("MYATOI, FINAL RESULT OUT: %i", res );
-	return res;
-} // end myAtoi
+#endif
 
 static void destroy_null_GBitmap(GBitmap **GBmp_image)
 {
@@ -374,6 +351,8 @@ void health_handler(HealthEventType event, void *context) {
 	update_health_metric_displays();
 } //end health_handler
 
+
+#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_FLINT)
 static char s_hrm_buffer[16] = "Wait.. \U0001F493";
 static void hr_draw_callback(void *context) {
     INFO("Drawing HRM");
@@ -388,6 +367,7 @@ static void hr_draw_callback(void *context) {
     }
     hr_draw_timer = NULL;
 }
+#endif
 
 // update_health_metric_displays - Updates the bottom left and right metrics displays if they are displaying health metrics
 void update_health_metric_displays() {
@@ -427,7 +407,7 @@ void update_health_metric_displays() {
             dirty.step_count = 0;
 		}
 	}	
-#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_FLINT) || defined(PBL_PLATFORM_GABBRO)
+#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_FLINT)
 	if(bottom_left_metric == METRIC_HEARTRATE || bottom_right_metric == METRIC_HEARTRATE) {
         snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "Wait.. \U0001F493");
 		HealthValue val = 0;
@@ -2061,85 +2041,6 @@ void handle_minute_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
     load_bg_delta();
 
 } // end handle_minute_tick_cgm
-
-//#ifdef PBL_PLATFORM_APLITE
-#ifndef PBL_COLOR
-
-static uint8_t breverse(uint8_t b);
-static uint8_t breverse(uint8_t b)
-{
-	b = (b & 0xF0) >> 4 | (b & 0x0F) << 4;
-	b = (b & 0xCC) >> 2 | (b & 0x33) << 2;
-	b = (b & 0xAA) >> 1 | (b & 0x55) << 1;
-	return b;
-}
-
-static void bitmapLayerUpdate(struct Layer *layer, GContext *ctx)
-{
-	GBitmap *framebuffer;
-	const GBitmap *graphic = bitmap_layer_get_bitmap((BitmapLayer *)layer);
-	int height;
-	uint8_t finalBits;
-	uint8_t *bfr, *bitmap;
-
-	if (global_lock) return;
-	global_lock = true;
-
-	framebuffer = graphics_capture_frame_buffer(ctx);
-	if (framebuffer == NULL)
-	{
-		DEBUG("bitmapLayerUpdate: capture frame buffer failed!!");
-	}
-	else
-	{
-		//  DEBUG("capture frame buffer succeeded %i vs %i and %i vs %i with bpw: %i vs %i",gbitmap_get_bounds(graphic).size.w,gbitmap_get_bounds(framebuffer).size.w,gbitmap_get_bounds(graphic).size.h,gbitmap_get_bounds(framebuffer).size.h, gbitmap_get_bytes_per_row(graphic),gbitmap_get_bytes_per_row(framebuffer));
-
-		if (graphic == NULL)
-		{
-			DEBUG("bitmapLayerUpdate: GRAPHIC IS NULL!!");
-		}
-		else
-		{
-			height = gbitmap_get_bounds(graphic).size.h;
-			uint8_t* bfstart=(uint8_t*)gbitmap_get_data(framebuffer);
-			uint8_t* bitmapstart=(uint8_t*)gbitmap_get_data(graphic);
-			if (bitmapstart == NULL)
-			{
-				WARNING("bitmapLayerUpdate: bitmap start went to null!!");
-				graphics_release_frame_buffer(ctx, framebuffer);
-				global_lock = false;
-				return;
-			}
-			if (bfstart == NULL)
-			{
-				WARNING("bitmapLayerUpdate: framebuffer start went to null!!");
-				graphics_release_frame_buffer(ctx, framebuffer);
-				global_lock = false;
-				return;
-			}
-			unsigned int fb_bytes_per_row = gbitmap_get_bytes_per_row(framebuffer);
-			unsigned int gbitmap_bytes_per_row = gbitmap_get_bytes_per_row(graphic);
-
-			bfstart += fb_bytes_per_row*34; // how far down screen to start
-
-			for (int yindex =0; yindex < height; yindex++)
-			{
-				int fb_yoffset = yindex * fb_bytes_per_row;
-				bfr = (uint8_t*)(bfstart+fb_yoffset);
-				bitmap = (uint8_t*)(bitmapstart+(yindex * gbitmap_bytes_per_row));
-				for ( unsigned int xindex = 0; xindex < gbitmap_bytes_per_row; xindex++)
-				{
-					finalBits = breverse(*bitmap++) ^ *bfr;
-					*bfr++ = finalBits;
-					// DEBUG("bfr: %0x, bitmsp: %0x, finalBits: %x", (unsigned int)bfr, (unsigned int)bitmap, finalBits );
-				}
-			}
-		}
-		graphics_release_frame_buffer(ctx, framebuffer);
-	}
-	global_lock = false;
-}
-#endif
 
 void window_load_cgm(Window *window_cgm)
 {
