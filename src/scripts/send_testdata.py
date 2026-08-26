@@ -3,6 +3,7 @@ from libpebble2.communication import PebbleConnection
 from libpebble2.communication.transports.qemu import QemuTransport
 from libpebble2.services.appmessage import AppMessageService, \
     Uint8, Uint16, ByteArray, Int32
+from libpebble2.services.install import AppInstaller, AppInstallError
 
 from math import sin, pi
 import struct
@@ -44,17 +45,32 @@ else:
     qemu_cmd.append('if=none,id=spi-flash,file=%s,format=raw' % (os.path.expanduser("~/.pebble-sdk/4.33.1/%s/qemu_spi_flash.bin" % device_type)))
 
 
+def progress_callback(sent, total, length):
+    pct = (total / length) * 100
+    print(f"\rUploading: {pct:5.1f}% ({total}/{length} bytes)", end="", flush=True)
+
+
 p_qemu = subprocess.Popen(qemu_cmd)
-sleep(4)
 zf = zipfile.ZipFile('build/xDrip-Pebble-E.pbw')
+APP_PATH = "build/xDrip-Pebble-E.pbw"
+sleep(2)
 
 try:
     transport = QemuTransport("localhost", port)
     pebble = PebbleConnection(transport)
     pebble.connect()
     pebble.run_async()
-
     print("Successfully connected to Pebble QEMU bluetooth channel.")
+
+    installer = AppInstaller(pebble, APP_PATH)
+    installer.register_handler("progress", progress_callback)
+    installer.install()
+    print("App installed")
+    sleep(1)
+
+except AppInstallError:
+    print("Failed to install watchface")
+    exit(1)
 except Exception as e:
     print(f"Failed to connect: {e}")
     exit(1)
