@@ -13,7 +13,7 @@ void comm_init(comm_callback *callbacks) {
 
 void comm_handle(Tuple *data) {
     uint32_t key = data->key;
-    DEBUG(CM "Key: %d", key);
+    INFO(CM "Key: %d", key);
 
     if (cb == NULL) {
         WARNING(CM "Cannot perform anu actions, no callback registered");

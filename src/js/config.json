@@ -422,7 +422,8 @@
                   { "label": "Dotted", "value": 1 },
                   { "label": "Dotted - sparse", "value": 2 },
                   { "label": "Dashed", "value": 3 },
-                  { "label": "Dashed - wide", "value": 4}
+                  { "label": "Dashed - wide", "value": 4},
+                  { "label": "Edges only", "value": 5}
               ]
           },
           {
@@ -452,6 +453,37 @@
               "defaultValue": 4,
               "min": 1,
               "max": 10
+          },
+          {
+              "type": "toggle",
+              "messageKey": "trend_hour",
+              "label": "Display hour marks in trend",
+              "defaultValue": false,
+              "group": "trend_hours"
+          },
+          {
+              "type": "select",
+              "messageKey": "trend_hour_style",
+              "label": "Hour line style",
+              "defaultValue": 0,
+              "group": "trend_hours",
+              "options": [
+                  { "label": "Solid", "value": 0 },
+                  { "label": "Dotted", "value": 1 },
+                  { "label": "Dotted - sparse", "value": 2 },
+                  { "label": "Dashed", "value": 3 },
+                  { "label": "Dashed - wide", "value": 4},
+                  { "label": "Edges only", "value": 5}
+              ]
+          },
+          {
+              "type": "slider",
+              "messageKey": "trend_hour_width",
+              "label": "Hour line width",
+              "defaultValue": 1,
+              "min": 1,
+              "max": 4,
+              "group": "trend_hours"
           }
       ]
   },

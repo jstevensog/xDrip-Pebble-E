@@ -21,7 +21,10 @@ module.exports = function(minified) {
             'trend_line_style',
             'trend_line_width',
             'trend_width',
-            'trend_style'
+            'trend_style',
+            "trend_hour",
+            "trend_hour_width",
+            "trend_hour_style"
             
         ];
         if (this.get()) {
@@ -119,6 +122,21 @@ module.exports = function(minified) {
         // run convert if need be
         convert_bgl();
 
+        // hour line masking
+        var hours = clayConfig.getItemByMessageKey('trend_hour');
+        hours.on('change', function() {
+            const width = clayConfig.getItemByMessageKey('trend_hour_width');
+            const style = clayConfig.getItemByMessageKey('trend_hour_style');
+            if (hours.get()) {
+                width.enable();
+                style.enable();
+            } else {
+                width.disable();
+                style.disable();
+            }
+        });
+        hours.trigger('change');
+
 
         // this is also done by the "selector" values, but there is overlap in those
         if (!clayConfig.meta.activeWatchInfo || 
@@ -141,7 +159,10 @@ module.exports = function(minified) {
                 'trend_low',
                 'trend_average',
                 'trend_high',
-                'trend_critical'
+                'trend_critical',
+                "trend_hour",
+                "trend_hour_width",
+                "trend_hour_style"
             ];
             for (const index in items) {
                 console.debug("Hiding " + items[index]);
@@ -151,23 +172,4 @@ module.exports = function(minified) {
 
         }
     });
-  //   var coolStuffToggle = clayConfig.getItemByMessageKey('cool_stuff');
-  //   toggleBackground.call(coolStuffToggle);
-  //   coolStuffToggle.on('change', toggleBackground);
-  //   
-  //   // Hide the color picker for aplite
-  //   if (!clayConfig.meta.activeWatchInfo || clayConfig.meta.activeWatchInfo.platform === 'aplite') {
-  //     clayConfig.getItemByMessageKey('background').hide();
-  //   }
-  //   
-  //   // Set the value of an item based on the userData
-  //   $.request('get', 'https://some.cool/api', {token: clayConfig.meta.userData.token})
-  //     .then(function(result) {
-  //       // Do something interesting with the data from the server
-  //     })
-  //     .error(function(status, statusText, responseText) {
-  //       // Handle the error
-  //     });
-  // });
-  
 };
