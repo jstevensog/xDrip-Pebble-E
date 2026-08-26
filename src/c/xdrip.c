@@ -2669,8 +2669,7 @@ static void init_cgm(void)
 
 	TRACE("INIT CODE, ABOUT TO CALL APP MSG OPEN");
 #ifdef PBL_PLATFORM_APLITE
-//#ifndef PBL_COLOR
-	app_message_open(512, 1024);
+	app_message_open(512, 256);
 #else
 	app_message_open(app_message_inbox_size_maximum(), app_message_outbox_size_maximum());
 #endif

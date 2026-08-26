@@ -24,7 +24,7 @@
 this is for testing purposes only until I can get the PebbleKit.JS code operating with the emulator.
 Make sure you udefine this before building a release.
 */
-/* #define TEST_MODE */
+#define TEST_MODE
 
 /**
  * Feature flags
