@@ -129,22 +129,27 @@ static inline int16_t lerp(int32_t y0, int32_t y1, uint32_t t) {
     return ((y0 << 16) + (t * (y1 - y0))) >> 16;
 }
 
+// only allow dots on aplite to save memory
 static bool draw_trend(Layer *layer, GContext *ctx) {
     graphics_context_set_stroke_width(ctx, config.trend_width); // constant
 
     GRect bounds = layer_get_bounds(layer);
-
+#ifdef PBL_PLATFORM_APLITE
+    bool interp = true; // do not interp on lines 
+#else
     bool interp = config.style == TREND_STYLE_DOTS ? (bounds.size.w > config.bgl.size) : false; // do not interp on lines 
+#endif
     int32_t t = 0;
     int32_t interval = ((config.bgl.size - 1) << 16) / bounds.size.w;
     int index = 0;
     TRACE(TREND_LOG "Layer Width: %d array %d ", bounds.size.w, config.bgl.size);
     TRACE(TREND_LOG "Interp settings: [%d] :: %d", interp, interval);
     TRACE(TREND_LOG "Line width: %d", config.line_width);
-
+#ifndef PBL_PLATFORM_APLITE
     if (config.style == TREND_STYLE_DOTS) {
         TRACE(TREND_LOG "Style dotted");
         // simplified
+#endif
         for (int i = 0; i < bounds.size.w; i++) {
             if (interp) {
                 int16_t y0 = lerp(
@@ -159,6 +164,7 @@ static bool draw_trend(Layer *layer, GContext *ctx) {
                 draw_bgl_point(config.bgl.values[(config.bgl.index + i) % (config.bgl.size)], i, bounds, ctx); 
             }
         }
+#ifndef PBL_PLATFORM_APLITE
     } else if (config.style == TREND_STYLE_LINES) {
         TRACE(TREND_LOG "Style lines");
         if (interp) {
@@ -196,6 +202,7 @@ static bool draw_trend(Layer *layer, GContext *ctx) {
             }
         }
     }
+#endif
     return true;
 }
 
@@ -207,11 +214,13 @@ static bool draw_trend_lines(Layer *layer, GContext *ctx) {
     const int16_t l = BGL_TO_Y(config.bgl_low_line, config, bounds); 
     TRACE(TREND_LOG "Draw lines, high: %d, low %d", h, l);
 
+#ifndef PBL_PLATFORM_APLITE
     const float hour_interval = (float) bounds.size.w / (float) config.bgl.hours + 1; // rounding happens at drawing
     // drawing
     int w = 0, s = 0;
-
+#endif
     graphics_context_set_stroke_width(ctx, config.line_width);
+#ifndef PBL_PLATFORM_APLITE
     switch (config.hl_line_style) {
         default:
         case TREND_LINE_STYLE_EDGES:
@@ -228,6 +237,7 @@ static bool draw_trend_lines(Layer *layer, GContext *ctx) {
             }
             break;
         case TREND_LINE_STYLE_SOLID:
+#endif
             TRACE(TREND_LOG "Lines -> Solid");
             if (config.bgl_high_line) {
                 graphics_context_set_stroke_color(ctx, COLOR_FALLBACK(config.high_line_color, GColorWhite));
@@ -237,6 +247,7 @@ static bool draw_trend_lines(Layer *layer, GContext *ctx) {
                 graphics_context_set_stroke_color(ctx, COLOR_FALLBACK(config.low_line_color, GColorWhite));
                 graphics_draw_line(ctx, (GPoint) { 0, l }, (GPoint) { bounds.size.w, l});
             }
+#ifndef PBL_PLATFORM_APLITE
             break;
         case TREND_LINE_STYLE_DOTTED_SPARSE:
             TRACE(TREND_LOG "Lines -> Dotted with extra space");
@@ -321,6 +332,7 @@ static bool draw_trend_lines(Layer *layer, GContext *ctx) {
             }
         }
     }
+#endif
     return true;
 }
 
@@ -347,6 +359,8 @@ void trend_draw(void) {
  */
 
 void trend_set_series(comm_bgl_series *values) {
+
+#ifndef PBL_PLATFORM_APLITE
     TRACE(TREND_LOG "Trend set series"); 
     if (!config.bgl.initialized) {
         DEBUG("Initializing");
@@ -365,6 +379,7 @@ void trend_set_series(comm_bgl_series *values) {
         config.bgl.index = config.bgl.index % (config.bgl.size);
     }
     trend_draw();
+#endif
 }
 
 void trend_set_value(comm_bgl_data *value) {

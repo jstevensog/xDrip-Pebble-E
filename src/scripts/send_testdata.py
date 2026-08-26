@@ -20,9 +20,14 @@ if len(sys.argv) < 2:
     print("Need device type as arg")
     exit(1)
 
+
 device_type = sys.argv[1]
 port = 12344
 
+IMAGE = None
+if len(sys.argv) == 3:
+    with open(sys.argv[2], "rb") as f:
+        IMAGE = f.read()
 
 qemu_cmd = [
     os.path.expanduser("~/.pebble-sdk/SDKs/4.33.1/toolchain/bin/qemu-pebble"),
@@ -66,7 +71,7 @@ try:
     installer.register_handler("progress", progress_callback)
     installer.install()
     print("App installed")
-    sleep(1)
+    sleep(2)
 
 except AppInstallError:
     print("Failed to install watchface")
@@ -94,7 +99,11 @@ try:
     app_message_service = AppMessageService(pebble)
     print("Sending series and delta")
     payload = {}
-    payload[2009] = ByteArray(FRAMEWORK_BGL_SERIES(bgl_list))
+    if (IMAGE is None):
+        payload[117] = Uint8(0)
+        payload[2009] = ByteArray(FRAMEWORK_BGL_SERIES(bgl_list))
+    else:
+        payload[117] = Uint8(1)
     payload[2001] = ByteArray(FRAMEWORK_BGL_DELTA(100, True))
     app_message_service.send_message(ud, payload)
     sv = 0
@@ -102,10 +111,12 @@ try:
         bgl_index = bgl_index + 1
         sv = sv + 1
         print("Sending %d" % (bgl_index))
-        payload =  {}
+        payload = {}
         payload[2002] = ByteArray(FRAMEWORK_BGL_VALUE(bgl_list[bgl_index % len(bgl_list)]))
         payload[2001] = ByteArray(FRAMEWORK_BGL_DELTA(os.urandom(1)[0] - 128, True))
         payload[2008] = Uint8(sv % 8)
+        if (IMAGE is not None):
+            payload[2010] = ByteArray(IMAGE)
         app_message_service.send_message(ud, payload)
         sleep(1)
 except Exception as e:
