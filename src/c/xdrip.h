@@ -2,6 +2,7 @@
 #ifndef __XDRIP_H__
 #define __XDRIP_H__
 
+#include <pebble.h>
 #include <math.h>
 #include "constant.h"
 /**
@@ -17,7 +18,7 @@
 #define DEBUG_APP_INFO 1
 #define DEBUG_APP_NONE 0
 
-/* #define DEBUG_LEVEL DEBUG_APP_TRACE  */
+/* #define DEBUG_LEVEL DEBUG_APP_INFO  */
 
 /* The line below, if defined, will only indicate test values on the display.
 this is for testing purposes only until I can get the PebbleKit.JS code operating with the emulator.
@@ -107,6 +108,9 @@ static void bitmapLayerUpdate(struct Layer *layer, GContext *ctx);
 #define SET_HIGH_LINE_VALUE     317
 #define SET_LOW_LIMIT           318
 #define SET_LOW_LINE_VALUE      319
+#define SET_HOUR_ENABLED        320
+#define SET_HOUR_WIDTH          321
+#define SET_HOUR_STYLE          322
 #define CGM_SYNC_KEY			1000	// key pebble will use to request an update.	This should probably include the "capabilities" bits
 #define PBL_PLATFORM			1001	// key pebble will use to send it's platform	This is probably not required under the new famework.
 #define PBL_APP_VER			1002	// key pebble will use to send the face/app version.	This is probably not required under the new framework.
@@ -160,7 +164,7 @@ void reset_timer_callback_cgm(int32_t seconds);
 
 //Health and Metric Display functions
 #ifdef PBL_HEALTH
-static void update_health_metric_displays();
-static void health_handler(HealthEventType event, void *context);
+void update_health_metric_displays();
+void health_handler(HealthEventType event, void *context);
 #endif
 #endif // __XDRIP_H__

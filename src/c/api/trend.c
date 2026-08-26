@@ -42,7 +42,7 @@ void trend_init(Layer *layer) {
     config.low_line_color = persist_exists(SET_LOW_LINE_COLOUR) ? GColorFromHEX(persist_read_int(SET_LOW_LINE_COLOUR)) : COLOR_FALLBACK(GColorBlue, GColorWhite);
     config.trend_width = persist_exists(SET_TREND_WIDTH) ? persist_read_int(SET_TREND_WIDTH) : 4;
     config.style = persist_exists(SET_TREND_STYLE) ? persist_read_int(SET_TREND_STYLE) : TREND_STYLE_DOTS;
-    config.line_style = persist_exists(SET_LINE_STYLE) ? persist_read_int(SET_LINE_STYLE) : TREND_LINE_STYLE_SOLID;
+    config.hl_line_style = persist_exists(SET_LINE_STYLE) ? persist_read_int(SET_LINE_STYLE) : TREND_LINE_STYLE_SOLID;
     config.line_width = persist_exists(SET_LINE_WIDTH) ? persist_read_int(SET_LINE_WIDTH) : 4;
 
     /* Values for high/low lines */
@@ -50,6 +50,12 @@ void trend_init(Layer *layer) {
     config.bgl_low_line = persist_exists(SET_LOW_LINE_VALUE) ? persist_read_int(SET_LOW_LINE_VALUE) : 72;
     config.bgl_high_limit = persist_exists(SET_HIGH_LIMIT) ? persist_read_int(SET_HIGH_LIMIT) : 250;
     config.bgl_low_limit = persist_exists(SET_LOW_LIMIT) ? persist_read_int(SET_LOW_LIMIT) : 40;
+
+    /* Hour lines */
+    config.hour_line_color = COLOR_FALLBACK(GColorLightGray, GColorWhite);
+    config.hour_line_width = persist_exists(SET_HOUR_WIDTH) ? persist_read_int(SET_HOUR_WIDTH) : 1;
+    config.hour_line_style = persist_exists(SET_HOUR_STYLE) ? persist_read_int(SET_HOUR_STYLE) : TREND_LINE_STYLE_SOLID;
+    config.hour_line_enabled = persist_exists(SET_HOUR_ENABLED) ? persist_read_int(SET_HOUR_ENABLED) : 0;
 
     config.bgl.initialized = 0;
 
@@ -201,11 +207,26 @@ static bool draw_trend_lines(Layer *layer, GContext *ctx) {
     const int16_t l = BGL_TO_Y(config.bgl_low_line, config, bounds); 
     TRACE(TREND_LOG "Draw lines, high: %d, low %d", h, l);
 
+    const float hour_interval = (float) bounds.size.w / (float) config.bgl.hours + 1; // rounding happens at drawing
     // drawing
-    graphics_context_set_stroke_width(ctx, config.line_width);
     int w = 0, s = 0;
-    switch (config.line_style) {
+
+    graphics_context_set_stroke_width(ctx, config.line_width);
+    switch (config.hl_line_style) {
         default:
+        case TREND_LINE_STYLE_EDGES:
+            if (config.bgl_high_line) {
+                graphics_context_set_stroke_color(ctx, COLOR_FALLBACK(config.high_line_color, GColorWhite));
+                graphics_draw_line(ctx, (GPoint) { 0, h }, (GPoint) { bounds.size.w / 5, h});
+                graphics_draw_line(ctx, (GPoint) { bounds.size.w - (bounds.size.w / 5), h }, (GPoint) { bounds.size.w, h});
+
+            }
+            if (config.bgl_low_line) {
+                graphics_context_set_stroke_color(ctx, COLOR_FALLBACK(config.low_line_color, GColorWhite));
+                graphics_draw_line(ctx, (GPoint) { 0, l }, (GPoint) { bounds.size.w / 5, l});
+                graphics_draw_line(ctx, (GPoint) { bounds.size.w - (bounds.size.w / 5), l }, (GPoint) { bounds.size.w, l});
+            }
+            break;
         case TREND_LINE_STYLE_SOLID:
             TRACE(TREND_LOG "Lines -> Solid");
             if (config.bgl_high_line) {
@@ -219,7 +240,7 @@ static bool draw_trend_lines(Layer *layer, GContext *ctx) {
             break;
         case TREND_LINE_STYLE_DOTTED_SPARSE:
             TRACE(TREND_LOG "Lines -> Dotted with extra space");
-            s = 1;
+            s = 3;
             // fall through
         case TREND_LINE_STYLE_DOTTED:
             TRACE(TREND_LOG "Lines -> Dotted");
@@ -239,31 +260,72 @@ static bool draw_trend_lines(Layer *layer, GContext *ctx) {
             break;
         case TREND_LINE_STYLE_DASHED_WIDE:
             TRACE(TREND_LOG "Lines -> Dashed - wide");
-            s = 5;
+            s = 3;
             w = 2;
             // fall through
         case TREND_LINE_STYLE_DASHED:
             TRACE(TREND_LOG "Lines -> Dashed");
-            s += 5;
+            s += 2;
             w += 2;
             if (config.bgl_high_line) {
                 graphics_context_set_stroke_color(ctx, COLOR_FALLBACK(config.high_line_color, GColorWhite));
-                for (int x = 0; x < bounds.size.w; x+=s) {
+                for (int x = 0; x < bounds.size.w; x+=s+w) {
                     graphics_draw_line(ctx, (GPoint) { x, h }, (GPoint) { x+w, h});
                 }
             }
             if (config.bgl_low_line) {
                 graphics_context_set_stroke_color(ctx, COLOR_FALLBACK(config.low_line_color, GColorWhite));
-                for (int x = 0; x < bounds.size.w; x+=s) {
+                for (int x = 0; x < bounds.size.w; x+=s+w) {
                     graphics_draw_line(ctx, (GPoint) { x, l }, (GPoint) { x+w, l});
                 }
             }
             break;
     }
+    s = 0;
+    w = 0;
+    graphics_context_set_stroke_width(ctx, config.hour_line_width);
+    graphics_context_set_stroke_color(ctx, COLOR_FALLBACK(config.hour_line_color, GColorWhite));
+    if (config.hour_line_enabled) {
+        for (float i = 0.0; (int) i < bounds.size.w; i += hour_interval) {
+            // yes we use float here
+            //
+            switch (config.hour_line_style) {
+                default:
+                case TREND_LINE_STYLE_SOLID:
+                    graphics_draw_line(ctx, (GPoint) { (int) i, 0 }, (GPoint) { (int) i, bounds.size.h});
+                    break;
+                case TREND_LINE_STYLE_DASHED:
+                    s = 2;
+                    w = 2;
+                // fall through
+                case TREND_LINE_STYLE_DASHED_WIDE:
+                    s += 2;
+                    w += 2;
+                    for (int y = 0; y < bounds.size.h; y+=s+w) {
+                        graphics_draw_line(ctx, (GPoint) { i, y }, (GPoint) { i, y+w});
+                    }
+                    break;
+                case TREND_LINE_STYLE_DOTTED:
+                    s = 3;
+                // fall through
+                case TREND_LINE_STYLE_DOTTED_SPARSE:
+                    s += 2;
+                    for (int y = 0; y < bounds.size.h; y+=s) {
+                        graphics_draw_pixel(ctx, (GPoint) { i, y });
+                    }
+                    break;
+                case TREND_LINE_STYLE_EDGES:
+                    graphics_draw_line(ctx, (GPoint) { (int) i, 0 }, (GPoint) { (int) i, bounds.size.h / 5});
+                    graphics_draw_line(ctx, (GPoint) { (int) i, bounds.size.h - (bounds.size.h / 5) }, (GPoint) { (int) i, bounds.size.h});
+                    break;
+            }
+        }
+    }
     return true;
 }
 
 void trend_layer_callback(Layer *layer, GContext *ctx) {
+    INFO("Drawing trend");
     if (config.bgl.initialized) {
         TRACE(TREND_LOG "Drawing trend line");
         draw_trend(layer, ctx);
@@ -293,6 +355,7 @@ void trend_set_series(comm_bgl_series *values) {
         config.bgl.initialized = 1;
         memset(config.bgl.values, 0x00, sizeof(config.bgl.values));
         config.bgl_type = values->bgl_values[0].is_mmol ? BGL_TYPE_MMOL_L : BGL_TYPE_MG_DL;
+        config.bgl.hours = (values->length * 5) / 60;
     }
     TRACE("Parsing data: %d", values->length);
     for (int i = 0; i < values->length && i < PBL_DISPLAY_WIDTH; i++) {
@@ -314,6 +377,7 @@ void trend_set_value(comm_bgl_data *value) {
 }
 
 void trend_process_config(Tuple *data) {
+    DEBUG("Trend key: %d", data->key);
     switch (data->key) {
         case SET_BGL_CRITICAL_COLOUR:
             persist_write_int(SET_BGL_CRITICAL_COLOUR, data->value->int32);
@@ -354,12 +418,17 @@ void trend_process_config(Tuple *data) {
 #pragma GCC diagnostic ignored "-Wzero-length-bounds"
         case SET_LINE_STYLE:
             persist_write_int(SET_LINE_STYLE, data->value->data[0] - 0x30);
-            config.line_style = data->value->data[0] - 0x30;
+            config.hl_line_style = data->value->data[0] - 0x30;
             trend_draw();
             break;
         case SET_TREND_STYLE:
             persist_write_int(SET_TREND_STYLE, data->value->data[0] - 0x30);
             config.style = data->value->data[0] - 0x30;
+            trend_draw();
+            break;
+        case SET_HOUR_STYLE:
+            persist_write_int(SET_HOUR_STYLE, data->value->data[0] - 0x30);
+            config.hour_line_style = data->value->data[0] - 0x30;
             trend_draw();
             break;
 #pragma GCC diagnostic pop
@@ -391,6 +460,16 @@ void trend_process_config(Tuple *data) {
         case SET_BGL_CRITICAL:
             persist_write_int(SET_BGL_CRITICAL, data->value->int32);
             config.bgl_critical = data->value->int32;
+            trend_draw();
+            break;
+        case SET_HOUR_ENABLED:
+            persist_write_int(SET_HOUR_ENABLED, data->value->int8);
+            config.hour_line_enabled = data->value->int8;
+            trend_draw();
+            break;
+        case SET_HOUR_WIDTH:
+            persist_write_int(SET_HOUR_WIDTH, data->value->int8);
+            config.hour_line_width = data->value->int8;
             trend_draw();
             break;
         default:

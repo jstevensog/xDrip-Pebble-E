@@ -25,12 +25,14 @@ typedef enum {
     TREND_LINE_STYLE_DOTTED_SPARSE,
     TREND_LINE_STYLE_DASHED,
     TREND_LINE_STYLE_DASHED_WIDE,
+    TREND_LINE_STYLE_EDGES,
 } trend_line_style;
 
 typedef struct {
     int8_t  initialized;
     int16_t size;
     int16_t index;
+    int8_t  hours;
     trend_bgl_value values[PBL_DISPLAY_WIDTH]; // maximum
 } bgl_array;
 
@@ -44,6 +46,9 @@ typedef struct {
     GColor      low_color;          // Colour for low trend
     GColor      high_line_color;    // Colour of high line
     GColor      low_line_color;     // Colour of low line
+    GColor      hour_line_color;
+    int8_t      hour_line_width;
+    int8_t      hour_line_enabled;  
     int8_t      line_width;         // High/low line width
     int8_t      trend_width;        // Trend line width
     int16_t     bgl_low;            // Low value
@@ -57,7 +62,8 @@ typedef struct {
     Layer       *layer;             // Layer to draw into
     bgl_array   bgl;                // Storage for BGL values
     trend_style style;              // Trend line style
-    trend_line_style line_style;    // High/low line style
+    trend_line_style hl_line_style;    // High/low line style
+    trend_line_style hour_line_style;
     int8_t      redraw;             // Redraw value (not really working right now)
 } trend_config;
 

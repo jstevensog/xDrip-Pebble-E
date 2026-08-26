@@ -345,7 +345,7 @@ static void create_update_bitmap(GBitmap **bmp_image, BitmapLayer *bmp_layer, co
 
 #ifdef PBL_HEALTH
 // health_handler - handler to deal with health events
-static void health_handler(HealthEventType event, void *context) {
+void health_handler(HealthEventType event, void *context) {
 	// Which type of event occurred?
 	switch(event) {
 		case HealthEventSignificantUpdate:
@@ -390,7 +390,7 @@ static void hr_draw_callback(void *context) {
 }
 
 // update_health_metric_displays - Updates the bottom left and right metrics displays if they are displaying health metrics
-static void update_health_metric_displays() {
+void update_health_metric_displays() {
 	static char step_count_text[9];
 	int step_count;
 
