@@ -114,6 +114,15 @@
           "file": "GothamBold.ttf"
         },
         {
+          "characterRegex": "[0-9:APM ]",
+          "type": "font",
+          "name": "GOTHAM_BOLD_54",
+          "targetPlatforms": [
+            "emery"
+          ],
+          "file": "GothamBold.ttf"
+        },
+        {
           "characterRegex": "[-0-9.ER ]",
           "type": "font",
           "name": "GOTHAM_BOLD_BG_56",

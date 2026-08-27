@@ -2846,6 +2846,11 @@ static void init_cgm(void)
 	
 	LOG("display_seconds: %i", display_seconds);
 	//initialise the Time Fonts
+#if defined(PBL_PLATFORM_EMERY)
+	// 60px clips against the date row in the 60px time box on Emery - use 54
+	time_font_normal = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_54));
+	time_font_small = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_40));
+#else
 	if (HIGH_RES()) {
 		time_font_normal = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_60));
 		time_font_small = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_40));
@@ -2853,6 +2858,7 @@ static void init_cgm(void)
 		time_font_normal = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_40));
 		time_font_small = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_30));
 	}
+#endif
 #if defined(PBL_PLATFORM_EMERY)
 	// Dedicated larger BG value font for the hi-res display
 	bg_value_font = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_BG_56));
