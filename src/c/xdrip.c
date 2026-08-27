@@ -2598,17 +2598,6 @@ static void init_cgm(void)
 	
 	LOG("display_seconds: %i", display_seconds);
 	//initialise the Time Fonts
-#if defined(PBL_PLATFORM_EMERY)
-	// Hi-res display: larger Gotham for the clock, plus a dedicated large BG value font.
-	time_font_normal = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_64));
-	time_font_small = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_44));
-	bg_value_font = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_BG_56));
-#elif defined(PBL_PLATFORM_GABBRO)
-	// Hi-res display: larger Gotham for the clock, plus a dedicated large BG value font.
-	time_font_normal = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_72));
-	time_font_small = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_52));
-	bg_value_font = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_BG_64));
-#else
 	if (HIGH_RES()) {
 		time_font_normal = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_60));
 		time_font_small = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_40));
@@ -2616,6 +2605,11 @@ static void init_cgm(void)
 		time_font_normal = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_40));
 		time_font_small = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_30));
 	}
+#if defined(PBL_PLATFORM_EMERY)
+	// Dedicated large BG value font for the hi-res display
+	bg_value_font = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_BG_56));
+#elif defined(PBL_PLATFORM_GABBRO)
+	bg_value_font = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_BG_64));
 #endif
 	//Initialise the time format string.  No seconds here.
 	if(clock_is_24h_style() == true)
