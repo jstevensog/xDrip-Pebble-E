@@ -144,6 +144,16 @@
     },
     "projectType": "native",
     "uuid": "51a6140e-92cc-420f-aef6-51b229666742",
+    "companionApp": {
+      "android": {
+        "url": "https://github.com/NightscoutFoundation/xDrip",
+        "apps": [
+          {
+            "package": "com.eveningoutpost.dexdrip"
+          }
+        ]
+      }
+    },
     "messageKeys": {
       "icon": 0,
       "bg": 1,
