@@ -108,6 +108,8 @@ Make sure you udefine this before building a release.
 #define SET_HOUR_ENABLED        320
 #define SET_HOUR_WIDTH          321
 #define SET_HOUR_STYLE          322
+#define SET_SHOW_HIGH_LINE      323	// Setting key - draw the high threshold line on the trend graph
+#define SET_SHOW_LOW_LINE       324	// Setting key - draw the low threshold line on the trend graph
 #define CGM_SYNC_KEY			1000	// key pebble will use to request an update.	This should probably include the "capabilities" bits
 #define PBL_PLATFORM			1001	// key pebble will use to send it's platform	This is probably not required under the new famework.
 #define PBL_APP_VER			1002	// key pebble will use to send the face/app version.	This is probably not required under the new framework.

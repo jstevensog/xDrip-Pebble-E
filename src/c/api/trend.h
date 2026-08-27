@@ -57,6 +57,8 @@ typedef struct {
     int16_t     bgl_critical;       // Critical value
     int16_t     bgl_high_line;      // High line value
     int16_t     bgl_low_line;       // Low line value
+    bool        show_high_line;     // Draw the high threshold line
+    bool        show_low_line;      // Draw the low threshold line
     int16_t     bgl_high_limit;     // Gigh graph limit
     int16_t     bgl_low_limit;      // Low graph limit 
     Layer       *layer;             // Layer to draw into

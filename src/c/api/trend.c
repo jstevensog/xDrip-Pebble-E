@@ -48,6 +48,8 @@ void trend_init(Layer *layer) {
     /* Values for high/low lines */
     config.bgl_high_line = persist_exists(SET_HIGH_LINE_VALUE) ? persist_read_int(SET_HIGH_LINE_VALUE) : 180;
     config.bgl_low_line = persist_exists(SET_LOW_LINE_VALUE) ? persist_read_int(SET_LOW_LINE_VALUE) : 72;
+    config.show_high_line = persist_exists(SET_SHOW_HIGH_LINE) ? persist_read_bool(SET_SHOW_HIGH_LINE) : true;
+    config.show_low_line = persist_exists(SET_SHOW_LOW_LINE) ? persist_read_bool(SET_SHOW_LOW_LINE) : true;
     config.bgl_high_limit = persist_exists(SET_HIGH_LIMIT) ? persist_read_int(SET_HIGH_LIMIT) : 250;
     config.bgl_low_limit = persist_exists(SET_LOW_LIMIT) ? persist_read_int(SET_LOW_LIMIT) : 40;
 
@@ -224,13 +226,13 @@ static bool draw_trend_lines(Layer *layer, GContext *ctx) {
     switch (config.hl_line_style) {
         default:
         case TREND_LINE_STYLE_EDGES:
-            if (config.bgl_high_line) {
+            if (config.bgl_high_line && config.show_high_line) {
                 graphics_context_set_stroke_color(ctx, COLOR_FALLBACK(config.high_line_color, GColorWhite));
                 graphics_draw_line(ctx, (GPoint) { 0, h }, (GPoint) { bounds.size.w / 5, h});
                 graphics_draw_line(ctx, (GPoint) { bounds.size.w - (bounds.size.w / 5), h }, (GPoint) { bounds.size.w, h});
 
             }
-            if (config.bgl_low_line) {
+            if (config.bgl_low_line && config.show_low_line) {
                 graphics_context_set_stroke_color(ctx, COLOR_FALLBACK(config.low_line_color, GColorWhite));
                 graphics_draw_line(ctx, (GPoint) { 0, l }, (GPoint) { bounds.size.w / 5, l});
                 graphics_draw_line(ctx, (GPoint) { bounds.size.w - (bounds.size.w / 5), l }, (GPoint) { bounds.size.w, l});
@@ -239,11 +241,11 @@ static bool draw_trend_lines(Layer *layer, GContext *ctx) {
         case TREND_LINE_STYLE_SOLID:
 #endif
             TRACE(TREND_LOG "Lines -> Solid");
-            if (config.bgl_high_line) {
+            if (config.bgl_high_line && config.show_high_line) {
                 graphics_context_set_stroke_color(ctx, COLOR_FALLBACK(config.high_line_color, GColorWhite));
                 graphics_draw_line(ctx, (GPoint) { 0, h }, (GPoint) { bounds.size.w, h});
             }
-            if (config.bgl_low_line) {
+            if (config.bgl_low_line && config.show_low_line) {
                 graphics_context_set_stroke_color(ctx, COLOR_FALLBACK(config.low_line_color, GColorWhite));
                 graphics_draw_line(ctx, (GPoint) { 0, l }, (GPoint) { bounds.size.w, l});
             }
@@ -256,13 +258,13 @@ static bool draw_trend_lines(Layer *layer, GContext *ctx) {
         case TREND_LINE_STYLE_DOTTED:
             TRACE(TREND_LOG "Lines -> Dotted");
             s += 2;
-            if (config.bgl_high_line) {
+            if (config.bgl_high_line && config.show_high_line) {
                 graphics_context_set_stroke_color(ctx, COLOR_FALLBACK(config.high_line_color, GColorWhite));
                 for (int x = 0; x < bounds.size.w; x+=s) {
                     graphics_draw_pixel(ctx, (GPoint) { x, h });
                 }
             }
-            if (config.bgl_low_line) {
+            if (config.bgl_low_line && config.show_low_line) {
                 graphics_context_set_stroke_color(ctx, COLOR_FALLBACK(config.low_line_color, GColorWhite));
                 for (int x = 0; x < bounds.size.w; x+=s) {
                     graphics_draw_pixel(ctx, (GPoint) { x, l });
@@ -278,13 +280,13 @@ static bool draw_trend_lines(Layer *layer, GContext *ctx) {
             TRACE(TREND_LOG "Lines -> Dashed");
             s += 2;
             w += 2;
-            if (config.bgl_high_line) {
+            if (config.bgl_high_line && config.show_high_line) {
                 graphics_context_set_stroke_color(ctx, COLOR_FALLBACK(config.high_line_color, GColorWhite));
                 for (int x = 0; x < bounds.size.w; x+=s+w) {
                     graphics_draw_line(ctx, (GPoint) { x, h }, (GPoint) { x+w, h});
                 }
             }
-            if (config.bgl_low_line) {
+            if (config.bgl_low_line && config.show_low_line) {
                 graphics_context_set_stroke_color(ctx, COLOR_FALLBACK(config.low_line_color, GColorWhite));
                 for (int x = 0; x < bounds.size.w; x+=s+w) {
                     graphics_draw_line(ctx, (GPoint) { x, l }, (GPoint) { x+w, l});
@@ -485,6 +487,16 @@ void trend_process_config(Tuple *data) {
         case SET_HOUR_WIDTH:
             persist_write_int(SET_HOUR_WIDTH, data->value->int8);
             config.hour_line_width = data->value->int8;
+            trend_draw();
+            break;
+        case SET_SHOW_HIGH_LINE:
+            config.show_high_line = (data->value->uint8 != 0);
+            persist_write_bool(SET_SHOW_HIGH_LINE, config.show_high_line);
+            trend_draw();
+            break;
+        case SET_SHOW_LOW_LINE:
+            config.show_low_line = (data->value->uint8 != 0);
+            persist_write_bool(SET_SHOW_LOW_LINE, config.show_low_line);
             trend_draw();
             break;
         default:

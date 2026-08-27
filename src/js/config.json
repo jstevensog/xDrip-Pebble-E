@@ -398,6 +398,20 @@
               "max": 400
           },
           {
+              "type": "toggle",
+              "messageKey": "show_high_line",
+              "label": "Show high threshold line",
+              "defaultValue": true,
+              "group": "trend_lines"
+          },
+          {
+              "type": "toggle",
+              "messageKey": "show_low_line",
+              "label": "Show low threshold line",
+              "defaultValue": true,
+              "group": "trend_lines"
+          },
+          {
               "type": "color",
               "messageKey": "trend_high_line_color",
               "label": "High line Color",

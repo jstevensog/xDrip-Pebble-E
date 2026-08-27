@@ -14,6 +14,8 @@ module.exports = function(minified) {
             'trend_low_color',
             'trend_high_line_color',
             'trend_low_line_color',
+            'show_high_line',
+            'show_low_line',
             'trend_low',
             'trend_average',
             'trend_high',
