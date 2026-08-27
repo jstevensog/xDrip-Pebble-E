@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "Nightscout Foundation",
   "private": true,
   "keywords": [
@@ -111,6 +111,48 @@
           "characterRegex": "[0-9:APM ]",
           "type": "font",
           "name": "GOTHAM_BOLD_60",
+          "file": "GothamBold.ttf"
+        },
+        {
+          "characterRegex": "[0-9:APM ]",
+          "type": "font",
+          "name": "GOTHAM_BOLD_44",
+          "targetPlatforms": ["emery"],
+          "file": "GothamBold.ttf"
+        },
+        {
+          "characterRegex": "[0-9:APM ]",
+          "type": "font",
+          "name": "GOTHAM_BOLD_64",
+          "targetPlatforms": ["emery"],
+          "file": "GothamBold.ttf"
+        },
+        {
+          "characterRegex": "[0-9:APM ]",
+          "type": "font",
+          "name": "GOTHAM_BOLD_52",
+          "targetPlatforms": ["gabbro"],
+          "file": "GothamBold.ttf"
+        },
+        {
+          "characterRegex": "[0-9:APM ]",
+          "type": "font",
+          "name": "GOTHAM_BOLD_72",
+          "targetPlatforms": ["gabbro"],
+          "file": "GothamBold.ttf"
+        },
+        {
+          "characterRegex": "[-0-9. ]",
+          "type": "font",
+          "name": "GOTHAM_BOLD_BG_56",
+          "targetPlatforms": ["emery"],
+          "file": "GothamBold.ttf"
+        },
+        {
+          "characterRegex": "[-0-9. ]",
+          "type": "font",
+          "name": "GOTHAM_BOLD_BG_64",
+          "targetPlatforms": ["gabbro"],
           "file": "GothamBold.ttf"
         }
       ]

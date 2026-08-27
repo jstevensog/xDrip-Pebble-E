@@ -135,6 +135,9 @@ static GFont time_font;
 static char message_layer_text[13];
 static GFont time_font_small;
 static GFont time_font_normal;
+#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_GABBRO)
+static GFont bg_value_font;
+#endif
 
 //Metric Display Left/Right
 static uint8_t bottom_left_metric = 1;
@@ -2234,7 +2237,7 @@ void window_load_cgm(Window *window_cgm)
 	message_layer = text_layer_create(GRect(2, 49, 198, 50));
 	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
 	// BG layer dimensions
-	bg_layer = text_layer_create(GRect(0, -5, 132, 57));
+	bg_layer = text_layer_create(GRect(0, -5, 144, 62));
 	// cgmtime layer dimensions
 	cgmtime_layer = text_layer_create(GRect(142, 78, 55, 32));
 	text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentRight);
@@ -2325,7 +2328,7 @@ void window_load_cgm(Window *window_cgm)
 	message_layer = text_layer_create(GRect(  0,  52, 260,  72));
 	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
 	// BG layer dimensions
-	bg_layer = text_layer_create(GRect(  0,  -7, 260,  68));
+	bg_layer = text_layer_create(GRect(  0,  -6, 260,  76));
 	text_layer_set_text_alignment(bg_layer, GTextAlignmentCenter);
 	// cgmtime layer dimensions
 	cgmtime_layer = text_layer_create(GRect(  7,  84,  58,  35));
@@ -2371,7 +2374,11 @@ void window_load_cgm(Window *window_cgm)
 	text_layer_set_font(message_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28));
 	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
 	text_layer_set_background_color(bg_layer, GColorClear);
+#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_GABBRO)
+	text_layer_set_font(bg_layer, bg_value_font);
+#else
 	text_layer_set_font(bg_layer, fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD));
+#endif
 	text_layer_set_background_color(cgmtime_layer, GColorClear);
 	if(TimeAgoBold) {
 		text_layer_set_font(cgmtime_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
@@ -2591,6 +2598,17 @@ static void init_cgm(void)
 	
 	LOG("display_seconds: %i", display_seconds);
 	//initialise the Time Fonts
+#if defined(PBL_PLATFORM_EMERY)
+	// Hi-res display: larger Gotham for the clock, plus a dedicated large BG value font.
+	time_font_normal = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_64));
+	time_font_small = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_44));
+	bg_value_font = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_BG_56));
+#elif defined(PBL_PLATFORM_GABBRO)
+	// Hi-res display: larger Gotham for the clock, plus a dedicated large BG value font.
+	time_font_normal = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_72));
+	time_font_small = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_52));
+	bg_value_font = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_BG_64));
+#else
 	if (HIGH_RES()) {
 		time_font_normal = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_60));
 		time_font_small = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_40));
@@ -2598,6 +2616,7 @@ static void init_cgm(void)
 		time_font_normal = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_40));
 		time_font_small = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_30));
 	}
+#endif
 	//Initialise the time format string.  No seconds here.
 	if(clock_is_24h_style() == true)
 	{
@@ -2746,6 +2765,9 @@ static void deinit_cgm(void)
 	//unload the custom time font.
 	fonts_unload_custom_font(time_font_normal);
 	fonts_unload_custom_font(time_font_small);
+#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_GABBRO)
+	fonts_unload_custom_font(bg_value_font);
+#endif
 
 
 	TRACE("DEINIT CODE OUT");
