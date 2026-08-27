@@ -156,6 +156,7 @@ static HealthValue logged_bpm = 0;
 static void start_health_data_log(void);
 static void stop_health_data_log(void);
 static void health_write_log(int id, int value);
+static void health_log_poll(void);
 #endif
 
 /**
@@ -364,51 +365,11 @@ static void create_update_bitmap(GBitmap **bmp_image, BitmapLayer *bmp_layer, co
 #ifdef PBL_HEALTH
 // health_handler - handler to deal with health events
 static void health_handler(HealthEventType event, void *context) {
-	// Which type of event occurred?
-	switch(event) {
-		case HealthEventSignificantUpdate:
-			LOG("health_handler: Significant Update");
-		break;
-
-		case HealthEventMovementUpdate: {
- 			LOG("health_handler: Movement Update");
-			if (CollectHealth) {
-				HealthValue steps = health_service_sum_today(HealthMetricStepCount);
-				if (steps != logged_steps && abs((int)(steps - logged_steps)) > 20) {
-					logged_steps = steps;
-					health_write_log(MOVEMENT_LOG, (int) steps);
-				}
-			}
-			break;
-		}
-
-		case HealthEventMetricAlert:
- 			LOG("health_handler: Metric Alert");
-		break;
-
-		case HealthEventSleepUpdate:
-			//LOG("health_handler: Sleep Update");
-		break;
-
-		case HealthEventHeartRateUpdate: {
-			LOG("health_handler: Heart rate Update");
-			if (CollectHealth) {
-				HealthServiceAccessibilityMask hr =
-					health_service_metric_accessible(HealthMetricHeartRateBPM, time(NULL), time(NULL));
-				if (hr & HealthServiceAccessibilityMaskAvailable) {
-					HealthValue bpm = health_service_peek_current_value(HealthMetricHeartRateBPM);
-					if (bpm > 0 && bpm != logged_bpm) {
-						logged_bpm = bpm;
-						health_write_log(HEARTRATE_LOG, (int) bpm);
-					}
-				}
-			}
-			break;
-		}
-		case HealthEventHRVUpdate:
-			LOG("health_handler: Heart rate HRV Update");
-
-	}
+	LOG("health_handler: event %d", (int) event);
+	// PebbleOS does not reliably emit HealthEventHeartRateUpdate at rest, so we
+	// don't key off a specific event - any health event (and the minute tick)
+	// triggers a poll of the current values.
+	health_log_poll();
 	update_health_metric_displays();
 } //end health_handler
 
@@ -2219,6 +2180,9 @@ void handle_minute_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
 	{
 		LOG("handle_minute_tick_cgm: tick");
 		tick_return_cgm = strftime(time_watch_text, TIME_TEXTBUFF_SIZE, time_watch_format, tick_time_cgm);
+#ifdef PBL_HEALTH
+		health_log_poll();
+#endif
 	}
 
 	if (tick_return_cgm != 0)
@@ -3049,10 +3013,19 @@ static void start_health_data_log(void) {
 	s_session_movement  = data_logging_create(MOVEMENT_LOG,  DATA_LOGGING_UINT, sizeof(uint32_t), true);
 	logged_steps = 0;
 	logged_bpm = 0;
+#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_DIORITE) || defined(PBL_PLATFORM_FLINT) || defined(PBL_PLATFORM_GABBRO)
+	// ask the OS to sample heart rate on a fixed cadence so we have fresh values
+	// to log; at rest it otherwise samples only sporadically. ~10 min is a
+	// compromise between data rate and battery.
+	health_service_set_heart_rate_sample_period(600);
+#endif
 	LOG("health_data_log: sessions opened");
 }
 
 static void stop_health_data_log(void) {
+#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_DIORITE) || defined(PBL_PLATFORM_FLINT) || defined(PBL_PLATFORM_GABBRO)
+	health_service_set_heart_rate_sample_period(0); // back to automatic
+#endif
 	if (s_session_heartrate != NULL) {
 		data_logging_finish(s_session_heartrate);
 		s_session_heartrate = NULL;
@@ -3075,6 +3048,35 @@ static void health_write_log(int id, int value) {
 	DataLoggingResult result = data_logging_log(session, &d, 2);
 	if (result != DATA_LOGGING_SUCCESS) {
 		WARNING("health_write_log: error %d logging id %d value %d", (int) result, id, value);
+	} else {
+		LOG("health_write_log: logged id %d value %d", id, value);
+	}
+}
+
+// health_log_poll - peek the current heart rate and step total and log any
+// change. Called from health_handler and the minute tick.
+static void health_log_poll(void) {
+	if (!CollectHealth) return;
+
+	HealthServiceAccessibilityMask hr =
+		health_service_metric_accessible(HealthMetricHeartRateBPM, time(NULL), time(NULL));
+	if (hr & HealthServiceAccessibilityMaskAvailable) {
+		HealthValue bpm = health_service_peek_current_value(HealthMetricHeartRateBPM);
+		if (bpm > 0 && bpm != logged_bpm) {
+			logged_bpm = bpm;
+			health_write_log(HEARTRATE_LOG, (int) bpm);
+		}
+	}
+
+	time_t day_start = time_start_of_today();
+	HealthServiceAccessibilityMask steps_ok =
+		health_service_metric_accessible(HealthMetricStepCount, day_start, time(NULL));
+	if (steps_ok & HealthServiceAccessibilityMaskAvailable) {
+		HealthValue steps = health_service_sum_today(HealthMetricStepCount);
+		if (steps != logged_steps && abs((int)(steps - logged_steps)) > 20) {
+			logged_steps = steps;
+			health_write_log(MOVEMENT_LOG, (int) steps);
+		}
 	}
 }
 #endif
