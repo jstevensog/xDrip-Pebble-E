@@ -112,6 +112,24 @@
           "type": "font",
           "name": "GOTHAM_BOLD_60",
           "file": "GothamBold.ttf"
+        },
+        {
+          "characterRegex": "[-0-9.ER ]",
+          "type": "font",
+          "name": "GOTHAM_BOLD_BG_56",
+          "targetPlatforms": [
+            "emery"
+          ],
+          "file": "GothamBold.ttf"
+        },
+        {
+          "characterRegex": "[-0-9.ER ]",
+          "type": "font",
+          "name": "GOTHAM_BOLD_BG_64",
+          "targetPlatforms": [
+            "gabbro"
+          ],
+          "file": "GothamBold.ttf"
         }
       ]
     },

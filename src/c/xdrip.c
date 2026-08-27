@@ -125,6 +125,9 @@ static GFont time_font;
 static char message_layer_text[13];
 static GFont time_font_small;
 static GFont time_font_normal;
+#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_GABBRO)
+static GFont bg_value_font;
+#endif
 
 // Message Timer Wait Times, in Seconds
 static uint8_t minutes_cgm = 0;
@@ -139,6 +142,20 @@ TextLayer *step_count_text_layer = NULL;
 #if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_FLINT) || defined(PBL_PLATFORM_GABBRO)
 TextLayer *heart_rate_text_layer = NULL;
 #endif
+
+// --- Health data logging back to the phone (xDrip's PebbleWatchSync stores
+// these as HeartRate / StepCounter records). Tags match its decoder.
+#define HEARTRATE_LOG 101
+#define MOVEMENT_LOG  103
+static DataLoggingSessionRef s_session_heartrate = NULL;
+static DataLoggingSessionRef s_session_movement = NULL;
+static bool CollectHealth = false;
+static time_t last_movement_log_time = 0;
+static HealthValue logged_steps = 0;
+static HealthValue logged_bpm = 0;
+static void start_health_data_log(void);
+static void stop_health_data_log(void);
+static void health_write_log(int id, int value);
 #endif
 
 /**
@@ -353,9 +370,17 @@ static void health_handler(HealthEventType event, void *context) {
 			LOG("health_handler: Significant Update");
 		break;
 
-		case HealthEventMovementUpdate:
+		case HealthEventMovementUpdate: {
  			LOG("health_handler: Movement Update");
-		break;
+			if (CollectHealth) {
+				HealthValue steps = health_service_sum_today(HealthMetricStepCount);
+				if (steps != logged_steps && abs((int)(steps - logged_steps)) > 20) {
+					logged_steps = steps;
+					health_write_log(MOVEMENT_LOG, (int) steps);
+				}
+			}
+			break;
+		}
 
 		case HealthEventMetricAlert:
  			LOG("health_handler: Metric Alert");
@@ -364,10 +389,22 @@ static void health_handler(HealthEventType event, void *context) {
 		case HealthEventSleepUpdate:
 			//LOG("health_handler: Sleep Update");
 		break;
-		
-		case HealthEventHeartRateUpdate:
+
+		case HealthEventHeartRateUpdate: {
 			LOG("health_handler: Heart rate Update");
-		break;
+			if (CollectHealth) {
+				HealthServiceAccessibilityMask hr =
+					health_service_metric_accessible(HealthMetricHeartRateBPM, time(NULL), time(NULL));
+				if (hr & HealthServiceAccessibilityMaskAvailable) {
+					HealthValue bpm = health_service_peek_current_value(HealthMetricHeartRateBPM);
+					if (bpm > 0 && bpm != logged_bpm) {
+						logged_bpm = bpm;
+						health_write_log(HEARTRATE_LOG, (int) bpm);
+					}
+				}
+			}
+			break;
+		}
 		case HealthEventHRVUpdate:
 			LOG("health_handler: Heart rate HRV Update");
 
@@ -2054,6 +2091,21 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 				}
 			break;
 
+			case SET_COLLECT_HEALTH:
+#ifdef PBL_HEALTH
+				// Only flip the flag here - the logging sessions are opened once in
+				// init. Keep this handler cheap; it runs in the AppMessage callback.
+				LOG("Got SET_COLLECT_HEALTH: %u", data->value->uint8);
+				{
+					bool want = (data->value->uint8 != 0);
+					if (want != CollectHealth) {
+						CollectHealth = want;
+						persist_write_bool(SET_COLLECT_HEALTH, CollectHealth);
+					}
+				}
+#endif
+			break;
+
 			default:
 				LOG("inbox_received_handler_cgm: Dictionary Key not recognised");
 			break;
@@ -2459,7 +2511,7 @@ void window_load_cgm(Window *window_cgm)
 	message_layer = text_layer_create(GRect(2, 49, 198, 50));
 	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
 	// BG layer dimensions
-	bg_layer = text_layer_create(GRect(0, -5, 132, 57));
+	bg_layer = text_layer_create(GRect(0, -5, 144, 62));
 	// cgmtime layer dimensions
 	cgmtime_layer = text_layer_create(GRect(142, 78, 55, 32));
 	text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentRight);
@@ -2549,7 +2601,7 @@ void window_load_cgm(Window *window_cgm)
 	message_layer = text_layer_create(GRect(  0,  52, 260,  72));
 	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
 	// BG layer dimensions
-	bg_layer = text_layer_create(GRect(  0,  -7, 260,  68));
+	bg_layer = text_layer_create(GRect(  0,  -6, 260,  76));
 	text_layer_set_text_alignment(bg_layer, GTextAlignmentCenter);
 	// cgmtime layer dimensions
 	cgmtime_layer = text_layer_create(GRect(  7,  84,  58,  35));
@@ -2595,7 +2647,11 @@ void window_load_cgm(Window *window_cgm)
 	text_layer_set_font(message_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28));
 	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
 	text_layer_set_background_color(bg_layer, GColorClear);
+#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_GABBRO)
+	text_layer_set_font(bg_layer, bg_value_font);
+#else
 	text_layer_set_font(bg_layer, fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD));
+#endif
 	text_layer_set_background_color(cgmtime_layer, GColorClear);
 	if(TimeAgoBold) {
 		text_layer_set_font(cgmtime_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
@@ -2833,6 +2889,12 @@ static void init_cgm(void)
 		time_font_normal = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_40));
 		time_font_small = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_30));
 	}
+#if defined(PBL_PLATFORM_EMERY)
+	// Dedicated larger BG value font for the hi-res display
+	bg_value_font = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_BG_56));
+#elif defined(PBL_PLATFORM_GABBRO)
+	bg_value_font = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_BG_64));
+#endif
 	//Initialise the time format string.  No seconds here.
 	if(clock_is_24h_style() == true)
 	{
@@ -2877,6 +2939,11 @@ static void init_cgm(void)
 	battery_state_service_subscribe(battery_handler);
 
 #ifdef PBL_HEALTH
+	// restore whether the phone last asked us to collect health data, and open
+	// the data-logging sessions for the life of the app (logging itself is gated
+	// on CollectHealth inside health_handler)
+	CollectHealth = persist_exists(SET_COLLECT_HEALTH) ? persist_read_bool(SET_COLLECT_HEALTH) : false;
+	start_health_data_log();
 	//subscribe to the health service
 	if(!health_service_events_subscribe(health_handler, NULL)) {
 		LOG("Error subscribing to Health");
@@ -2935,6 +3002,7 @@ static void deinit_cgm(void)
 	battery_state_service_unsubscribe();
 #ifdef PBL_HEALTH
 	health_service_events_unsubscribe();
+	stop_health_data_log();
 #endif
 
 	// cancel timers if they exist
@@ -2963,10 +3031,53 @@ static void deinit_cgm(void)
 	//unload the custom time font.
 	fonts_unload_custom_font(time_font_normal);
 	fonts_unload_custom_font(time_font_small);
+#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_GABBRO)
+	fonts_unload_custom_font(bg_value_font);
+#endif
 
 
 	TRACE("DEINIT CODE OUT");
 } // end deinit_cgm
+
+#ifdef PBL_HEALTH
+// Health data logging to the phone. xDrip's PebbleWatchSync reads each pair of
+// uint32s back in order: the first (> a sanity epoch) is the timestamp, the
+// second is the value.
+
+static void start_health_data_log(void) {
+	s_session_heartrate = data_logging_create(HEARTRATE_LOG, DATA_LOGGING_UINT, sizeof(uint32_t), true);
+	s_session_movement  = data_logging_create(MOVEMENT_LOG,  DATA_LOGGING_UINT, sizeof(uint32_t), true);
+	logged_steps = 0;
+	logged_bpm = 0;
+	LOG("health_data_log: sessions opened");
+}
+
+static void stop_health_data_log(void) {
+	if (s_session_heartrate != NULL) {
+		data_logging_finish(s_session_heartrate);
+		s_session_heartrate = NULL;
+	}
+	if (s_session_movement != NULL) {
+		data_logging_finish(s_session_movement);
+		s_session_movement = NULL;
+	}
+	LOG("health_data_log: sessions closed");
+}
+
+static void health_write_log(int id, int value) {
+	if (id == MOVEMENT_LOG) {
+		if (time(NULL) - last_movement_log_time < 60) return;
+		last_movement_log_time = time(NULL);
+	}
+	DataLoggingSessionRef session = (id == HEARTRATE_LOG) ? s_session_heartrate : s_session_movement;
+	if (session == NULL) return;
+	uint32_t d[2] = { (uint32_t) time(NULL), (uint32_t) value };
+	DataLoggingResult result = data_logging_log(session, &d, 2);
+	if (result != DATA_LOGGING_SUCCESS) {
+		WARNING("health_write_log: error %d logging id %d value %d", (int) result, id, value);
+	}
+}
+#endif
 
 int main(void)
 {
