@@ -49,6 +49,22 @@ static int current_step_count = 0;
 #if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_FLINT)
 static int current_hbm = 0;
 #endif
+// --- Health data logging back to the phone (xDrip) ---
+// Tags match xDrip's PebbleWatchSync (HEARTRATE_LOG / MOVEMENT_LOG); bit 0x8 is
+// toggled on each session so the phone can tell restarted sessions apart.
+#define HEARTRATE_LOG 101
+#define MOVEMENT_LOG  103
+static DataLoggingSessionRef s_session_heartrate = NULL;
+static DataLoggingSessionRef s_session_movement = NULL;
+static bool CollectHealth = false;
+static uint8_t health_log_alternator = 0;
+static time_t last_movement_log_time = 0;
+static HealthValue logged_steps = 0;
+static HealthValue logged_bpm = 0;
+static void start_health_data_log(void);
+static void stop_health_data_log(void);
+static void restart_health_data_log(void);
+static void health_write_log(int id, int value);
 #endif
 
 // global BG snooze timer
@@ -329,9 +345,17 @@ void health_handler(HealthEventType event, void *context) {
 			LOG("health_handler: Significant Update");
 		break;
 
-		case HealthEventMovementUpdate:
+		case HealthEventMovementUpdate: {
  			LOG("health_handler: Movement Update");
-		break;
+			if (CollectHealth) {
+				HealthValue steps = health_service_sum_today(HealthMetricStepCount);
+				if (steps != logged_steps && abs((int)(steps - logged_steps)) > 20) {
+					logged_steps = steps;
+					health_write_log(MOVEMENT_LOG, (int) steps);
+				}
+			}
+			break;
+		}
 
 		case HealthEventMetricAlert:
  			LOG("health_handler: Metric Alert");
@@ -340,10 +364,22 @@ void health_handler(HealthEventType event, void *context) {
 		case HealthEventSleepUpdate:
 			//LOG("health_handler: Sleep Update");
 		break;
-		
-		case HealthEventHeartRateUpdate:
+
+		case HealthEventHeartRateUpdate: {
 			LOG("health_handler: Heart rate Update");
-		break;
+			if (CollectHealth) {
+				HealthServiceAccessibilityMask hr =
+					health_service_metric_accessible(HealthMetricHeartRateBPM, time(NULL), time(NULL));
+				if (hr & HealthServiceAccessibilityMaskAvailable) {
+					HealthValue bpm = health_service_peek_current_value(HealthMetricHeartRateBPM);
+					if (bpm > 0 && bpm != logged_bpm) {
+						logged_bpm = bpm;
+						health_write_log(HEARTRATE_LOG, (int) bpm);
+					}
+				}
+			}
+			break;
+		}
 		case HealthEventHRVUpdate:
 			LOG("health_handler: Heart rate HRV Update");
 
@@ -1899,6 +1935,24 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
             /**
              * end of clay settings
              */
+			case SET_COLLECT_HEALTH:
+#ifdef PBL_HEALTH
+				{
+					bool want = (data->value->uint8 != 0);
+					LOG("Got SET_COLLECT_HEALTH: %u", data->value->uint8);
+					if (want != CollectHealth) {
+						CollectHealth = want;
+						persist_write_bool(SET_COLLECT_HEALTH, CollectHealth);
+						if (CollectHealth) {
+							start_health_data_log();
+						} else {
+							stop_health_data_log();
+						}
+					}
+				}
+#endif
+				break;
+
 			default:
 #ifdef ENABLE_TREND_RENDERER
                 trend_process_config(data);
@@ -2642,6 +2696,10 @@ static void init_cgm(void)
 	battery_state_service_subscribe(battery_handler);
 
 #ifdef PBL_HEALTH
+	// restore whether the phone last asked us to collect health data, and open the
+	// logging sessions if so
+	CollectHealth = persist_exists(SET_COLLECT_HEALTH) ? persist_read_bool(SET_COLLECT_HEALTH) : false;
+	if (CollectHealth) start_health_data_log();
 	//subscribe to the health service
 	if(!health_service_events_subscribe(health_handler, NULL)) {
 		LOG("Error subscribing to Health");
@@ -2718,6 +2776,7 @@ static void deinit_cgm(void)
 	battery_state_service_unsubscribe();
 #ifdef PBL_HEALTH
 	health_service_events_unsubscribe();
+	stop_health_data_log();
 #endif
 
 	// cancel timers if they exist
@@ -2750,6 +2809,56 @@ static void deinit_cgm(void)
 
 	TRACE("DEINIT CODE OUT");
 } // end deinit_cgm
+
+#ifdef PBL_HEALTH
+// Health data logging to the phone (xDrip's PebbleWatchSync picks these up over
+// the PebbleKit data-logging channel and stores HeartRate / StepCounter records).
+
+static void start_health_data_log(void) {
+	// flip bit 0x8 so the phone can distinguish a restarted session from the previous one
+	health_log_alternator ^= 0x8;
+	s_session_heartrate = data_logging_create(HEARTRATE_LOG | health_log_alternator,
+	                                          DATA_LOGGING_UINT, sizeof(uint32_t), true);
+	s_session_movement  = data_logging_create(MOVEMENT_LOG | health_log_alternator,
+	                                          DATA_LOGGING_UINT, sizeof(uint32_t), true);
+	logged_steps = 0;
+	logged_bpm = 0;
+	LOG("health_data_log: started");
+}
+
+static void stop_health_data_log(void) {
+	if (s_session_heartrate != NULL) {
+		data_logging_finish(s_session_heartrate);
+		s_session_heartrate = NULL;
+	}
+	if (s_session_movement != NULL) {
+		data_logging_finish(s_session_movement);
+		s_session_movement = NULL;
+	}
+	LOG("health_data_log: stopped");
+}
+
+static void restart_health_data_log(void) {
+	stop_health_data_log();
+	start_health_data_log();
+}
+
+// Logs a {timestamp, value} pair. xDrip reads the two uint32s back in sequence:
+// the first (> a sanity epoch) is treated as the timestamp, the second as the value.
+static void health_write_log(int id, int value) {
+	if (id == MOVEMENT_LOG) {
+		if (time(NULL) - last_movement_log_time < 60) return;
+		last_movement_log_time = time(NULL);
+	}
+	DataLoggingSessionRef session = (id == HEARTRATE_LOG) ? s_session_heartrate : s_session_movement;
+	if (session == NULL) return;
+	uint32_t d[2] = { (uint32_t) time(NULL), (uint32_t) value };
+	DataLoggingResult result = data_logging_log(session, &d, 2);
+	if (result != DATA_LOGGING_SUCCESS) {
+		WARNING("health_write_log: error %d logging id %d value %d", (int) result, id, value);
+	}
+}
+#endif
 
 
 /**
@@ -2838,6 +2947,18 @@ void set_bgl_value(comm_bgl_value value) {
         snprintf(last_bg, sizeof(last_bg), "%d", value.value);
     }
     load_bg();
+#ifdef PBL_HEALTH
+    // a fresh reading arrived and the phone is listening - close the current
+    // logging sessions so queued heart-rate / step data gets pushed promptly,
+    // rate limited so repeated calls in one update cycle do not thrash it
+    if (CollectHealth) {
+        static time_t last_health_flush = 0;
+        if (time(NULL) - last_health_flush >= 60) {
+            last_health_flush = time(NULL);
+            restart_health_data_log();
+        }
+    }
+#endif
 }
 
 /**
