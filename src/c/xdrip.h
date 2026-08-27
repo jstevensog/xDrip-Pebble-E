@@ -85,6 +85,11 @@ static void bitmapLayerUpdate(struct Layer *layer, GContext *ctx);
 #define PBL_TREND_PERIOD		1005	// key pebble will use to send the trend period it wants.
 #define PBL_DISP_OPTS			1006	// key pebble will use to send display options (delta/arrows).
 #define PBL_VIBE_OPTS			1007	// key pebble will use to send vibration options (alerts, missed signal, no bluetooth)
+#define PBL_HEALTH_HR			1010	// watch->phone: current heart rate (BPM), INT32
+#define PBL_HEALTH_STEPS		1011	// watch->phone: step count so far today, INT32
+// PBL_HEALTH_* are sent as live AppMessages so heart rate / steps reach xDrip even
+// when the phone companion app does not bridge DataLogging to legacy PebbleKit
+// (e.g. the Core Devices app). xDrip stamps the receipt time; no watch timestamp.
 
 
 // TOTAL MESSAGE DATA 4x3+2+5+3+9 = 31 BYTES

@@ -154,11 +154,16 @@ static bool health_log_dirty = false;
 static time_t last_movement_log_time = 0;
 static HealthValue logged_steps = 0;
 static HealthValue logged_bpm = 0;
+// live AppMessage path (see PBL_HEALTH_* in xdrip.h): set when the matching
+// logged_* value changes, cleared once that value has been sent to the phone.
+static bool hr_send_dirty = false;
+static bool steps_send_dirty = false;
 static void start_health_data_log(void);
 static void stop_health_data_log(void);
 static void health_write_log(int id, int value);
 static void health_log_poll(void);
 static void health_log_flush(void);
+static void health_send_values(void);
 #endif
 
 /**
@@ -2064,6 +2069,12 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 					if (want != CollectHealth) {
 						CollectHealth = want;
 						persist_write_bool(SET_COLLECT_HEALTH, CollectHealth);
+						if (!want) {
+							logged_bpm = 0;
+							logged_steps = 0;
+							hr_send_dirty = false;
+							steps_send_dirty = false;
+						}
 					}
 				}
 #endif
@@ -2185,6 +2196,7 @@ void handle_minute_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
 #ifdef PBL_HEALTH
 		health_log_poll();
 		health_log_flush();
+		health_send_values();
 #endif
 	}
 
@@ -3059,6 +3071,7 @@ static void health_write_log(int id, int value) {
 		WARNING("health_write_log: error %d logging id %d value %d", (int) result, id, value);
 	} else {
 		health_log_dirty = true;
+		if (id == HEARTRATE_LOG) hr_send_dirty = true; else steps_send_dirty = true;
 		LOG("health_write_log: logged id %d value %d", id, value);
 	}
 }
@@ -3078,6 +3091,41 @@ static void health_log_flush(void) {
 		s_session_movement = data_logging_create(MOVEMENT_LOG, DATA_LOGGING_UINT, sizeof(uint32_t), true);
 	}
 	LOG("health_data_log: flushed");
+}
+
+// health_send_values - push any newly-changed heart rate / step total to the phone
+// as a live AppMessage. Needed because some companion apps (e.g. Core Devices) do
+// not forward DataLogging to legacy PebbleKit, so the data_logging spool never
+// reaches xDrip. Fire-and-forget, like send_cmd_cgm: on APP_MSG_BUSY we keep the
+// dirty flags and retry on the next minute tick. Only the changed metric is sent;
+// xDrip stamps the receipt time.
+static void health_send_values(void) {
+	if (!CollectHealth) return;
+	if (!hr_send_dirty && !steps_send_dirty) return;
+	if (BluetoothAlert) return; // BT down; cannot send or even log
+
+	DictionaryIterator *iter = NULL;
+	AppMessageResult open_err = app_message_outbox_begin(&iter);
+	if (open_err != APP_MSG_OK) {
+		LOG("health_send_values: outbox busy (%d), will retry", (int) open_err);
+		return;
+	}
+
+	if (hr_send_dirty && logged_bpm > 0)
+		dict_write_int32(iter, PBL_HEALTH_HR, (int32_t) logged_bpm);
+	if (steps_send_dirty && logged_steps > 0)
+		dict_write_int32(iter, PBL_HEALTH_STEPS, (int32_t) logged_steps);
+	dict_write_end(iter);
+
+	AppMessageResult send_err = app_message_outbox_send();
+	if (send_err == APP_MSG_OK) {
+		LOG("health_send_values: sent hr=%d (%d) steps=%d (%d)",
+			(int) logged_bpm, hr_send_dirty, (int) logged_steps, steps_send_dirty);
+		hr_send_dirty = false;
+		steps_send_dirty = false;
+	} else {
+		LOG("health_send_values: send err %d, will retry", (int) send_err);
+	}
 }
 
 // health_log_poll - peek the current heart rate and step total and log any
