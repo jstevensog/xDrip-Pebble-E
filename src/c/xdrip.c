@@ -150,6 +150,7 @@ TextLayer *heart_rate_text_layer = NULL;
 static DataLoggingSessionRef s_session_heartrate = NULL;
 static DataLoggingSessionRef s_session_movement = NULL;
 static bool CollectHealth = false;
+static bool health_log_dirty = false;
 static time_t last_movement_log_time = 0;
 static HealthValue logged_steps = 0;
 static HealthValue logged_bpm = 0;
@@ -157,6 +158,7 @@ static void start_health_data_log(void);
 static void stop_health_data_log(void);
 static void health_write_log(int id, int value);
 static void health_log_poll(void);
+static void health_log_flush(void);
 #endif
 
 /**
@@ -2182,6 +2184,7 @@ void handle_minute_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
 		tick_return_cgm = strftime(time_watch_text, TIME_TEXTBUFF_SIZE, time_watch_format, tick_time_cgm);
 #ifdef PBL_HEALTH
 		health_log_poll();
+		health_log_flush();
 #endif
 	}
 
@@ -3055,8 +3058,26 @@ static void health_write_log(int id, int value) {
 	if (result != DATA_LOGGING_SUCCESS) {
 		WARNING("health_write_log: error %d logging id %d value %d", (int) result, id, value);
 	} else {
+		health_log_dirty = true;
 		LOG("health_write_log: logged id %d value %d", id, value);
 	}
+}
+
+// health_log_flush - finish and re-open the sessions so the platform pushes the
+// spool to the phone now (it otherwise syncs roughly hourly). Minute-tick only,
+// never from the AppMessage callback.
+static void health_log_flush(void) {
+	if (!health_log_dirty) return;
+	health_log_dirty = false;
+	if (s_session_heartrate != NULL) {
+		data_logging_finish(s_session_heartrate);
+		s_session_heartrate = data_logging_create(HEARTRATE_LOG, DATA_LOGGING_UINT, sizeof(uint32_t), true);
+	}
+	if (s_session_movement != NULL) {
+		data_logging_finish(s_session_movement);
+		s_session_movement = data_logging_create(MOVEMENT_LOG, DATA_LOGGING_UINT, sizeof(uint32_t), true);
+	}
+	LOG("health_data_log: flushed");
 }
 
 // health_log_poll - peek the current heart rate and step total and log any
