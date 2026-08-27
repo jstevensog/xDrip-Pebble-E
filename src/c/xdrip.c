@@ -147,6 +147,10 @@ TextLayer *heart_rate_text_layer = NULL;
 // these as HeartRate / StepCounter records). Tags match its decoder.
 #define HEARTRATE_LOG 101
 #define MOVEMENT_LOG  103
+// re-send an unchanged heart rate to the phone at least this often, so xDrip's
+// reading does not go stale while the wearer is at rest (the OS only samples HR
+// every ~10 min at rest, and health_send_values otherwise sends only on change).
+#define HR_KEEPALIVE_SECS 300
 static DataLoggingSessionRef s_session_heartrate = NULL;
 static DataLoggingSessionRef s_session_movement = NULL;
 static bool CollectHealth = false;
@@ -158,6 +162,7 @@ static HealthValue logged_bpm = 0;
 // logged_* value changes, cleared once that value has been sent to the phone.
 static bool hr_send_dirty = false;
 static bool steps_send_dirty = false;
+static time_t last_hr_send_time = 0;
 static void start_health_data_log(void);
 static void stop_health_data_log(void);
 static void health_write_log(int id, int value);
@@ -2074,6 +2079,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 							logged_steps = 0;
 							hr_send_dirty = false;
 							steps_send_dirty = false;
+							last_hr_send_time = 0;
 						}
 					}
 				}
@@ -3097,10 +3103,13 @@ static void health_log_flush(void) {
 // as a live AppMessage. Needed because some companion apps (e.g. Core Devices) do
 // not forward DataLogging to legacy PebbleKit, so the data_logging spool never
 // reaches xDrip. Fire-and-forget, like send_cmd_cgm: on APP_MSG_BUSY we keep the
-// dirty flags and retry on the next minute tick. Only the changed metric is sent;
-// xDrip stamps the receipt time.
+// dirty flags and retry on the next minute tick. Only the changed metric is sent
+// (plus an unchanged heart rate every HR_KEEPALIVE_SECS); xDrip stamps the receipt
+// time. Called from the minute tick.
 static void health_send_values(void) {
 	if (!CollectHealth) return;
+	if (logged_bpm > 0 && time(NULL) - last_hr_send_time >= HR_KEEPALIVE_SECS)
+		hr_send_dirty = true; // keep-alive - resend the last reading
 	if (!hr_send_dirty && !steps_send_dirty) return;
 	if (BluetoothAlert) return; // BT down; cannot send or even log
 
@@ -3121,6 +3130,7 @@ static void health_send_values(void) {
 	if (send_err == APP_MSG_OK) {
 		LOG("health_send_values: sent hr=%d (%d) steps=%d (%d)",
 			(int) logged_bpm, hr_send_dirty, (int) logged_steps, steps_send_dirty);
+		if (hr_send_dirty) last_hr_send_time = time(NULL);
 		hr_send_dirty = false;
 		steps_send_dirty = false;
 	} else {
