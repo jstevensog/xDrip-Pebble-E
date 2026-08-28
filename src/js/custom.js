@@ -62,6 +62,7 @@ module.exports = function(minified) {
 
         var usepng = clayConfig.getItemByMessageKey('use_png');
         usepng.on('change', show_hide_trend);
+        usepng.trigger('change');
 
         // convert function
         var convert_bgl = function () {
