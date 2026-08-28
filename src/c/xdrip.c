@@ -109,7 +109,8 @@ TextLayer *date_app_layer = NULL;
 
 // bitmap layer definitions
 BitmapLayer *icon_layer = NULL;
-BitmapLayer *bg_trend_layer = NULL;
+BitmapLayer *bg_trend_layer_draw = NULL;
+BitmapLayer *bg_trend_layer_png = NULL;
 BitmapLayer *upper_face_layer = NULL;
 BitmapLayer *lower_face_layer = NULL;
 
@@ -1605,7 +1606,7 @@ static void send_cmd_cgm(void)
         hb.send_delta_value = 1;
         dict_write_uint32(iter, FRAMEWORK_BGL_VALUE, current_cgm_time); // request update
         if (use_png) {
-            comm_request_png(iter, layer_get_bounds(bitmap_layer_get_layer(bg_trend_layer)));
+            comm_request_png(iter, layer_get_bounds(bitmap_layer_get_layer(bg_trend_layer_png)));
         }
     }
 
@@ -1869,8 +1870,13 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
                 DEBUG("PNG set to %d %d", use_png, data->value->int32);
                 persist_write_bool(SET_USE_PNG, use_png);
                 // reinit
-                if (!use_png) trend_init(bitmap_layer_get_layer(bg_trend_layer));
-                else trend_deinit();
+                if (!use_png) {
+                    trend_init(bitmap_layer_get_layer(bg_trend_layer_draw));
+                    layer_set_hidden(bitmap_layer_get_layer(bg_trend_layer_png), true);
+                } else {
+                    trend_deinit();
+                    layer_set_hidden(bitmap_layer_get_layer(bg_trend_layer_png), false);
+                }
                 // reset
                 dirty.need_cgm = 1;
                 current_cgm_time = 0; // force update all
@@ -1897,7 +1903,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
             case SET_SHOW_TREND:
                 show_trend = data->value->uint8 != 0;
                 persist_write_bool(SET_SHOW_TREND, show_trend);
-                layer_set_hidden(bitmap_layer_get_layer(bg_trend_layer), !show_trend);
+                layer_set_hidden(bitmap_layer_get_layer(bg_trend_layer_png), !show_trend);
                 break;
 */
             /**
@@ -2064,8 +2070,10 @@ void window_load_cgm(Window *window_cgm)
 	// icon layer dimensions
 	icon_layer = bitmap_layer_create(GRect(85, -7, 78, 51));
 	// trend bitmap layer dimensions
-	bg_trend_layer = bitmap_layer_create(GRect(0,24,144,64));
-	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
+	bg_trend_layer_png = bitmap_layer_create(GRect(0,24,144,64));
+	bitmap_layer_set_compositing_mode(bg_trend_layer_png, GCompOpSet);
+	bg_trend_layer_draw = bitmap_layer_create(GRect(0,24,144,64));
+	bitmap_layer_set_compositing_mode(bg_trend_layer_draw, GCompOpSet);
 	// delta layer dimensions
 	delta_layer = text_layer_create(GRect(0, 58, 143, 50));
 	text_layer_set_text_alignment(delta_layer, GTextAlignmentRight);
@@ -2105,8 +2113,10 @@ void window_load_cgm(Window *window_cgm)
 	icon_layer = bitmap_layer_create(GRect(85, -9, 78, 49));
 	bitmap_layer_set_compositing_mode(icon_layer, GCompOpSet);
 	// trend bitmap layer dimensions and composition mode
-	bg_trend_layer = bitmap_layer_create(GRect(0,0,144,84));
-	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
+	bg_trend_layer_png = bitmap_layer_create(GRect(0,0,144,84));
+	bitmap_layer_set_compositing_mode(bg_trend_layer_png, GCompOpSet);
+	bg_trend_layer_draw = bitmap_layer_create(GRect(0,0,144,84));
+	bitmap_layer_set_compositing_mode(bg_trend_layer_draw, GCompOpSet);
 	// delta layer dimensions
 	delta_layer = text_layer_create(GRect(0, 58, 143, 50));
 	layer_set_bounds((Layer *) delta_layer, GRect(0, -2, 143, 50)); // fixes bounding box with latest sdk
@@ -2151,8 +2161,10 @@ void window_load_cgm(Window *window_cgm)
 	icon_layer = bitmap_layer_create(GRect(120, 30, 78, 50));
 	bitmap_layer_set_compositing_mode(icon_layer, GCompOpSet);
 	// trend bitmap layer dimensions and composition mode
-	bg_trend_layer = bitmap_layer_create(GRect(0,0,144,84));
-	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
+	bg_trend_layer_png = bitmap_layer_create(GRect(0,0,144,84));
+	bitmap_layer_set_compositing_mode(bg_trend_layer_png, GCompOpSet);
+	bg_trend_layer_draw = bitmap_layer_create(GRect(0,0,144,84));
+	bitmap_layer_set_compositing_mode(bg_trend_layer_draw, GCompOpSet);
 	// delta layer dimensions
 	delta_layer = text_layer_create(GRect(0, 36, 180, 50));
 	text_layer_set_text_alignment(delta_layer, GTextAlignmentCenter);
@@ -2191,8 +2203,10 @@ void window_load_cgm(Window *window_cgm)
 	// icon layer dimensions
 	icon_layer = bitmap_layer_create(GRect(85, -7, 78, 51));
 	// trend bitmap layer dimensions
-	bg_trend_layer = bitmap_layer_create(GRect(0,24,144,64));
-	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
+	bg_trend_layer_png = bitmap_layer_create(GRect(0,24,144,64));
+	bitmap_layer_set_compositing_mode(bg_trend_layer_png, GCompOpSet);
+	bg_trend_layer_draw = bitmap_layer_create(GRect(0,24,144,64));
+	bitmap_layer_set_compositing_mode(bg_trend_layer_draw, GCompOpSet);
 	// delta layer dimensions
 	delta_layer = text_layer_create(GRect(0, 58, 143, 50));
 	text_layer_set_text_alignment(delta_layer, GTextAlignmentRight);
@@ -2229,8 +2243,10 @@ void window_load_cgm(Window *window_cgm)
 	icon_layer = bitmap_layer_create(GRect(146, -9, 78, 49));
 	bitmap_layer_set_compositing_mode(icon_layer, GCompOpSet);
 	// trend bitmap layer dimensions and composition mode
-	bg_trend_layer = bitmap_layer_create(GRect(0,0,200,114));
-	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
+	bg_trend_layer_png = bitmap_layer_create(GRect(0,0,200,114));
+	bitmap_layer_set_compositing_mode(bg_trend_layer_png, GCompOpSet);
+	bg_trend_layer_draw = bitmap_layer_create(GRect(0,0,200,114));
+	bitmap_layer_set_compositing_mode(bg_trend_layer_draw, GCompOpSet);
 	// delta layer dimensions
 	delta_layer = text_layer_create(GRect(2, 78, 198, 50));
 	text_layer_set_text_alignment(delta_layer, GTextAlignmentLeft);
@@ -2277,8 +2293,10 @@ void window_load_cgm(Window *window_cgm)
 	// icon layer dimensions
 	icon_layer = bitmap_layer_create(GRect(85, -7, 78, 51));
 	// trend bitmap layer dimensions
-	bg_trend_layer = bitmap_layer_create(GRect(0,24,144,64));
-	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
+	bg_trend_layer_png = bitmap_layer_create(GRect(0,24,144,64));
+	bitmap_layer_set_compositing_mode(bg_trend_layer_png, GCompOpSet);
+	bg_trend_layer_draw = bitmap_layer_create(GRect(0,24,144,64));
+	bitmap_layer_set_compositing_mode(bg_trend_layer_draw, GCompOpSet);
 	// delta layer dimensions
 	delta_layer = text_layer_create(GRect(0, 58, 143, 50));
 	text_layer_set_text_alignment(delta_layer, GTextAlignmentLeft);
@@ -2320,8 +2338,10 @@ void window_load_cgm(Window *window_cgm)
 	icon_layer = bitmap_layer_create(GRect(173,  43, 112,  72));
 	bitmap_layer_set_compositing_mode(icon_layer, GCompOpSet);
 	// trend bitmap layer dimensions and composition mode
-	bg_trend_layer = bitmap_layer_create(GRect(  0,   0, 260, 121));
-	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
+	bg_trend_layer_png = bitmap_layer_create(GRect(  0,   0, 260, 121));
+	bitmap_layer_set_compositing_mode(bg_trend_layer_png, GCompOpSet);
+	bg_trend_layer_draw = bitmap_layer_create(GRect(  0,   0, 260, 121));
+	bitmap_layer_set_compositing_mode(bg_trend_layer_draw, GCompOpSet);
 	// delta layer dimensions
 	delta_layer = text_layer_create(GRect(  0,  52, 260,  72));
 	text_layer_set_text_alignment(delta_layer, GTextAlignmentCenter);
@@ -2404,7 +2424,11 @@ void window_load_cgm(Window *window_cgm)
 	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
 #endif
 
-	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(bg_trend_layer));
+	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(bg_trend_layer_png));
+	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(bg_trend_layer_draw));
+
+    layer_set_hidden(bitmap_layer_get_layer(bg_trend_layer_png), !use_png);
+    layer_set_hidden(bitmap_layer_get_layer(bg_trend_layer_draw), use_png);
 
 	// ARROW OR SPECIAL VALUE
 	LOG("Creating Arrow Bitmap layer");
@@ -2512,7 +2536,7 @@ void window_load_cgm(Window *window_cgm)
 	load_battlevel();
 
     // default config
-    if (!use_png) trend_init(bitmap_layer_get_layer(bg_trend_layer));
+    if (!use_png) trend_init(bitmap_layer_get_layer(bg_trend_layer_draw));
 
 //	TRACE("WINDOW LOAD, ABOUT TO CALL APP SYNC INIT");
 	//app_sync_init(&sync_cgm, sync_buffer_cgm, sizeof(sync_buffer_cgm), initial_values_cgm, ARRAY_LENGTH(initial_values_cgm), sync_tuple_changed_callback_cgm, sync_error_callback_cgm, NULL);
@@ -2534,7 +2558,8 @@ void window_unload_cgm(Window *window_cgm)
 
 	//destroy the trend bitmap and layer
 	if(bg_trend_bitmap != NULL) destroy_null_GBitmap(&bg_trend_bitmap);
-	if(bg_trend_layer != NULL) destroy_null_BitmapLayer(&bg_trend_layer);
+	if(bg_trend_layer_draw != NULL) destroy_null_BitmapLayer(&bg_trend_layer_draw);
+	if(bg_trend_layer_png != NULL) destroy_null_BitmapLayer(&bg_trend_layer_png);
 	TRACE("window_unload_cgm: destroy existing GBitmaps");
 	if(icon_bitmap != NULL) destroy_null_GBitmap(&icon_bitmap);
 	if(appicon_bitmap != NULL) destroy_null_GBitmap(&appicon_bitmap);
@@ -2882,13 +2907,13 @@ void set_png(comm_png_data data) {
     if(bg_trend_bitmap != NULL)
     {
         LOG("bg_trend_bitmap created, setting to layer");
-        bitmap_layer_set_bitmap(bg_trend_layer, bg_trend_bitmap);
+        bitmap_layer_set_bitmap(bg_trend_layer_png, bg_trend_bitmap);
     }
     else
     {
         WARNING("bg_trend_bitmap creation FAILED!");
     }
-    layer_set_hidden(bitmap_layer_get_layer(bg_trend_layer), !show_trend);
+    layer_set_hidden(bitmap_layer_get_layer(bg_trend_layer_png), !show_trend);
     dirty.need_cgm = 0;
 }
 
