@@ -61,10 +61,14 @@ void trend_init(Layer *layer) {
 
     TRACE(TREND_LOG "Setting callback");
     layer_set_update_proc((Layer *) config.layer, trend_layer_callback);
+    layer_set_hidden(config.layer, false);
 }
 
 void trend_deinit(void) {
-    if (config.layer != NULL) layer_set_update_proc(config.layer, NULL); // discard
+    if (config.layer != NULL) {
+        layer_set_hidden(config.layer, true);
+        layer_set_update_proc(config.layer, NULL); // discard
+    }
     config.layer = NULL;
     config.bgl.initialized = 0;
 }
