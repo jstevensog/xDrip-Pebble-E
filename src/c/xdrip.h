@@ -72,6 +72,7 @@ static void bitmapLayerUpdate(struct Layer *layer, GContext *ctx);
 #define SET_NO_ARROWS			108	// Setting key - Do not show arrows
 #define SET_HIGH_LINE			110	// Setting key - Enable High line on graph.
 #define SET_LOW_LINE			111	// Setting key - Enable Low line on graph.
+#define SET_COLLECT_HEALTH		112	// Setting key - log heart rate / steps back to xDrip
 #define SET_MESSAGE_TIMEOUT		113	// Setting key - Message timeout
 #define SET_BOLD_TIMEAGO		114	// Setting key - Meke the TimeAgo text bold if true
 #define SET_BOTTOM_LEFT_TEXT	        115	// Setting key - What to display in the bottom left text field
@@ -84,6 +85,11 @@ static void bitmapLayerUpdate(struct Layer *layer, GContext *ctx);
 #define PBL_TREND_PERIOD		1005	// key pebble will use to send the trend period it wants.
 #define PBL_DISP_OPTS			1006	// key pebble will use to send display options (delta/arrows).
 #define PBL_VIBE_OPTS			1007	// key pebble will use to send vibration options (alerts, missed signal, no bluetooth)
+#define PBL_HEALTH_HR			1010	// watch->phone: current heart rate (BPM), INT32
+#define PBL_HEALTH_STEPS		1011	// watch->phone: step count so far today, INT32
+// PBL_HEALTH_* are sent as live AppMessages so heart rate / steps reach xDrip even
+// when the phone companion app does not bridge DataLogging to legacy PebbleKit
+// (e.g. the Core Devices app). xDrip stamps the receipt time; no watch timestamp.
 
 
 // TOTAL MESSAGE DATA 4x3+2+5+3+9 = 31 BYTES

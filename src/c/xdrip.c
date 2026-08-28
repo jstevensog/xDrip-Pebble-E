@@ -125,6 +125,9 @@ static GFont time_font;
 static char message_layer_text[13];
 static GFont time_font_small;
 static GFont time_font_normal;
+#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_GABBRO)
+static GFont bg_value_font;
+#endif
 
 // Message Timer Wait Times, in Seconds
 static uint8_t minutes_cgm = 0;
@@ -139,6 +142,31 @@ TextLayer *step_count_text_layer = NULL;
 #if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_FLINT) || defined(PBL_PLATFORM_GABBRO)
 TextLayer *heart_rate_text_layer = NULL;
 #endif
+
+// --- Health: DataLogging (fallback) + live AppMessage of current HR/steps.
+// xDrip's PebbleWatchSync stores these as HeartRate / StepCounter records.
+#define HEARTRATE_LOG 101
+#define MOVEMENT_LOG  103
+static DataLoggingSessionRef s_session_heartrate = NULL;
+static DataLoggingSessionRef s_session_movement = NULL;
+static bool CollectHealth = false;
+static bool health_log_dirty = false;
+static time_t last_movement_log_time = 0;
+static HealthValue logged_steps = 0;
+static HealthValue logged_bpm = 0;
+// The AppMessage of HR/steps is sent ~2s after xDrip pushes CGM data (its process
+// is awake then, so its broadcast receiver actually gets it - a standalone
+// minute-tick send is mostly dropped by Android broadcast throttling while xDrip
+// is backgrounded). See PBL_HEALTH_* in xdrip.h.
+static AppTimer *health_reply_timer = NULL;
+static void start_health_data_log(void);
+static void stop_health_data_log(void);
+static void health_write_log(int id, int value);
+static void health_log_poll(void);
+static void health_log_flush(void);
+static void health_send_values(void);
+static void health_add_values_to_dict(DictionaryIterator *iter);
+static void health_reply_timer_cb(void *data);
 #endif
 
 /**
@@ -347,31 +375,11 @@ static void create_update_bitmap(GBitmap **bmp_image, BitmapLayer *bmp_layer, co
 #ifdef PBL_HEALTH
 // health_handler - handler to deal with health events
 static void health_handler(HealthEventType event, void *context) {
-	// Which type of event occurred?
-	switch(event) {
-		case HealthEventSignificantUpdate:
-			LOG("health_handler: Significant Update");
-		break;
-
-		case HealthEventMovementUpdate:
- 			LOG("health_handler: Movement Update");
-		break;
-
-		case HealthEventMetricAlert:
- 			LOG("health_handler: Metric Alert");
-		break;
-
-		case HealthEventSleepUpdate:
-			//LOG("health_handler: Sleep Update");
-		break;
-		
-		case HealthEventHeartRateUpdate:
-			LOG("health_handler: Heart rate Update");
-		break;
-		case HealthEventHRVUpdate:
-			LOG("health_handler: Heart rate HRV Update");
-
-	}
+	LOG("health_handler: event %d", (int) event);
+	// PebbleOS does not reliably emit HealthEventHeartRateUpdate at rest, so we
+	// don't key off a specific event - any health event (and the minute tick)
+	// triggers a poll of the current values.
+	health_log_poll();
 	update_health_metric_displays();
 } //end health_handler
 
@@ -1597,6 +1605,11 @@ static void send_cmd_cgm(void)
 	dict_write_cstring(iter, PBL_APP_VER, FACE_VERSION);
 // Set the trend size to send to xDrip+.  See xdrip.h
 	dict_write_uint32(iter, PBL_TREND_SIZE, trend_size);
+#ifdef PBL_HEALTH
+	// piggyback current HR/steps - this message only fires when xDrip has gone
+	// quiet, but it is still a delivery opportunity while xDrip is (re)waking.
+	health_add_values_to_dict(iter);
+#endif
 	dict_write_end(iter);
 	TRACE("send_cmd_cgm: Opening outbox");
 
@@ -1655,6 +1668,9 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 		return;
 	}
 
+#ifdef PBL_HEALTH
+	bool got_cgm_update = false;
+#endif
 
 	// CODE START
 
@@ -1693,6 +1709,9 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 				if (current_cgm_time != 0)
 				{
 					minutes_cgm = 6;
+#ifdef PBL_HEALTH
+					got_cgm_update = true;
+#endif
 				}
 			break; // break for CGM_TCGM_KEY
 
@@ -2054,6 +2073,25 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 				}
 			break;
 
+			case SET_COLLECT_HEALTH:
+#ifdef PBL_HEALTH
+				// Only flip the flag here - the logging sessions are opened once in
+				// init. Keep this handler cheap; it runs in the AppMessage callback.
+				LOG("Got SET_COLLECT_HEALTH: %u", data->value->uint8);
+				{
+					bool want = (data->value->uint8 != 0);
+					if (want != CollectHealth) {
+						CollectHealth = want;
+						persist_write_bool(SET_COLLECT_HEALTH, CollectHealth);
+						if (!want) {
+							logged_bpm = 0;
+							logged_steps = 0;
+						}
+					}
+				}
+#endif
+			break;
+
 			default:
 				LOG("inbox_received_handler_cgm: Dictionary Key not recognised");
 			break;
@@ -2061,6 +2099,16 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 		// end switch(key)
 		data = dict_read_next(iterator);
 	}
+
+#ifdef PBL_HEALTH
+	// xDrip just pushed CGM data, so its process is awake and its broadcast
+	// receiver will actually get our reply. Send current HR/steps a couple of
+	// seconds later, off this callback.
+	if (got_cgm_update && CollectHealth) {
+		if (health_reply_timer != NULL) app_timer_cancel(health_reply_timer);
+		health_reply_timer = app_timer_register(2000, health_reply_timer_cb, NULL);
+	}
+#endif
 } // end sync_tuple_changed_callback_cgm()
 
 void timer_callback_cgm(void *data)
@@ -2167,6 +2215,12 @@ void handle_minute_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
 	{
 		LOG("handle_minute_tick_cgm: tick");
 		tick_return_cgm = strftime(time_watch_text, TIME_TEXTBUFF_SIZE, time_watch_format, tick_time_cgm);
+#ifdef PBL_HEALTH
+		health_log_poll();
+		health_log_flush();
+		// note: the HR/step AppMessage is sent from health_reply_timer_cb after
+		// xDrip pushes CGM data, not here - see health_send_values().
+#endif
 	}
 
 	if (tick_return_cgm != 0)
@@ -2459,7 +2513,7 @@ void window_load_cgm(Window *window_cgm)
 	message_layer = text_layer_create(GRect(2, 49, 198, 50));
 	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
 	// BG layer dimensions
-	bg_layer = text_layer_create(GRect(0, -5, 132, 57));
+	bg_layer = text_layer_create(GRect(0, -5, 144, 62));
 	// cgmtime layer dimensions
 	cgmtime_layer = text_layer_create(GRect(142, 78, 55, 32));
 	text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentRight);
@@ -2549,7 +2603,7 @@ void window_load_cgm(Window *window_cgm)
 	message_layer = text_layer_create(GRect(  0,  52, 260,  72));
 	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
 	// BG layer dimensions
-	bg_layer = text_layer_create(GRect(  0,  -7, 260,  68));
+	bg_layer = text_layer_create(GRect(  0,  -6, 260,  76));
 	text_layer_set_text_alignment(bg_layer, GTextAlignmentCenter);
 	// cgmtime layer dimensions
 	cgmtime_layer = text_layer_create(GRect(  7,  84,  58,  35));
@@ -2595,7 +2649,11 @@ void window_load_cgm(Window *window_cgm)
 	text_layer_set_font(message_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28));
 	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
 	text_layer_set_background_color(bg_layer, GColorClear);
+#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_GABBRO)
+	text_layer_set_font(bg_layer, bg_value_font);
+#else
 	text_layer_set_font(bg_layer, fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD));
+#endif
 	text_layer_set_background_color(cgmtime_layer, GColorClear);
 	if(TimeAgoBold) {
 		text_layer_set_font(cgmtime_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
@@ -2826,6 +2884,11 @@ static void init_cgm(void)
 	
 	LOG("display_seconds: %i", display_seconds);
 	//initialise the Time Fonts
+#if defined(PBL_PLATFORM_EMERY)
+	// 60px clips against the date row in the 60px time box on Emery - use 54
+	time_font_normal = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_54));
+	time_font_small = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_40));
+#else
 	if (HIGH_RES()) {
 		time_font_normal = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_60));
 		time_font_small = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_40));
@@ -2833,6 +2896,13 @@ static void init_cgm(void)
 		time_font_normal = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_40));
 		time_font_small = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_30));
 	}
+#endif
+#if defined(PBL_PLATFORM_EMERY)
+	// Dedicated larger BG value font for the hi-res display
+	bg_value_font = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_BG_56));
+#elif defined(PBL_PLATFORM_GABBRO)
+	bg_value_font = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_BG_64));
+#endif
 	//Initialise the time format string.  No seconds here.
 	if(clock_is_24h_style() == true)
 	{
@@ -2877,6 +2947,11 @@ static void init_cgm(void)
 	battery_state_service_subscribe(battery_handler);
 
 #ifdef PBL_HEALTH
+	// restore whether the phone last asked us to collect health data, and open
+	// the data-logging sessions for the life of the app (logging itself is gated
+	// on CollectHealth inside health_handler)
+	CollectHealth = persist_exists(SET_COLLECT_HEALTH) ? persist_read_bool(SET_COLLECT_HEALTH) : false;
+	start_health_data_log();
 	//subscribe to the health service
 	if(!health_service_events_subscribe(health_handler, NULL)) {
 		LOG("Error subscribing to Health");
@@ -2935,6 +3010,7 @@ static void deinit_cgm(void)
 	battery_state_service_unsubscribe();
 #ifdef PBL_HEALTH
 	health_service_events_unsubscribe();
+	stop_health_data_log();
 #endif
 
 	// cancel timers if they exist
@@ -2963,10 +3039,148 @@ static void deinit_cgm(void)
 	//unload the custom time font.
 	fonts_unload_custom_font(time_font_normal);
 	fonts_unload_custom_font(time_font_small);
+#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_GABBRO)
+	fonts_unload_custom_font(bg_value_font);
+#endif
 
 
 	TRACE("DEINIT CODE OUT");
 } // end deinit_cgm
+
+#ifdef PBL_HEALTH
+// Health data logging to the phone. xDrip's PebbleWatchSync reads each pair of
+// uint32s back in order: the first (> a sanity epoch) is the timestamp, the
+// second is the value.
+
+static void start_health_data_log(void) {
+	s_session_heartrate = data_logging_create(HEARTRATE_LOG, DATA_LOGGING_UINT, sizeof(uint32_t), true);
+	s_session_movement  = data_logging_create(MOVEMENT_LOG,  DATA_LOGGING_UINT, sizeof(uint32_t), true);
+	logged_steps = 0;
+	logged_bpm = 0;
+#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_DIORITE) || defined(PBL_PLATFORM_FLINT) || defined(PBL_PLATFORM_GABBRO)
+	// ask the OS to sample heart rate on a fixed cadence so we have fresh values
+	// to log; at rest it otherwise samples only sporadically. ~10 min is a
+	// compromise between data rate and battery.
+	health_service_set_heart_rate_sample_period(600);
+#endif
+	LOG("health_data_log: sessions opened");
+}
+
+static void stop_health_data_log(void) {
+	if (health_reply_timer != NULL) {
+		app_timer_cancel(health_reply_timer);
+		health_reply_timer = NULL;
+	}
+#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_DIORITE) || defined(PBL_PLATFORM_FLINT) || defined(PBL_PLATFORM_GABBRO)
+	health_service_set_heart_rate_sample_period(0); // back to automatic
+#endif
+	if (s_session_heartrate != NULL) {
+		data_logging_finish(s_session_heartrate);
+		s_session_heartrate = NULL;
+	}
+	if (s_session_movement != NULL) {
+		data_logging_finish(s_session_movement);
+		s_session_movement = NULL;
+	}
+	LOG("health_data_log: sessions closed");
+}
+
+static void health_write_log(int id, int value) {
+	if (id == MOVEMENT_LOG) {
+		if (time(NULL) - last_movement_log_time < 60) return;
+		last_movement_log_time = time(NULL);
+	}
+	DataLoggingSessionRef session = (id == HEARTRATE_LOG) ? s_session_heartrate : s_session_movement;
+	if (session == NULL) return;
+	uint32_t d[2] = { (uint32_t) time(NULL), (uint32_t) value };
+	DataLoggingResult result = data_logging_log(session, &d, 2);
+	if (result != DATA_LOGGING_SUCCESS) {
+		WARNING("health_write_log: error %d logging id %d value %d", (int) result, id, value);
+	} else {
+		health_log_dirty = true;
+		LOG("health_write_log: logged id %d value %d", id, value);
+	}
+}
+
+// health_log_flush - finish and re-open the sessions so the platform pushes the
+// spool to the phone now (it otherwise syncs roughly hourly). Minute-tick only,
+// never from the AppMessage callback.
+static void health_log_flush(void) {
+	if (!health_log_dirty) return;
+	health_log_dirty = false;
+	if (s_session_heartrate != NULL) {
+		data_logging_finish(s_session_heartrate);
+		s_session_heartrate = data_logging_create(HEARTRATE_LOG, DATA_LOGGING_UINT, sizeof(uint32_t), true);
+	}
+	if (s_session_movement != NULL) {
+		data_logging_finish(s_session_movement);
+		s_session_movement = data_logging_create(MOVEMENT_LOG, DATA_LOGGING_UINT, sizeof(uint32_t), true);
+	}
+	LOG("health_data_log: flushed");
+}
+
+// health_send_values - push the current heart rate + step total to the phone as an
+// AppMessage. Some companion apps (e.g. Core Devices) do not forward DataLogging to
+// legacy PebbleKit, so the data_logging spool never reaches xDrip. Called ~2s after
+// xDrip pushes CGM data (health_reply_timer_cb) - xDrip is awake then so its
+// broadcast receiver actually gets this - and piggybacked on send_cmd_cgm for the
+// case where xDrip has gone quiet. xDrip stamps the receipt time.
+static void health_send_values(void) {
+	if (!CollectHealth || BluetoothAlert) return;
+
+	DictionaryIterator *iter = NULL;
+	if (app_message_outbox_begin(&iter) != APP_MSG_OK) {
+		LOG("health_send_values: outbox busy");
+		return;
+	}
+	health_add_values_to_dict(iter);
+	dict_write_end(iter);
+
+	if (app_message_outbox_send() == APP_MSG_OK) {
+		LOG("health_send_values: sent hr=%d steps=%d", (int) logged_bpm, (int) logged_steps);
+	}
+}
+
+// health_add_values_to_dict - add the current HR / step total keys to an already
+// open outbox dictionary. Shared by health_send_values and send_cmd_cgm.
+static void health_add_values_to_dict(DictionaryIterator *iter) {
+	if (!CollectHealth || iter == NULL) return;
+	if (logged_bpm > 0)   dict_write_int32(iter, PBL_HEALTH_HR, (int32_t) logged_bpm);
+	if (logged_steps > 0) dict_write_int32(iter, PBL_HEALTH_STEPS, (int32_t) logged_steps);
+}
+
+static void health_reply_timer_cb(void *data) {
+	health_reply_timer = NULL;
+	health_send_values();
+}
+
+// health_log_poll - peek the current heart rate and step total and log any
+// change. Called from health_handler and the minute tick.
+static void health_log_poll(void) {
+	if (!CollectHealth) return;
+
+	HealthServiceAccessibilityMask hr =
+		health_service_metric_accessible(HealthMetricHeartRateBPM, time(NULL), time(NULL));
+	if (hr & HealthServiceAccessibilityMaskAvailable) {
+		HealthValue bpm = health_service_peek_current_value(HealthMetricHeartRateBPM);
+		if (bpm > 0 && bpm != logged_bpm) {
+			logged_bpm = bpm;
+			health_write_log(HEARTRATE_LOG, (int) bpm);
+		}
+	}
+
+	time_t day_start = time_start_of_today();
+	HealthServiceAccessibilityMask steps_ok =
+		health_service_metric_accessible(HealthMetricStepCount, day_start, time(NULL));
+	if (steps_ok & HealthServiceAccessibilityMaskAvailable) {
+		HealthValue steps = health_service_sum_today(HealthMetricStepCount);
+		if (steps != logged_steps && abs((int)(steps - logged_steps)) > 20) {
+			logged_steps = steps;
+			health_write_log(MOVEMENT_LOG, (int) steps);
+		}
+	}
+}
+#endif
 
 int main(void)
 {
