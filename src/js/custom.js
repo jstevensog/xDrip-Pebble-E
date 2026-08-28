@@ -24,8 +24,8 @@ module.exports = function(minified) {
             'trend_style',
             "trend_hour",
             "trend_hour_width",
-            "trend_hour_style"
-            
+            "trend_hour_style",
+            "trend_auto_adjust_max"            
         ];
         if (this.get()) {
             for (const index in items) {
