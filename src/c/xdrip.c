@@ -360,11 +360,9 @@ static void hr_draw_callback(void *context) {
     INFO("Drawing HRM");
     // defer HR update untill measurement stabelizes
     if(bottom_left_metric == METRIC_HEARTRATE && dirty.hbm) {
-        DEBUG("Setting bottom left metric to \"%lu\"", (uint32_t)val);
         text_layer_set_text(bottom_left_text_layer, s_hrm_buffer);
     }
     if(bottom_right_metric == METRIC_HEARTRATE && dirty.hbm) {
-        DEBUG("Setting bottom right metric to \"%lu\"", (uint32_t)val);
         text_layer_set_text(bottom_right_text_layer, s_hrm_buffer);
     }
     hr_draw_timer = NULL;
@@ -2397,6 +2395,7 @@ void window_load_cgm(Window *window_cgm)
 	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(lower_face_layer));
 
 
+
 	//create the bg_trend_layer
 	INFO("Creating BG Trend Bitmap layer");
 #if DEBUG_LEVEL > 0
@@ -2410,7 +2409,7 @@ void window_load_cgm(Window *window_cgm)
 	// ARROW OR SPECIAL VALUE
 	LOG("Creating Arrow Bitmap layer");
 #if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_GABBRO)
-	layer_add_child(bitmap_layer_get_layer(bg_trend_layer), bitmap_layer_get_layer(icon_layer));
+	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(icon_layer));
 #else
 	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(icon_layer));
 #endif
@@ -2831,7 +2830,7 @@ void set_vibrate(comm_vibe value) {
 
 void set_bgl_timestamp(uint32_t timestamp) {
     TRACE("Set BGL Timestamp");
-    if (!dirty.need_cgm) current_cgm_time = timestamp;
+    if (!dirty.need_cgm || use_png) current_cgm_time = timestamp;
     reset_timer_callback_cgm((timestamp - time(NULL)) + (60 * 6));
     load_cgmtime();
 }
