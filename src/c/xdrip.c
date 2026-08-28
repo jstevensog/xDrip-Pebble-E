@@ -215,6 +215,8 @@ static char *translate_app_error(AppMessageResult result)
 			return "APP_MSG_CLOSED";
 		case APP_MSG_INTERNAL_ERROR:
 			return "APP_MSG_INTERNAL_ERROR";
+        case APP_MSG_INVALID_STATE:
+            return "APP_MSG_INVALID_STATE";
 		default:
 			return "APP UNKNOWN ERROR";
 	}
@@ -963,7 +965,7 @@ void outbox_failed_handler_cgm(DictionaryIterator *failed, AppMessageResult appm
 
 	// APPMSG OUT FAIL debug logs
 //	INFO("APPMSG OUT FAIL ERROR");
-	DEBUG("outbox_failed_handler_cgm: ERR CODE: %i RES: %s", appmsg_outfail_error, translate_app_error(appmsg_outfail_error));
+	ERROR("outbox_failed_handler_cgm: ERR CODE: %i RES: %s", appmsg_outfail_error, translate_app_error(appmsg_outfail_error));
 
 	bluetooth_connected_cgm = bluetooth_connection_service_peek();
 
@@ -1556,13 +1558,17 @@ static void send_cmd_cgm(void)
 	AppMessageResult sendcmd_senderr = APP_MSG_OK;
 	DictionaryIterator *iter = NULL;
 
-	sendcmd_openerr = app_message_outbox_begin(&iter);
 	if(BluetoothAlert)
 	{
 		//BT is down rignt now, so don't do anything.
 		//Note, we cannot log this, as BT must be up in order to log it.
 		return;
 	}
+
+    // if bt escapes early (above) outbox_begin MAY NOT be triggered as it will leave the outbox in
+    // an unrecoverable state, the entire function must be performed if app_message_outbox_begin succeeds.
+	sendcmd_openerr = app_message_outbox_begin(&iter);
+
 	if (sendcmd_openerr != APP_MSG_OK)
 	{
 		ERROR("send_cmd_cgm: ERR CODE: %i RES: %s", sendcmd_openerr, translate_app_error(sendcmd_openerr));
