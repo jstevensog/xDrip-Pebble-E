@@ -170,6 +170,7 @@
       "trend_hour": 320,
       "trend_hour_width": 321,
       "trend_hour_style": 322,
+      "trend_auto_adjust_max": 323,
       "sync": 1000,
       "platform": 1001,
       "version": 1002,

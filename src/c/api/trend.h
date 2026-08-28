@@ -5,6 +5,38 @@
 #include "communication.h"
 
 
+/*
+ * Settings from clay
+ */
+#define SET_USE_PNG             117
+#define SET_SHOW_UNIT           118
+#define SET_SHOW_DELTA          119
+#define SET_SHOW_SLOPE          120
+#define SET_SHOW_TREND          121
+#define SET_BGL_CRITICAL_COLOUR  301
+#define SET_BGL_HIGH_COLOUR      302
+#define SET_BGL_AVERAGE_COLOUR   303
+#define SET_BGL_GOOD_COLOUR      304
+#define SET_BGL_LOW_COLOUR       305
+#define SET_BGL_LOW             306
+#define SET_BGL_AVERAGE         307
+#define SET_BGL_HIGH            308
+#define SET_BGL_CRITICAL        309
+#define SET_LOW_LINE_COLOUR      310
+#define SET_HIGH_LINE_COLOUR     311
+#define SET_LINE_STYLE          312
+#define SET_LINE_WIDTH          313
+#define SET_TREND_STYLE         314
+#define SET_TREND_WIDTH         315
+#define SET_HIGH_LIMIT          316
+#define SET_HIGH_LINE_VALUE     317
+#define SET_LOW_LIMIT           318
+#define SET_LOW_LINE_VALUE      319
+#define SET_HOUR_ENABLED        320
+#define SET_HOUR_WIDTH          321
+#define SET_HOUR_STYLE          322
+#define SET_AUTO_ADJUST_MAX     323
+
 #define TREND_LOG "TREND :: "
 
 typedef int16_t trend_bgl_value; 
@@ -48,7 +80,9 @@ typedef struct {
     GColor      low_line_color;     // Colour of low line
     GColor      hour_line_color;
     int8_t      hour_line_width;
-    int8_t      hour_line_enabled;  
+    int8_t      hour_line_enabled : 1;
+    int8_t      auto_adjust_max : 1;
+    int8_t      : 6;
     int8_t      line_width;         // High/low line width
     int8_t      trend_width;        // Trend line width
     int16_t     bgl_low;            // Low value

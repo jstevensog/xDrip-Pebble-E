@@ -484,6 +484,13 @@
               "min": 1,
               "max": 4,
               "group": "trend_hours"
+          },
+          {
+              "type": "toggle",
+              "messageKey": "trend_auto_adjust_max",
+              "label": "Auto-scale the maximum height of the graph",
+              "default": false,
+              "description": "If enabled the highest will be the highest bgl value or the high-line + 5%, else it will use the xdrip values." 
           }
       ]
   },

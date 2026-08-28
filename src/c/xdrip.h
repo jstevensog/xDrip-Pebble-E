@@ -18,7 +18,7 @@
 #define DEBUG_APP_INFO 1
 #define DEBUG_APP_NONE 0
 
-/* #define DEBUG_LEVEL DEBUG_APP_INFO  */
+/* #define DEBUG_LEVEL DEBUG_APP_TRACE  */
 
 /* The line below, if defined, will only indicate test values on the display.
 this is for testing purposes only until I can get the PebbleKit.JS code operating with the emulator.
@@ -81,33 +81,6 @@ Make sure you udefine this before building a release.
 #define SET_BOLD_TIMEAGO		114	// Setting key - Meke the TimeAgo text bold if true
 #define SET_BOTTOM_LEFT_TEXT	        115	// Setting key - What to display in the bottom left text field
 #define SET_BOTTOM_RIGHT_TEXT	        116	// Setting key - What to display in the bottom right text field
-#define SET_USE_PNG             117
-#define SET_SHOW_UNIT           118
-#define SET_SHOW_DELTA          119
-#define SET_SHOW_SLOPE          120
-#define SET_SHOW_TREND          121
-#define SET_BGL_CRITICAL_COLOUR  301
-#define SET_BGL_HIGH_COLOUR      302
-#define SET_BGL_AVERAGE_COLOUR   303
-#define SET_BGL_GOOD_COLOUR      304
-#define SET_BGL_LOW_COLOUR       305
-#define SET_BGL_LOW             306
-#define SET_BGL_AVERAGE         307
-#define SET_BGL_HIGH            308
-#define SET_BGL_CRITICAL        309
-#define SET_LOW_LINE_COLOUR      310
-#define SET_HIGH_LINE_COLOUR     311
-#define SET_LINE_STYLE          312
-#define SET_LINE_WIDTH          313
-#define SET_TREND_STYLE         314
-#define SET_TREND_WIDTH         315
-#define SET_HIGH_LIMIT          316
-#define SET_HIGH_LINE_VALUE     317
-#define SET_LOW_LIMIT           318
-#define SET_LOW_LINE_VALUE      319
-#define SET_HOUR_ENABLED        320
-#define SET_HOUR_WIDTH          321
-#define SET_HOUR_STYLE          322
 #define CGM_SYNC_KEY			1000	// key pebble will use to request an update.	This should probably include the "capabilities" bits
 #define PBL_PLATFORM			1001	// key pebble will use to send it's platform	This is probably not required under the new famework.
 #define PBL_APP_VER			1002	// key pebble will use to send the face/app version.	This is probably not required under the new framework.
