@@ -1689,7 +1689,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 			;
 				LOG("SYNC TUPLE: UPLOADER BATTERY LEVEL");
 //				TRACE("SYNC TUPLE: BATTERY LEVEL IN, COPY LAST BATTLEVEL");
-                last_battlevel = atoi(data->value->cstring);
+                		last_battlevel = atoi(data->value->cstring);
 //				TRACE("SYNC TUPLE: BATTERY LEVEL, CALL LOAD BATTLEVEL");
 				load_battlevel();
 				TRACE("SYNC TUPLE: BATTERY LEVEL OUT");
