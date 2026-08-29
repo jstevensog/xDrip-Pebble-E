@@ -898,7 +898,7 @@ void inbox_dropped_handler_cgm(AppMessageResult appmsg_indrop_error, void *conte
 	}
 
 	appmsg_indrop_openerr = app_message_outbox_begin(&iter);
-
+                                //
 	if (appmsg_indrop_openerr == APP_MSG_OK )
 	{
 		// reset AppMsgInDropAlert to flag for vibrate
@@ -982,7 +982,14 @@ void outbox_failed_handler_cgm(DictionaryIterator *failed, AppMessageResult appm
 		AppMsgOutFailAlert = false;
 
 		// send message
-		return;
+		AppMessageResult appsync_err_senderr = app_message_outbox_send();
+		TRACE("APP SYNC SEND ERR CODE: %i RES: %s", appsync_err_senderr, translate_app_error(appsync_err_senderr));
+		if (appsync_err_senderr != APP_MSG_OK  && appsync_err_senderr != APP_MSG_BUSY && appsync_err_senderr != APP_MSG_SEND_REJECTED)
+		{
+			INFO("APP SYNC SEND ERROR");
+			DEBUG("APP SYNC SEND ERR CODE: %i RES: %s", appsync_err_senderr, translate_app_error(appsync_err_senderr));
+		}
+        return;
 	}
 
 //	INFO("APPMSG OUT FAIL RESEND ERROR");
@@ -1571,7 +1578,8 @@ static void send_cmd_cgm(void)
 	if (sendcmd_openerr != APP_MSG_OK)
 	{
 		ERROR("send_cmd_cgm: ERR CODE: %i RES: %s", sendcmd_openerr, translate_app_error(sendcmd_openerr));
-		return;
+        // proceed to send since it's the only way to recover
+        goto send_appmsg;
 	}
     comm_heartbeat hb;
     hb.raw = 0; // reset
@@ -1614,9 +1622,11 @@ static void send_cmd_cgm(void)
 
 	dict_write_uint32(iter, FRAMEWORK_HEARTBEAT, hb.raw);
 
+    dict_write_end(iter);
+
+send_appmsg:
 	TRACE("send_cmd_cgm: Opening outbox");
 	sendcmd_senderr = app_message_outbox_send();
-
 	if (sendcmd_senderr != APP_MSG_OK && sendcmd_senderr != APP_MSG_BUSY && sendcmd_senderr != APP_MSG_SEND_REJECTED)
 	{
 		ERROR("send_cmd_cgm: ERR CODE: %i RES: %s", sendcmd_senderr, translate_app_error(sendcmd_senderr));
