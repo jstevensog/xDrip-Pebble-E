@@ -383,7 +383,6 @@ void trend_draw(void) {
 
 void trend_set_series(comm_bgl_series *values) {
 
-#ifndef PBL_PLATFORM_APLITE
     TRACE(TREND_LOG "Trend set series"); 
     if (!config.bgl.initialized) {
         DEBUG("Initializing");
@@ -402,7 +401,6 @@ void trend_set_series(comm_bgl_series *values) {
         config.bgl.index = config.bgl.index % (config.bgl.size);
     }
     trend_draw();
-#endif
 }
 
 void trend_set_value(comm_bgl_data *value) {
