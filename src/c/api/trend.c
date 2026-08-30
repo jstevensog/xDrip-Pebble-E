@@ -348,7 +348,6 @@ static bool draw_trend_lines(Layer *layer, GContext *ctx) {
                         graphics_draw_pixel(ctx, (GPoint) { i, y });
                     }
                     break;
-                case TREND_LINE_STYLE_EDGES:
                     graphics_draw_line(ctx, (GPoint) { (int) i, 0 }, (GPoint) { (int) i, bounds.size.h / 5});
                     graphics_draw_line(ctx, (GPoint) { (int) i, bounds.size.h - (bounds.size.h / 5) }, (GPoint) { (int) i, bounds.size.h});
                     break;
@@ -405,9 +404,9 @@ void trend_set_series(comm_bgl_series *values) {
 
 void trend_set_value(comm_bgl_data *value) {
     TRACE(TREND_LOG "Trend set value");
-    config.bgl.values[config.bgl.index % (config.bgl.size - 1)] = value->bgl.value;
+    config.bgl.values[config.bgl.index % (config.bgl.size)] = value->bgl.value;
     config.bgl.index++;
-    config.bgl.index = config.bgl.index % (config.bgl.size - 1);
+    config.bgl.index = config.bgl.index % (config.bgl.size);
     trend_draw();
 
 }
