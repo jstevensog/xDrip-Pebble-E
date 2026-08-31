@@ -20,6 +20,11 @@
 #define FRAMEWORK_PNG_IMAGE         2010
 #define FRAMEWORK_BWP_VALUE         2011
 #define FRAMEWORK_SENSOR_TIME_LEFT  2012
+// watch->phone: current health metrics, sent as plain uint32 values so the
+// phone side can decode them with PebbleKit without a struct layout. A zero
+// value means "not available" and is not written. See comm_send_health().
+#define FRAMEWORK_HEALTH_HR         2013
+#define FRAMEWORK_HEALTH_STEPS      2014
 
 /**
  * Struct definitions for communication
@@ -134,6 +139,11 @@ typedef struct {
 typedef uint32_t comm_sensor_time_left;
 typedef uint32_t comm_bwp_value;
 
+typedef struct comm_health_t {
+    uint16_t heart_rate;   // current heart rate in BPM, 0 = not available
+    uint32_t steps;        // step count so far today, 0 = not available
+} comm_health;
+
 #pragma pack()
 
 /*
@@ -154,10 +164,16 @@ typedef struct comm_callback_t {
     void (*bwp_value)(comm_bwp_value value);
     void (*sensor_time_left)(comm_sensor_time_left value);
     void (*png)(comm_png_data data);
+    void (*health)(comm_health value);
 } comm_callback;
 
 
 void comm_init(comm_callback *cb);
 void comm_handle(Tuple *data);
 void comm_request_png(DictionaryIterator *iter, GRect bounds);
+// Write the current heart rate / step total into an already-open outbox
+// dictionary. Fields that are 0 are skipped. Kept here so any face can report
+// health data without duplicating the key layout. Independent of send_cmd_cgm,
+// which is not guaranteed to run under the framework.
+void comm_send_health(DictionaryIterator *iter, comm_health data);
 #endif // __COMMUNICATION_H__

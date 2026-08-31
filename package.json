@@ -142,7 +142,7 @@
       "unused_0": 109,
       "nohighline": 110,
       "nolowline": 111,
-      "unused_1": 112,
+      "collecthealth": 112,
       "messagetimeout": 113,
       "boldtimeago": 114,
       "bottomlefttext": 115,
