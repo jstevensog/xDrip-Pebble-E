@@ -35,6 +35,7 @@ As of this version, the following settings are available.
  * * Watch Battery Level - All
  * * Step Count - Basalt and above
  * * Heart Rate - Emery and Gabbro
+
 The above settings are stored in the watch, and persist between watch face transitions.
 
 ## Build Environment:
@@ -65,10 +66,21 @@ The master branch is not being updated frequently, most work is being done in th
 
 ## Build Environment:
 * Pebble Tool: v5.0.27
-* SDK: v4.9.127
+* SDK: v4.33.1
 * Clay: @rebble/clay latest v1.0 or later
 
 ## Change Log:
+20260818 - Rebuilt with SDK v4.33.1.  Not yet available in xDrip+, but will work with the All Platforms selection.
+* HRV is now supported in the SDK, but no handlers in the watch face code as yet.  I will get around to adding it as a selectable metric in Emery and Gabbro.
+
+20260812 - Fixed Gabbro crash, and subsequent Aplite crash caused by that fix.
+* This is now merged into xDrip+
+
+20260806 - Fixes and allows watch face to specify the size and depth of Trend image creation from xDrip+
+* Added PBL_TREND_SIZE uint32_t to send the Trend dimensions and colour depth to xDrip+ to generate the preferred size and depth.  Gabbro only supports PNG8.
+* Added "Wait.." to the HR readout as initial value.  Prevents a blank HR display when firmware is updated.
+* Fixed (hopefully) the Message Timeout issue.
+
 20260702 - Built with SDK 4.17.  Added features.
 * Added selectable bottom left/right metrics to Clay and in code.  Tested on Basalt so far, and working.  Users can select which metrics they wish to display, including None, Phone Battery, Watch Battery, Step Count (for Health enabled platforms), or Heart Rate (for platforms that support it).  Untested on Flint and Gabbro as yet, as I have no access to those watches.
 * For Round watches, only the bottom metric that appears mid screen is selectable.

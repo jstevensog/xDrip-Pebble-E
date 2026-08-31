@@ -16,7 +16,7 @@
 #define DEBUG_APP_INFO 1
 #define DEBUG_APP_NONE 0
 
-/* #define DEBUG_LEVEL DEBUG_APP_TRACE   */
+//#define DEBUG_LEVEL DEBUG_APP_TRACE 
 
 /* The line below, if defined, will only indicate test values on the display.
 this is for testing purposes only until I can get the PebbleKit.JS code operating with the emulator.
@@ -81,11 +81,27 @@ static void bitmapLayerUpdate(struct Layer *layer, GContext *ctx);
 #define PBL_APP_VER			1002	// key pebble will use to send the face/app version.	This is probably not required under the new framework.
 #define PBL_TREND_SIZE			1003	// key pebble will use to send trend image size.
 #define PBL_TREND_LINES		 	1004	// key pebble will use to send trend line options.
-#define PBL_DISP_OPTS			1005	// key pebble will use to send display options (delta/arrows).
+#define PBL_TREND_PERIOD		1005	// key pebble will use to send the trend period it wants.
+#define PBL_DISP_OPTS			1006	// key pebble will use to send display options (delta/arrows).
+#define PBL_VIBE_OPTS			1007	// key pebble will use to send vibration options (alerts, missed signal, no bluetooth)
+
 
 // TOTAL MESSAGE DATA 4x3+2+5+3+9 = 31 BYTES
 // TOTAL KEY HEADER DATA (STRINGS) 4x6+2 = 26 BYTES
 // TOTAL MESSAGE 57 BYTES
+
+//Trend layer dimensions
+#if defined(PBL_PLATFORM_FLINT)
+#define TREND_HEIGHT	88
+#elif defined(PBL_PLATFORM_CHALK)
+#define TREND_HEIGHT	84
+#elif defined(PBL_PLATFORM_EMERY)
+#define TREND_HEIGHT	114
+#elif defined(PBL_PLATFORM_GABBRO)
+#define TREND_HEIGHT	122
+#else
+#define TREND_HEIGHT	64
+#endif
 
 // Function Prototypes
 // These two are only used if DEBUG_LEVEL is defined.  The code is conditinally compiled otherwise there are warnings.
