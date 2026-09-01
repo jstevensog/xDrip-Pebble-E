@@ -2096,16 +2096,16 @@ void window_load_cgm(Window *window_cgm)
 	cgmtime_layer = text_layer_create(GRect(104, 58, 40, 24));
 	text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentRight);
 	// time watch layer dimenssions
-	time_watch_layer = text_layer_create(GRect(0, 84, 143, 44));
+	time_watch_layer = text_layer_create(GRect(0, 84 - 89, 143, 44));
 	text_layer_set_text_alignment(time_watch_layer, GTextAlignmentCenter);
 	// date layer dimenstions
-	date_app_layer = text_layer_create(GRect(0, 124, 143, 29));
+	date_app_layer = text_layer_create(GRect(0, 124 - 89, 143, 29));
 	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
 	// phone/bridge batter level layer diemnsions
-	bottom_left_text_layer = text_layer_create(GRect(0, 148, 59, 18));
+	bottom_left_text_layer = text_layer_create(GRect(0, 148 - 89, 59, 18));
 	text_layer_set_text_alignment(bottom_left_text_layer, GTextAlignmentLeft);
 	//watch battery level layer dimensions
-	bottom_right_text_layer = text_layer_create(GRect(81, 148, 59, 18));
+	bottom_right_text_layer = text_layer_create(GRect(81, 148 - 89, 59, 18));
 	text_layer_set_text_alignment(bottom_right_text_layer, GTextAlignmentRight);
 
 #endif
@@ -2142,17 +2142,17 @@ void window_load_cgm(Window *window_cgm)
 	layer_set_bounds((Layer *) cgmtime_layer, GRect(0, -2, 40, 24)); // fixes bounding box with latest sdk
 	text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentRight);
 	// time watch layer dimenssions
-	time_watch_layer = text_layer_create(GRect(0, 82, 143, 44));
+	time_watch_layer = text_layer_create(GRect(0, 82 - 84, 143, 44));
 	text_layer_set_text_alignment(time_watch_layer, GTextAlignmentCenter);
 	// date layer dimenstions
-	date_app_layer = text_layer_create(GRect(0, 124, 143, 29));
+	date_app_layer = text_layer_create(GRect(0, 124 - 84, 143, 29));
 	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
 	// phone/bridge batter level layer diemnsions
-	bottom_left_text_layer = text_layer_create(GRect(0, 148, 72, 20));
+	bottom_left_text_layer = text_layer_create(GRect(0, 148 - 84, 72, 20));
 	layer_set_bounds((Layer *) bottom_left_text_layer, GRect(0, -1, 72, 20)); // fixes bounding box with latest sdk
 	text_layer_set_text_alignment(bottom_left_text_layer, GTextAlignmentLeft);
 	// watch battery level layer dimensions
-	bottom_right_text_layer = text_layer_create(GRect(72, 148, 72, 20));
+	bottom_right_text_layer = text_layer_create(GRect(72, 148 - 84, 72, 20));
 	layer_set_bounds((Layer *) bottom_right_text_layer, GRect(0, -1, 72, 20)); // fixes bounding box with latest sdk
 	text_layer_set_text_alignment(bottom_right_text_layer, GTextAlignmentRight);
 
@@ -2188,16 +2188,16 @@ void window_load_cgm(Window *window_cgm)
 	cgmtime_layer = text_layer_create(GRect(5, 58, 40, 24));
 	text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentRight);
 	// time watch layer dimenssions
-	time_watch_layer = text_layer_create(GRect(18, 82, 143, 44));
+	time_watch_layer = text_layer_create(GRect(18, 82 - 84, 143, 44));
 	text_layer_set_text_alignment(time_watch_layer, GTextAlignmentCenter);
 	// date layer dimenstions
-	date_app_layer = text_layer_create(GRect(18, 124, 143, 26));
+	date_app_layer = text_layer_create(GRect(18, 124 - 84, 143, 26));
 	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
 	// phone/bridge batter level layer diemnsions
-	bottom_left_text_layer = text_layer_create(GRect(48, 150, 1, 1));
+	bottom_left_text_layer = text_layer_create(GRect(48, 150 - 84, 1, 1));
 	text_layer_set_text_alignment(bottom_left_text_layer, GTextAlignmentLeft);
 	// watch battery level layer dimensions
-	bottom_right_text_layer = text_layer_create(GRect(45, 150, 90, 18));
+	bottom_right_text_layer = text_layer_create(GRect(45, 150 - 84, 90, 18));
 	text_layer_set_text_alignment(bottom_right_text_layer, GTextAlignmentCenter);
 
 #endif
@@ -2229,16 +2229,16 @@ void window_load_cgm(Window *window_cgm)
 	cgmtime_layer = text_layer_create(GRect(104, 58, 40, 24));
 	text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentRight);
 	// time watch layer dimenssions
-	time_watch_layer = text_layer_create(GRect(0, 84, 143, 44));
+	time_watch_layer = text_layer_create(GRect(0, 84 - 89, 143, 44));
 	text_layer_set_text_alignment(time_watch_layer, GTextAlignmentCenter);
 	// date layer dimenstions
-	date_app_layer = text_layer_create(GRect(0, 124, 143, 29));
+	date_app_layer = text_layer_create(GRect(0, 124 - 89, 143, 29));
 	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
 	// phone/bridge batter level layer diemnsions
-	bottom_left_text_layer = text_layer_create(GRect(0, 148, 59, 18));
+	bottom_left_text_layer = text_layer_create(GRect(0, 148 - 89, 59, 18));
 	text_layer_set_text_alignment(bottom_left_text_layer, GTextAlignmentLeft);
 	// watch battery level layer dimensions
-	bottom_right_text_layer = text_layer_create(GRect(81, 148, 59, 18));
+	bottom_right_text_layer = text_layer_create(GRect(81, 148 - 89, 59, 18));
 	text_layer_set_text_alignment(bottom_right_text_layer, GTextAlignmentRight);
 
 #endif
@@ -2270,23 +2270,23 @@ void window_load_cgm(Window *window_cgm)
 	text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentRight);
 	// time watch layer dimenssions
 	if (display_seconds) {
-		time_watch_layer = text_layer_create(GRect(0, 121, 200, 60));
+		time_watch_layer = text_layer_create(GRect(0, 121 - 115., 200, 60));
 	} else {
-		time_watch_layer = text_layer_create(GRect(0, 111, 200, 60));
+		time_watch_layer = text_layer_create(GRect(0, 111 - 115, 200, 60));
 	}
 	text_layer_set_text_alignment(time_watch_layer, GTextAlignmentCenter);
 	// date layer dimenstions
 	if (display_seconds) {
-		date_app_layer = text_layer_create(GRect(0, 168, 200, 39));
+		date_app_layer = text_layer_create(GRect(0, 168 - 115, 200, 39));
 	} else {
-		date_app_layer = text_layer_create(GRect(0, 176, 200, 39));
+		date_app_layer = text_layer_create(GRect(0, 176 - 115, 200, 39));
 	}
 	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
 	// phone/bridge batter level layer diemnsions
-	bottom_left_text_layer = text_layer_create(GRect(2, 203, 100, 24));
+	bottom_left_text_layer = text_layer_create(GRect(2, 203 - 115, 100, 24));
 	text_layer_set_text_alignment(bottom_left_text_layer, GTextAlignmentLeft);
 	// watch battery level layer dimensions
-	bottom_right_text_layer = text_layer_create(GRect(98, 203, 100, 24));
+	bottom_right_text_layer = text_layer_create(GRect(98, 203 - 115, 100, 24));
 	text_layer_set_text_alignment(bottom_right_text_layer, GTextAlignmentRight);
 
 #endif
@@ -2319,16 +2319,16 @@ void window_load_cgm(Window *window_cgm)
 	cgmtime_layer = text_layer_create(GRect(104, 58, 40, 24));
 	text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentRight);
 	// time watch layer dimenssions
-	time_watch_layer = text_layer_create(GRect(0, 84, 143, 44));
+	time_watch_layer = text_layer_create(GRect(0, 84 - 89, 143, 44));
 	text_layer_set_text_alignment(time_watch_layer, GTextAlignmentCenter);
 	// date layer dimenstions
-	date_app_layer = text_layer_create(GRect(0, 124, 143, 29));
+	date_app_layer = text_layer_create(GRect(0, 124 - 89, 143, 29));
 	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
 	// phone/bridge batter level layer diemnsions
-	bottom_left_text_layer = text_layer_create(GRect(0, 148, 59, 18));
+	bottom_left_text_layer = text_layer_create(GRect(0, 148 - 89, 59, 18));
 	text_layer_set_text_alignment(bottom_left_text_layer, GTextAlignmentLeft);
 	// watch battery level layer dimensions
-	bottom_right_text_layer = text_layer_create(GRect(81, 148, 59, 18));
+	bottom_right_text_layer = text_layer_create(GRect(81, 148 - 89, 59, 18));
 	text_layer_set_text_alignment(bottom_right_text_layer, GTextAlignmentRight);
 
 #endif
@@ -2365,16 +2365,16 @@ void window_load_cgm(Window *window_cgm)
 	cgmtime_layer = text_layer_create(GRect(  7,  84,  58,  35));
 	text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentRight);
 	// time watch layer dimenssions
-	time_watch_layer = text_layer_create(GRect( 26, 118, 206,  64));
+	time_watch_layer = text_layer_create(GRect( 26, 118 - 121, 206,  64));
 	text_layer_set_text_alignment(time_watch_layer, GTextAlignmentCenter);
 	// date layer dimenstions
-	date_app_layer = text_layer_create(GRect( 26, 178, 206,  38));
+	date_app_layer = text_layer_create(GRect( 26, 178 - 121, 206,  38));
 	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
 	// phone/bridge batter level layer diemnsions
-	bottom_left_text_layer = text_layer_create(GRect( 69, 236,  130,  26));
+	bottom_left_text_layer = text_layer_create(GRect( 69, 236 - 121,  130,  26));
 	text_layer_set_text_alignment(bottom_left_text_layer, GTextAlignmentLeft);
 	// watch battery level layer dimensions
-	bottom_right_text_layer = text_layer_create(GRect( 65, 210,  130,  26));
+	bottom_right_text_layer = text_layer_create(GRect( 65, 210 - 121,  130,  26));
 	text_layer_set_text_alignment(bottom_right_text_layer, GTextAlignmentCenter);
 
 #endif
@@ -2421,32 +2421,16 @@ void window_load_cgm(Window *window_cgm)
 	
 	//Paint the backgrounds for upper and lower halves of the watch face.
 	LOG("Creating Upper and Lower face panels");
-	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(upper_face_layer));
-	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(lower_face_layer));
-
-
 
 	//create the bg_trend_layer
 	INFO("Creating BG Trend Bitmap layer");
-#if DEBUG_LEVEL > 0
-	text_layer_set_background_color(message_layer, GColorClear);
-	text_layer_set_font(message_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28));
-	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
-#endif
 
-	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(bg_trend_layer_png));
-	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(bg_trend_layer_draw));
 
     layer_set_hidden(bitmap_layer_get_layer(bg_trend_layer_png), !use_png);
     layer_set_hidden(bitmap_layer_get_layer(bg_trend_layer_draw), use_png);
 
 	// ARROW OR SPECIAL VALUE
 	LOG("Creating Arrow Bitmap layer");
-#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_GABBRO)
-	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(icon_layer));
-#else
-	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(icon_layer));
-#endif
 
 	// DELTA BG
 	LOG("Creating Delta BG Text layer");
@@ -2455,7 +2439,6 @@ void window_load_cgm(Window *window_cgm)
 	text_layer_set_text(delta_layer,"0.5mmol");
 #endif
 
-	layer_add_child(window_layer_cgm, text_layer_get_layer(delta_layer));
 
 	// MESSAGE
 	LOG("Creating Message Text layer");
@@ -2464,89 +2447,101 @@ void window_load_cgm(Window *window_cgm)
 	text_layer_set_text(message_layer, message_layer_text);
 	display_message=true;
 	layer_set_hidden((Layer *)message_layer, true);
-	layer_add_child(window_layer_cgm, text_layer_get_layer(message_layer));
 #else
 	snprintf(message_layer_text,sizeof(message_layer_text),"%s","");
 	text_layer_set_text(message_layer, message_layer_text);
 	layer_set_hidden((Layer *)message_layer, true);
-	layer_add_child(window_layer_cgm, text_layer_get_layer(message_layer));
 #endif
 	// BG
 	LOG("Creating BG Text layer");
-	layer_add_child(window_layer_cgm, text_layer_get_layer(bg_layer));
-
 
 	// CGM TIME AGO READING
 	LOG("Creating CGM Time Ago Bitmap layer");
-	layer_add_child(window_layer_cgm, text_layer_get_layer(cgmtime_layer));
-
 
 	// CURRENT ACTUAL TIME FROM WATCH
 	LOG("Creating Watch Time Text layer");
-//	text_layer_set_text_alignment(time_watch_layer, GTextAlignmentCenter);
-	layer_add_child(window_layer_cgm, text_layer_get_layer(time_watch_layer));
 
 	// CURRENT ACTUAL DATE FROM APP
 	LOG("Creating Watch Date Text layer");
-//	date_app_layer = text_layer_create(GRect(0, 122, 143, 29));
 	text_layer_set_text_color(date_app_layer, fg_colour);
 	text_layer_set_background_color(date_app_layer, GColorClear);
 	text_layer_set_font(date_app_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
-	//text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
-	layer_add_child(window_layer_cgm, text_layer_get_layer(date_app_layer));
-	draw_date_from_app();
 
 	// Metric Layers
 	// left metric layer
 	LOG("Creating Left Metric Text layer");
-//	text_layer_set_text_color(bottom_left_text_layer, GColorGreen);
 	text_layer_set_text_color(bottom_left_text_layer, fg_colour);
 	text_layer_set_background_color(bottom_left_text_layer, GColorClear);
 	text_layer_set_font(bottom_left_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
-	layer_add_child(window_layer_cgm, text_layer_get_layer(bottom_left_text_layer));
-	//LOG("bottom_left_text_layer; %s", text_layer_get_text(bottom_left_text_layer));
 
 	// right metric layer
 	LOG("Creating Right Metric Text layer");
-//	text_layer_set_text_color(bottom_right_text_layer, GColorGreen);
 	text_layer_set_text_color(bottom_right_text_layer, fg_colour);
 	text_layer_set_background_color(bottom_right_text_layer, GColorClear);
 	text_layer_set_font(bottom_right_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
-	layer_add_child(window_layer_cgm, text_layer_get_layer(bottom_right_text_layer));
 
-	// prep for battery display, even if we don't have one.
-	BatteryChargeState charge_state=battery_state_service_peek();
-	battery_handler(charge_state);
-	
+    // Layer definitions
+    LOG("Setting Layer order");
+
+    // bg's
+	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(upper_face_layer));
+	layer_add_child(window_layer_cgm, bitmap_layer_get_layer(lower_face_layer));
+
+    // trend layers
+    layer_add_child(bitmap_layer_get_layer(upper_face_layer), bitmap_layer_get_layer(bg_trend_layer_png));
+    layer_insert_above_sibling(bitmap_layer_get_layer(bg_trend_layer_draw), bitmap_layer_get_layer(bg_trend_layer_png));
+
+    // top
+    layer_insert_above_sibling(bitmap_layer_get_layer(icon_layer), bitmap_layer_get_layer(bg_trend_layer_draw));
+    layer_insert_above_sibling(text_layer_get_layer(delta_layer), bitmap_layer_get_layer(bg_trend_layer_draw));
+    layer_insert_above_sibling(text_layer_get_layer(message_layer), bitmap_layer_get_layer(bg_trend_layer_draw));
+    layer_insert_above_sibling(text_layer_get_layer(bg_layer), bitmap_layer_get_layer(bg_trend_layer_draw));
+    layer_insert_above_sibling(text_layer_get_layer(cgmtime_layer), bitmap_layer_get_layer(bg_trend_layer_draw));
+
+    // bottom
+    layer_add_child(bitmap_layer_get_layer(lower_face_layer), text_layer_get_layer(time_watch_layer));
+    layer_insert_above_sibling(text_layer_get_layer(date_app_layer), text_layer_get_layer(time_watch_layer));
+    layer_insert_above_sibling(text_layer_get_layer(bottom_left_text_layer), text_layer_get_layer(time_watch_layer));
+    layer_insert_above_sibling(text_layer_get_layer(bottom_right_text_layer), text_layer_get_layer(time_watch_layer));
+
+    if (!use_png) trend_init(bitmap_layer_get_layer(bg_trend_layer_draw));
+
 	// put " " (space) in bg field so logo continues to show
 	// " " (space) also shows these are init values, not bad or null values
+    // Setting all default values here
+
+	// prep for battery display, even if we don't have one.
+	BatteryChargeState charge_state = battery_state_service_peek();
 	current_icon = 255; // no icon set and ignore
+	snprintf(last_bg, BG_MSGSTR_SIZE, " ");
+	current_cgm_time = 0;
+	current_app_time = 0;
+	snprintf(current_bg_delta, BGDELTA_MSGSTR_SIZE, "LOAD");
+	last_battlevel = 255;
+
 #ifdef TEST_MODE
+	snprintf(current_bg_delta, BGDELTA_MSGSTR_SIZE, "+0.08");
+	last_battlevel = 100;
 	current_icon = 1;
 	specvalue_alert=false;
 #endif
-	load_icon();
-	snprintf(last_bg, BG_MSGSTR_SIZE, " ");
-	load_bg();
-	current_cgm_time = 0;
+    LOG("Setting display values to correct state");
+	draw_date_from_app();
+	battery_handler(charge_state);
 	load_cgmtime();
-	current_app_time = 0;
-	snprintf(current_bg_delta, BGDELTA_MSGSTR_SIZE, "LOAD");
-//if it is not for a COLOR platform, it is monochrome
-	//text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentRight);
-	//text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentCenter);
-#ifdef TEST_MODE
-	snprintf(current_bg_delta, BGDELTA_MSGSTR_SIZE, "+0.08");
-#endif
+	load_bg();
+	load_icon();
 	load_bg_delta();
-	last_battlevel = 255;
-#ifdef TEST_MODE
-	last_battlevel = 100;
-#endif
 	load_battlevel();
 
-    // default config
-    if (!use_png) trend_init(bitmap_layer_get_layer(bg_trend_layer_draw));
+    layer_mark_dirty(text_layer_get_layer(bg_layer));
+
+
+#if DEBUG_LEVEL > 0
+	text_layer_set_background_color(message_layer, GColorClear);
+	text_layer_set_font(message_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28));
+	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
+#endif
 
 //	TRACE("WINDOW LOAD, ABOUT TO CALL APP SYNC INIT");
 	//app_sync_init(&sync_cgm, sync_buffer_cgm, sizeof(sync_buffer_cgm), initial_values_cgm, ARRAY_LENGTH(initial_values_cgm), sync_tuple_changed_callback_cgm, sync_error_callback_cgm, NULL);
