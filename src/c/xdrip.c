@@ -1193,19 +1193,16 @@ static void load_bg()
 		}
 	} 
 
-	else
-	{
-		TRACE("load_bg: AFTER CREATE SPEC VALUE BITMAP");
+    TRACE("load_bg: AFTER CREATE SPEC VALUE BITMAP");
+    // always trigger since we have a new value or need to draw
+    if (specvalue_alert == false)
+    {
+        // we didn't find a special value, so set BG instead
+        // arrow icon already set separately
+        TRACE("load_bg: SET BG: %s ", last_bg);
+        text_layer_set_text(bg_layer, last_bg);
+    } // end bg checks (if special_value_bitmap)
 
-		if (specvalue_alert == false)
-		{
-			// we didn't find a special value, so set BG instead
-			// arrow icon already set separately
-			TRACE("load_bg: SET BG: %s ", last_bg);
-			text_layer_set_text(bg_layer, last_bg);
-		} // end bg checks (if special_value_bitmap)
-
-	}
 
 	TRACE("load_bg: SNOOZE VALUE: %d", lastAlertTime);
 	LOG("load_bg: bg_layer is \"%s\"", text_layer_get_text(bg_layer));
