@@ -3,7 +3,29 @@
 
 #include <pebble.h>
 #include "communication.h"
-
+/**
+ * This is an example, values can be set to whatever suits your need
+ * + -> value <= BGL_LOW
+ * = -> BGL_LOW < value <= BGL_AVERAGE  
+ * * -> BGL_AVERAGE < value <= BGL_HIGH
+ * ^ -> BGL_HIGH < value <= BGL_CRITICAL
+ * # -> value > BGL_CRITICAL
+ *                            
+ *  ----------------------------##---       -> High limit, CRICICAL_COLOUR (top of layer)
+ *                            ##            -> BGL_CRITICAL, CRITICAL_COLOUR
+ *  - - - - - - - - - - - - ^^- - - -       -> High line value, high line style, high line width, HIGH_COLOUR 
+ *                        ^^                -> BGL_HIGH, HIGH_COLOR
+ *                      **                  -> AVERAGE_COLOUR
+ *                   **                     -> AVERAGE_COLOUR
+ *                **                        -> AVERAGE_COLOUR
+ *             **                           -> BGL_AVERAGE, AVERAGE_COLOUR
+ *          ==                              -> GOOD_COLOUR
+ *       ==                                 -> GOOD_COLOUR
+ *     ==                                   -> BGL_LOW, GOOD_COLOUR
+ *  -++ - - - - - - - - - - - - - - -       -> Low line value, low line style, low line width, LOW_COLOUR
+ *  +                                       -> LOW_COLOUR
+ *  ---------------------------------       -> Low limit (bottom of layer)
+ */
 
 /*
  * Settings from clay
