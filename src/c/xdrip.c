@@ -2432,23 +2432,13 @@ void window_load_cgm(Window *window_cgm)
 	// DELTA BG
 	LOG("Creating Delta BG Text layer");
 	text_layer_set_font(delta_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28));
-#ifdef TEST_MODE
-	text_layer_set_text(delta_layer,"0.5mmol");
-#endif
-
 
 	// MESSAGE
 	LOG("Creating Message Text layer");
-#ifdef TEST_MODE
-	snprintf(message_layer_text,sizeof(message_layer_text), "Test Mode");
-	text_layer_set_text(message_layer, message_layer_text);
-	display_message=true;
-	layer_set_hidden((Layer *)message_layer, true);
-#else
 	snprintf(message_layer_text,sizeof(message_layer_text),"%s","");
 	text_layer_set_text(message_layer, message_layer_text);
 	layer_set_hidden((Layer *)message_layer, true);
-#endif
+
 	// BG
 	LOG("Creating BG Text layer");
 
@@ -2521,6 +2511,12 @@ void window_load_cgm(Window *window_cgm)
 	last_battlevel = 100;
 	current_icon = 1;
 	specvalue_alert=false;
+
+	snprintf(message_layer_text,sizeof(message_layer_text), "Test Mode");
+	text_layer_set_text(message_layer, message_layer_text);
+	display_message=true;
+	layer_set_hidden((Layer *)message_layer, true);
+	text_layer_set_text(delta_layer,"0.5mmol");
 #endif
     LOG("Setting display values to correct state");
 	draw_date_from_app();
@@ -2540,8 +2536,6 @@ void window_load_cgm(Window *window_cgm)
 	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
 #endif
 
-//	TRACE("WINDOW LOAD, ABOUT TO CALL APP SYNC INIT");
-	//app_sync_init(&sync_cgm, sync_buffer_cgm, sizeof(sync_buffer_cgm), initial_values_cgm, ARRAY_LENGTH(initial_values_cgm), sync_tuple_changed_callback_cgm, sync_error_callback_cgm, NULL);
 	// init timer to null if needed, and register timer
 	TRACE("window_load_cgm: build done, init timer");
     // mark dirty and request data
