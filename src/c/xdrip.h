@@ -5,26 +5,6 @@
 #include <pebble.h>
 #include <math.h>
 #include "constant.h"
-/**
- * Defines for testing modes
- */
-
-/*
- * Set debug text to show and compile DEBUG_APP_[NONE,INFO,DEBUG,TRACE]
- * Note: Aplite will not go above INFO logging.
- */
-#define DEBUG_APP_TRACE 3
-#define DEBUG_APP_DEBUG 2
-#define DEBUG_APP_INFO 1
-#define DEBUG_APP_NONE 0
-
-/* #define DEBUG_LEVEL DEBUG_APP_TRACE  */
-
-/* The line below, if defined, will only indicate test values on the display.
-this is for testing purposes only until I can get the PebbleKit.JS code operating with the emulator.
-Make sure you udefine this before building a release.
-*/
-/* #define TEST_MODE */
 
 /**
  * Feature flags
