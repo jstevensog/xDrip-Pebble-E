@@ -116,7 +116,7 @@
       ]
     },
     "projectType": "native",
-    "uuid": "51a6140e-92cc-420f-aef6-51b229666742",
+    "uuid": "240ff2d2-a64a-11f1-9d00-c74dac4ca2e6",
     "messageKeys": {
       "icon": 0,
       "bg": 1,
@@ -180,7 +180,7 @@
       "display_options": 1006,
       "vibration_options": 1007
     },
-    "displayName": "xDrip Watch Face",
+    "displayName": "xDrip Framework Demo Watch Face",
     "watchapp": {
       "onlyShownOnCommunication": false,
       "hiddenApp": false,
