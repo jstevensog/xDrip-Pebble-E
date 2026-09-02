@@ -425,12 +425,12 @@ void update_health_metric_displays() {
 	}	
 #if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_FLINT)
 	if(bottom_left_metric == METRIC_HEARTRATE || bottom_right_metric == METRIC_HEARTRATE) {
-		snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "Wait.. \U0001F493");
-		HealthValue val = 0;
+        snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "Wait.. \U0001F493");
 		HealthServiceAccessibilityMask hr = health_service_metric_accessible(HealthMetricHeartRateBPM, time(NULL), time(NULL));
-		if (hr & HealthServiceAccessibilityMaskAvailable) {
-			val = health_service_peek_current_value(HealthMetricHeartRateBPM);
-			LOG("Heart Rate data is \"%lu\"", (uint32_t)val);
+        HealthValue val = health_service_peek_current_value(HealthMetricHeartRateBPM);
+		LOG("Heart Rate data is \"%lu\"", (uint32_t)val);
+		if (hr & HealthServiceAccessibilityMaskAvailable || (dirty.hbm && val != current_hbm)) {
+            // value can either be changed or new available, check if changed then update (e.g. initial condition) 
 			if(val > 0 && val != current_hbm) {
 				// Display HRM value
 				current_hbm = val;
