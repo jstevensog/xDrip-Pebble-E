@@ -69,33 +69,42 @@
       "step": 5
   },
   {
-      "type": "toggle",
-      "messageKey": "show_delta",
-      "defaultValue": true,
-      "label": "Show delta value",
-      "description": "Show the delta between in the top-left-bottom part"
+    "type": "section",
+    "items": [
+      {
+        "type": "heading",
+        "defaultValue": "Glucose & Delta Display"
+      },
+      {
+        "type": "toggle",
+        "messageKey": "show_delta",
+        "defaultValue": true,
+        "label": "Show Delta Value",
+        "description": "Show the delta value in the bottom section"
+      },
+      {
+        "type": "toggle",
+        "messageKey": "show_unit",
+        "defaultValue": false,
+        "label": "Show Delta Unit",
+        "description": "Show the unit (mmol/L or mg/dL) next to the delta"
+      },
+      {
+        "type": "toggle",
+        "messageKey": "show_slope",
+        "defaultValue": true,
+        "label": "Show Slope Arrow",
+        "description": "Show the slope arrow on screen"
+      },
+      {
+        "type": "toggle",
+        "messageKey": "show_trend",
+        "defaultValue": true,
+        "label": "Show Trend Graph"
+      }
+    ]
   },
-  {
-      "type": "toggle",
-      "messageKey": "show_unit",
-      "defaultValue": false,
-      "label": "Show delta unit",
-      "description": "Show the unit of the delta value (mmol/L or mg/dL)"
-  },
-  {
-      "type": "toggle",
-      "messageKey": "show_slope",
-      "defaultValue": true,
-      "label": "Show the delta slope arrow",
-      "description": "Show the slope arrow in the right top, errors will always be shown"
-  },
-  {
-      "type": "toggle",
-      "messageKey": "show_trend",
-      "defaultValue": true,
-      "label": "Show trend graph"
-  },
-  {
+{
 	  "type": "section",
 	  "items": [
 		  {
