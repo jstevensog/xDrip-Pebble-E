@@ -1159,6 +1159,7 @@ static void load_bg()
 	// if special value set, erase anything in the icon field
 	if (specvalue_alert == true)
 	{
+		TRACE("load_bg: specvalue_alert is true, setting icon blank.");
 		create_update_bitmap(&specialvalue_bitmap,icon_layer, NONE_SPECVALUE_ICON);
 	}
 
@@ -2586,7 +2587,7 @@ static void init_cgm(void)
 	LOG("init_cgm");
     use_png = persist_exists(SET_USE_PNG) ? persist_read_bool(SET_USE_PNG) : false;
     show_unit = persist_exists(SET_SHOW_UNIT) ? persist_read_bool(SET_SHOW_UNIT) : false;
-    show_slope = persist_exists(SET_SHOW_SLOPE) ? persist_read_bool(SET_SHOW_SLOPE) : false;
+    show_slope = persist_exists(SET_SHOW_SLOPE) ? persist_read_bool(SET_SHOW_SLOPE) : true;
     show_delta = persist_exists(SET_SHOW_DELTA) ? persist_read_bool(SET_SHOW_DELTA) : true;
     show_trend = persist_exists(SET_SHOW_TREND) ? persist_read_bool(SET_SHOW_TREND) : true;
 
@@ -2802,6 +2803,7 @@ int mgdl_to_mmoll_str(int mgdl, char *result, const int size, int unit) {
  * Comm framework callback functions
  */
 void set_icon(comm_slopeval value) {
+	DEBUG("set_icon: comm_slopeval = %d, set_icon = %d, icon visibility = %d", value, show_slope, layer_get_hidden(bitmap_layer_get_layer(icon_layer)));
     current_icon = value;
     load_icon();
 }

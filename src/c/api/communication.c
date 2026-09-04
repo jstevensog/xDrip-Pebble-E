@@ -30,7 +30,7 @@ void comm_handle(Tuple *data) {
             if (cb->low_limit) cb->low_limit((comm_low_limit) { .raw = data->value->uint32 });
             break;
         case FRAMEWORK_SLOPEVAL:
-            TRACE(CM "SLope icon value");
+            TRACE(CM "Slope icon value");
             if (cb->slopeval != NULL) cb->slopeval(data->value->uint8);
             break;
         case FRAMEWORK_PHONEBAT:

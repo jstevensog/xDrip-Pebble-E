@@ -56,7 +56,7 @@
 #define SET_NO_ARROWS			108	// Setting key - Do not show arrows
 #define SET_HIGH_LINE			110	// Setting key - Enable High line on graph.
 #define SET_LOW_LINE			111	// Setting key - Enable Low line on graph.
-#define SET_COLLECT_HEALTH      112
+#define SET_COLLECT_HEALTH		112	// setting key - Enable Health collection
 #define SET_MESSAGE_TIMEOUT		113	// Setting key - Message timeout
 #define SET_BOLD_TIMEAGO		114	// Setting key - Meke the TimeAgo text bold if true
 #define SET_BOTTOM_LEFT_TEXT	        115	// Setting key - What to display in the bottom left text field
