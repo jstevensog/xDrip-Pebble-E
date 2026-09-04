@@ -8,6 +8,7 @@ module.exports = {
   defaults: {
     label: '',
     options: [],
+    serializeValueAs: 'string',
     description: '',
     attributes: {}
   },
@@ -17,7 +18,7 @@ module.exports = {
     var $value = self.$element.select('.value');
 
     /**
-     * Updates the HTML value of the component to match the slected option's label
+     * Updates the HTML value of the component to match the selected option's label
      * @return {void}
      */
     function setValueDisplay() {
