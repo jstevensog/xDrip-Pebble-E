@@ -52,7 +52,7 @@ module.exports = function(minified) {
     const mmol_mgdl = 18.016;
 
     clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
-        let deprecated = [ "show_delta", "show_trend", "show_slope", "show_unit" ];
+        //let deprecated = [ "show_delta", "show_trend", "show_slope", "show_unit" ];
         const bgl_names = [ "trend_low", "trend_high", "trend_average", "trend_critical"]; 
         console.debug("Hiding deprecated items");
         for (const index in deprecated) {
