@@ -538,3 +538,7 @@ void trend_set_low_line(comm_low_limit value) {
 }
 
 int trend_isinitialized(void) { return config.bgl.initialized; }
+
+void trend_set_hidden(bool value) {
+    layer_set_hidden(config.layer, value);
+}
