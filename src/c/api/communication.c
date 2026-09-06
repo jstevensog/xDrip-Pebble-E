@@ -62,11 +62,7 @@ void comm_handle(Tuple *data) {
             break;
         case FRAMEWORK_PNG_IMAGE:
             TRACE(CM "PNG image data");
-            comm_png_data pngdata = {
-                .length = data->length,
-                .data = data->value->data
-            };
-            if (cb->png != NULL) cb->png(pngdata);
+            if (cb->png != NULL) cb->png((comm_png_data *) data->value->data);
             break;
         case FRAMEWORK_SENSOR_TIME_LEFT:
             TRACE(CM "Sensor expiry time left");
@@ -81,6 +77,16 @@ void comm_handle(Tuple *data) {
             // avoid malformed cstrings crashing the watch via OOB
             if (cb->message != NULL) cb->message((comm_message){ .length = data->length, .message = data->value->cstring});
             break;
+#ifdef PBL_HEALTH
+        case FRAMEWORK_HEALTH_HR:
+            TRACE(CM "Health heart rate");
+            if (cb->health != NULL) cb->health((comm_health){ .heart_rate = data->value->uint32, .steps = 0 });
+            break;
+        case FRAMEWORK_HEALTH_STEPS:
+            TRACE(CM "Health step count");
+            if (cb->health != NULL) cb->health((comm_health){ .heart_rate = 0, .steps = data->value->uint32 });
+            break;
+#endif
         default:
             DEBUG(CM "id %ld not handled by communications framework", key);
             break;
@@ -99,3 +105,12 @@ void comm_request_png(DictionaryIterator *iter, GRect bounds) {
 #endif
     dict_write_uint32(iter, FRAMEWORK_PNG_IMAGE, ts.raw);
 }
+
+#ifdef PBL_HEALTH
+void comm_send_health(DictionaryIterator *iter, comm_health data) {
+    TRACE(CM "Sending health hr=%d steps=%d", data.heart_rate, (int) data.steps);
+    if (iter == NULL) return;
+    if (data.heart_rate > 0) dict_write_uint32(iter, FRAMEWORK_HEALTH_HR, data.heart_rate);
+    if (data.steps > 0)      dict_write_uint32(iter, FRAMEWORK_HEALTH_STEPS, data.steps);
+}
+#endif

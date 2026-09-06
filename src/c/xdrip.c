@@ -20,7 +20,6 @@ static bool global_lock = false;
 static bool use_png = false;
 static bool show_trend = true;
 static bool show_delta = true;
-static bool show_unit = false;
 static bool show_slope = true;
 
 bool display_message = false;
@@ -146,6 +145,20 @@ TextLayer *step_count_text_layer = NULL;
 #if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_FLINT) || defined(PBL_PLATFORM_GABBRO)
 TextLayer *heart_rate_text_layer = NULL;
 #endif
+
+// --- Health: report current heart rate / step total back to the phone.
+// The phone (SET_COLLECT_HEALTH) turns this on. Values go out as a standalone
+// AppMessage a couple of seconds after xDrip pushes CGM data - xDrip's process
+// is awake then, so its broadcast receiver actually gets the reply. This is
+// deliberately not tied to send_cmd_cgm: under the framework xDrip pushes data
+// when it has it and the watch's heartbeat may never run.
+static bool collect_health = false;
+static HealthValue health_hr = 0;
+static HealthValue health_steps = 0;
+static AppTimer *health_send_timer = NULL;
+static void health_poll(void);
+static void health_send_values(void *data);
+static void health_schedule_send(void);
 #endif
 
 // comms framework
@@ -160,7 +173,7 @@ void set_bgl_timestamp(uint32_t timestamp);
 void set_bgl_value(comm_bgl_value value);
 void set_bgl_data(comm_bgl_data *value); 
 void set_bgl_series(comm_bgl_series *series); 
-void set_png(comm_png_data data);
+void set_png(comm_png_data *data);
 #endif
 
 
@@ -351,6 +364,7 @@ void health_handler(HealthEventType event, void *context) {
 			LOG("health_handler: Heart rate HRV Update");
 
 	}
+	health_poll();
 	update_health_metric_displays();
 } //end health_handler
 
@@ -410,12 +424,12 @@ void update_health_metric_displays() {
 	}	
 #if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_FLINT)
 	if(bottom_left_metric == METRIC_HEARTRATE || bottom_right_metric == METRIC_HEARTRATE) {
-		snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "Wait.. \U0001F493");
-		HealthValue val = 0;
+        snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "Wait.. \U0001F493");
 		HealthServiceAccessibilityMask hr = health_service_metric_accessible(HealthMetricHeartRateBPM, time(NULL), time(NULL));
-		if (hr & HealthServiceAccessibilityMaskAvailable) {
-			val = health_service_peek_current_value(HealthMetricHeartRateBPM);
-			LOG("Heart Rate data is \"%lu\"", (uint32_t)val);
+        HealthValue val = health_service_peek_current_value(HealthMetricHeartRateBPM);
+		LOG("Heart Rate data is \"%lu\"", (uint32_t)val);
+		if (hr & HealthServiceAccessibilityMaskAvailable || (dirty.hbm && val != current_hbm)) {
+            // value can either be changed or new available, check if changed then update (e.g. initial condition) 
 			if(val > 0 && val != current_hbm) {
 				// Display HRM value
 				current_hbm = val;
@@ -432,6 +446,62 @@ void update_health_metric_displays() {
 	}
 #endif
 
+}
+
+// health_poll - peek the current heart rate and step total into health_hr /
+// health_steps. PebbleOS does not reliably emit HealthEventHeartRateUpdate at
+// rest, so we read on demand from health_handler and the minute tick rather
+// than keying off a specific event.
+static void health_poll(void) {
+	if (!collect_health) return;
+
+	time_t now = time(NULL);
+	if (health_service_metric_accessible(HealthMetricHeartRateBPM, now, now)
+	    & HealthServiceAccessibilityMaskAvailable) {
+		HealthValue bpm = health_service_peek_current_value(HealthMetricHeartRateBPM);
+		if (bpm > 0) health_hr = bpm;
+	}
+
+	time_t day_start = time_start_of_today();
+	if (health_service_metric_accessible(HealthMetricStepCount, day_start, now)
+	    & HealthServiceAccessibilityMaskAvailable) {
+		health_steps = health_service_sum_today(HealthMetricStepCount);
+	}
+}
+
+// health_send_values - push the current heart rate + step total to the phone as
+// a standalone AppMessage via the comm framework. Scheduled ~2s after an
+// incoming CGM push (health_schedule_send), when xDrip's process is awake and
+// its broadcast receiver will actually get the reply.
+static void health_send_values(void *data) {
+	health_send_timer = NULL;
+	if (!collect_health || BluetoothAlert) return;
+
+	health_poll();
+	if (health_hr == 0 && health_steps == 0) return;
+
+	DictionaryIterator *iter = NULL;
+	if (app_message_outbox_begin(&iter) != APP_MSG_OK) {
+		LOG("health_send_values: outbox busy");
+		return;
+	}
+	comm_send_health(iter, (comm_health){
+		.heart_rate = (uint16_t) health_hr,
+		.steps = (uint32_t) health_steps,
+	});
+	dict_write_end(iter);
+	if (app_message_outbox_send() == APP_MSG_OK) {
+		LOG("health_send_values: sent hr=%d steps=%d", (int) health_hr, (int) health_steps);
+	}
+}
+
+// health_schedule_send - arm the one-shot send timer. Called from the CGM
+// receive path so the reply goes out while the phone is awake.
+static void health_schedule_send(void) {
+	if (!collect_health) return;
+	if (health_send_timer == NULL || !app_timer_reschedule(health_send_timer, 2000)) {
+		health_send_timer = app_timer_register(2000, health_send_values, NULL);
+	}
 }
 #endif
 
@@ -1890,32 +1960,36 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 				reset_timer_callback_cgm(2);
 				break;
 
-				
-		//* Optional for testing, need clay settings items
-			case SET_SHOW_UNIT:
-				show_unit = data->value->uint8 != 0;
-				persist_write_bool(SET_SHOW_UNIT, show_unit);
-				text_layer_set_text(delta_layer, "???"); // temp set
-				break;
-			case SET_SHOW_DELTA:
-				show_delta = data->value->uint8 != 0;
-				persist_write_bool(SET_SHOW_DELTA, show_delta);
-				layer_set_hidden(text_layer_get_layer(delta_layer), !show_delta);
-				break;
-			case SET_SHOW_SLOPE:
-				show_slope = data->value->uint8 != 0;
-				persist_write_bool(SET_SHOW_SLOPE, show_trend);
-				layer_set_hidden(bitmap_layer_get_layer(icon_layer), !show_slope);
-				break;
-			case SET_SHOW_TREND:
-				show_trend = data->value->uint8 != 0;
-				persist_write_bool(SET_SHOW_TREND, show_trend);
-				layer_set_hidden(bitmap_layer_get_layer(bg_trend_layer_png), !show_trend);
-				break;
-
-			/**
-			 * end of clay settings
-			 */
+            case SET_COLLECT_HEALTH:
+#ifdef PBL_HEALTH
+                LOG("Got SET_COLLECT_HEALTH: %u", data->value->uint8);
+                {
+                    bool want = (data->value->uint8 != 0);
+                    if (want != collect_health) {
+                        collect_health = want;
+                        persist_write_bool(SET_COLLECT_HEALTH, collect_health);
+#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_DIORITE) || defined(PBL_PLATFORM_FLINT) || defined(PBL_PLATFORM_GABBRO)
+                        // sample HR on a fixed cadence while collecting so we
+                        // have fresh values; ~10 min trades data rate for battery
+                        health_service_set_heart_rate_sample_period(want ? 600 : 0);
+#endif
+                        if (want) {
+                            health_poll();
+                        } else {
+                            health_hr = 0;
+                            health_steps = 0;
+                            if (health_send_timer != NULL) {
+                                app_timer_cancel(health_send_timer);
+                                health_send_timer = NULL;
+                            }
+                        }
+                    }
+                }
+#endif
+                break;
+            /**
+             * end of clay settings
+             */
 			default:
 #ifdef ENABLE_TREND_RENDERER
 				trend_process_config(data);
@@ -2028,6 +2102,11 @@ void handle_minute_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
 	{
 		LOG("handle_minute_tick_cgm: tick");
 		tick_return_cgm = strftime(time_watch_text, TIME_TEXTBUFF_SIZE, time_watch_format, tick_time_cgm);
+#ifdef PBL_HEALTH
+		// keep health_hr / health_steps current; the send itself is driven off
+		// an incoming CGM push (health_schedule_send), not this tick
+		health_poll();
+#endif
 	}
 
 	if (tick_return_cgm != 0)
@@ -2585,7 +2664,6 @@ static void init_cgm(void)
 {
 	LOG("init_cgm");
 	use_png = persist_exists(SET_USE_PNG) ? persist_read_bool(SET_USE_PNG) : false;
-	show_unit = persist_exists(SET_SHOW_UNIT) ? persist_read_bool(SET_SHOW_UNIT) : false;
 	show_slope = persist_exists(SET_SHOW_SLOPE) ? persist_read_bool(SET_SHOW_SLOPE) : true;
 	show_delta = persist_exists(SET_SHOW_DELTA) ? persist_read_bool(SET_SHOW_DELTA) : true;
 	show_trend = persist_exists(SET_SHOW_TREND) ? persist_read_bool(SET_SHOW_TREND) : true;
@@ -2672,6 +2750,15 @@ static void init_cgm(void)
 	if(!health_service_events_subscribe(health_handler, NULL)) {
 		LOG("Error subscribing to Health");
 	}
+	// restore whether the phone last asked us to report health data
+	collect_health = persist_exists(SET_COLLECT_HEALTH) ? persist_read_bool(SET_COLLECT_HEALTH) : false;
+	LOG("init_cgm: collect_health \"%u\".", collect_health);
+	if (collect_health) {
+#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_DIORITE) || defined(PBL_PLATFORM_FLINT) || defined(PBL_PLATFORM_GABBRO)
+		health_service_set_heart_rate_sample_period(600);
+#endif
+		health_poll();
+	}
 #endif
 	// init the window pointer to NULL if it needs it
 	if (window_cgm != NULL)
@@ -2711,18 +2798,24 @@ static void init_cgm(void)
 	comm_callbacks.low_limit = trend_set_low_line;
 	comm_callbacks.high_limit = trend_set_high_line;
 #endif
-	comm_callbacks.phonebat = set_phone_battery;
-	comm_callbacks.slopeval = set_icon;
-	comm_callbacks.vibe = set_vibrate;
-	comm_callbacks.bgl_delta = set_bgl_delta;
-	comm_callbacks.bgl_series = set_bgl_series; 
-	comm_callbacks.bgl_data = set_bgl_data;
-	comm_callbacks.bgl_timestamp = set_bgl_timestamp;
-	comm_callbacks.bgl_value = set_bgl_value;
-	comm_callbacks.png = set_png;
-	comm_init(&comm_callbacks);
+    comm_callbacks.phonebat = set_phone_battery;
+    comm_callbacks.slopeval = set_icon;
+    comm_callbacks.vibe = set_vibrate;
+    comm_callbacks.bgl_delta = set_bgl_delta;
+    comm_callbacks.bgl_series = set_bgl_series; 
+    comm_callbacks.bgl_data = set_bgl_data;
+    comm_callbacks.bgl_timestamp = set_bgl_timestamp;
+    comm_callbacks.bgl_value = set_bgl_value;
+    comm_callbacks.png = set_png;
+    // the watch is the health data source, so nothing to receive
+    comm_callbacks.health = NULL;
+    comm_init(&comm_callbacks);
 #endif
 
+    if (!show_trend) {
+        layer_set_hidden(bitmap_layer_get_layer(bg_trend_layer_draw), true);
+        layer_set_hidden(bitmap_layer_get_layer(bg_trend_layer_png), true);
+    }
 	LOG("init_cgm done.");
 }	// end init_cgm
 
@@ -2744,6 +2837,13 @@ static void deinit_cgm(void)
 	battery_state_service_unsubscribe();
 #ifdef PBL_HEALTH
 	health_service_events_unsubscribe();
+	if (health_send_timer != NULL) {
+		app_timer_cancel(health_send_timer);
+		health_send_timer = NULL;
+	}
+#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_DIORITE) || defined(PBL_PLATFORM_FLINT) || defined(PBL_PLATFORM_GABBRO)
+	if (collect_health) health_service_set_heart_rate_sample_period(0);
+#endif
 #endif
 
 	// cancel timers if they exist
@@ -2816,7 +2916,6 @@ void set_phone_battery(comm_phonebat value) {
 void set_bgl_delta(comm_bgl_delta value) {
 	DEBUG("Delta units: undefined: %d mmol: %d display: %d value: %d hidden: %d", 
 			value.undefined, value.is_mmol, value.display_units, value.value, value.hidden);
-	if (value.display_units != show_unit) value.display_units = show_unit;
 	if (value.expired) {
 		snprintf(current_bg_delta, sizeof(current_bg_delta), "Expired");
 	} else if (value.undefined) {
@@ -2871,19 +2970,22 @@ void set_bgl_value(comm_bgl_value value) {
  * update bgl values and timestamp
  */
 void set_bgl_data(comm_bgl_data *value) {
-	TRACE("Set BGL Data");
-	if (value->timestamp != current_cgm_time) {
-		DEBUG("%d vs %d %d", value->timestamp, current_cgm_time, value->timestamp - current_cgm_time);
-		set_bgl_value(value->bgl); // always show bgl value
-		if (value->timestamp - current_cgm_time > 360) {
-			dirty.need_cgm = 1;
-			// we likely missed a value, set minutes timer to zero and wait for global udpate
-			reset_timer_callback_cgm((value->timestamp - time(NULL)) + (60));
-		} else if (!use_png && !dirty.need_cgm) trend_set_value(value);
-		set_bgl_timestamp(value->timestamp); // can be marked dirty, so might not update
-	} else {
-		WARNING("Received same bgl value twice!");
-	}
+    TRACE("Set BGL Data");
+    if (value->timestamp != current_cgm_time) {
+        DEBUG("%d vs %d %d", value->timestamp, current_cgm_time, value->timestamp - current_cgm_time);
+        set_bgl_value(value->bgl); // always show bgl value
+        if (value->timestamp - current_cgm_time > 360) {
+            dirty.need_cgm = 1;
+            // we likely missed a value, set minutes timer to zero and wait for global udpate
+            reset_timer_callback_cgm((value->timestamp - time(NULL)) + (60));
+        } else if (!use_png && !dirty.need_cgm) trend_set_value(value);
+        set_bgl_timestamp(value->timestamp); // can be marked dirty, so might not update
+#ifdef PBL_HEALTH
+        health_schedule_send(); // xDrip is awake now - report HR/steps shortly
+#endif
+    } else {
+        WARNING("Received same bgl value twice!");
+    }
 
 }
 
@@ -2891,32 +2993,51 @@ void set_bgl_data(comm_bgl_data *value) {
  * Since all data is in flight and copied by the Bitmap creation we 
  * do not have to copy it
  */
-void set_png(comm_png_data data) {
+void set_png(comm_png_data *data) {
 	TRACE("Setting PNG");
-	if(bg_trend_bitmap != NULL)
-	{
-		INFO("Destroying bg_trend_bitmap");
-		gbitmap_destroy(bg_trend_bitmap);
-		bg_trend_bitmap = NULL;
-	}
+    if (!data->hidden != show_trend) {
+        show_trend = !data->hidden;
+        layer_set_hidden(bitmap_layer_get_layer(bg_trend_layer_png), !show_trend);
+        persist_write_bool(SET_SHOW_TREND, show_trend);
+    }
+    if (show_trend) {
+        if(bg_trend_bitmap != NULL)
+        {
+            INFO("Destroying bg_trend_bitmap");
+            gbitmap_destroy(bg_trend_bitmap);
+            bg_trend_bitmap = NULL;
+        }
 
-	bg_trend_bitmap = gbitmap_create_from_png_data(data.data, data.length);
-	if(bg_trend_bitmap != NULL)
-	{
-		LOG("bg_trend_bitmap created, setting to layer");
-		bitmap_layer_set_bitmap(bg_trend_layer_png, bg_trend_bitmap);
-	}
-	else
-	{
-		WARNING("bg_trend_bitmap creation FAILED!");
-	}
-	layer_set_hidden(bitmap_layer_get_layer(bg_trend_layer_png), !show_trend);
+        bg_trend_bitmap = gbitmap_create_from_png_data(data->data, data->length);
+        if(bg_trend_bitmap != NULL)
+        {
+            LOG("bg_trend_bitmap created, setting to layer");
+            bitmap_layer_set_bitmap(bg_trend_layer_png, bg_trend_bitmap);
+        }
+        else
+        {
+            WARNING("bg_trend_bitmap creation FAILED!");
+        }
+    }
+#ifdef PBL_HEALTH
+    health_schedule_send(); // xDrip is awake now - report HR/steps shortly
+#endif
 	dirty.need_cgm = 0;
 }
 
 void set_bgl_series(comm_bgl_series *series) {
-	dirty.need_cgm = 0;
-	trend_set_series(series);
+    dirty.need_cgm = 0;
+    trend_set_series(series);
+    ERROR("%04X %d", series->length, series->hidden);
+    if (!series->hidden != show_trend) {
+        show_trend = !series->hidden;
+        layer_set_hidden(bitmap_layer_get_layer(bg_trend_layer_draw), !show_trend);
+        trend_set_hidden(!show_trend);
+        persist_write_bool(SET_SHOW_TREND, show_trend);
+    }
+#ifdef PBL_HEALTH
+    health_schedule_send(); // xDrip is awake now - report HR/steps shortly
+#endif
 }
 
 void set_message(comm_message message) {

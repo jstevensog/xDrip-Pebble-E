@@ -68,42 +68,6 @@
       "max": 60,
       "step": 5
   },
-  {
-    "type": "section",
-    "items": [
-      {
-        "type": "heading",
-        "defaultValue": "Glucose & Delta Display"
-      },
-      {
-        "type": "toggle",
-        "messageKey": "show_delta",
-        "defaultValue": true,
-        "label": "Show Delta Value",
-        "description": "Show the delta value in the bottom section"
-      },
-      {
-        "type": "toggle",
-        "messageKey": "show_unit",
-        "defaultValue": false,
-        "label": "Show Delta Unit",
-        "description": "Show the unit (mmol/L or mg/dL) next to the delta"
-      },
-      {
-        "type": "toggle",
-        "messageKey": "show_slope",
-        "defaultValue": true,
-        "label": "Show Slope Arrow",
-        "description": "Show the slope arrow on screen"
-      },
-      {
-        "type": "toggle",
-        "messageKey": "show_trend",
-        "defaultValue": true,
-        "label": "Show Trend Graph"
-      }
-    ]
-  },
 {
 	  "type": "section",
 	  "items": [
