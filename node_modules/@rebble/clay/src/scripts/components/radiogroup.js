@@ -8,6 +8,7 @@ module.exports = {
   defaults: {
     label: '',
     options: [],
+    serializeValueAs: 'string',
     description: '',
     attributes: {}
   }

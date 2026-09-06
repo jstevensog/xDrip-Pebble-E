@@ -59,17 +59,22 @@ The master branch is not being updated frequently, most work is being done in th
 * jstevensog
 * AdrianLXM
 * Consp
+* BW
 
 ## Plan for Multiple Apps.
  * Apps will be identified in xDrip settings as their name/version.  This will set a string that matches the PBL_APP_VER key that is sent when the Pebble requests an update or responds to xDrip.  The xDrip Pebble watch face settings will also set the watch face/app UUID in settings.  No two watch faces can have the same UUID.
  * The Pebble code in xDrip will try to activate the selected watch face, and if it fails to do so, will install the face.
 
 ## Build Environment:
-* Pebble Tool: v5.0.27
-* SDK: v4.9.127
+* Pebble Tool: v5.0.40
+* SDK: v4.33.1
 * Clay: @rebble/clay latest v1.0 or later
 
 ## Change Log:
+20260902 - Changed UUID and name so that there is no clash with the "Pebble Display Trend"/"xDrip Watch Face" in the Pebble app and no clash with settings between the two.
+* updated UUID (only in framework branch) and name.
+* updated README.md
+
 20260806 - Fixes and allows watch face to specify the size and depth of Trend image creation from xDrip+
 * Added PBL_TREND_SIZE uint32_t to send the Trend dimensions and colour depth to xDrip+ to generate the preferred size and depth.  Gabbro only supports PNG8.
 * Added "Wait.." to the HR readout as initial value.  Prevents a blank HR display when firmware is updated.

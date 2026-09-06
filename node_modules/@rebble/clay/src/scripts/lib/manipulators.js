@@ -73,10 +73,19 @@ module.exports = {
   },
   val: {
     get: function() {
-      return this.$manipulatorTarget.get('value');
+      let value = this.$manipulatorTarget.get('value');
+      switch (this.config.serializeValueAs) {
+        case 'integer':
+          let integerValue = Math.trunc(Number.parseInt(value, 10));
+          return Number.isNaN(integerValue) ? 0 : integerValue;
+        default:
+          return value;
+      }
     },
     set: function(value) {
-      if (this.get() === value.toString(10)) { return this; }
+      let currentValue = this.$manipulatorTarget.get('value');
+      if (typeof currentValue !== 'undefined' &&
+        currentValue === value.toString(10)) { return this; }
       this.$manipulatorTarget.set('value', value);
       return this.trigger('change');
     },
@@ -116,12 +125,21 @@ module.exports = {
   },
   radiogroup: {
     get: function() {
-      return this.$element.select('input:checked').get('value');
+      let value = this.$element.select('input:checked').get('value');
+      switch (this.config.serializeValueAs) {
+        case 'integer':
+          let integerValue = Math.trunc(Number.parseInt(value, 10));
+          return Number.isNaN(integerValue) ? 0 : integerValue;
+        default:
+          return value;
+      }
     },
     set: function(value) {
-      if (this.get() === value.toString(10)) { return this; }
+      let currentValue = this.$element.select('input:checked').get('value');
+      if (typeof currentValue !== 'undefined' &&
+        currentValue === value.toString(10)) { return this; }
       this.$element
-        .select('input[value="' + value.replace('"', '\\"') + '"]')
+        .select('input[value="' + value.toString(10).replace('"', '\\"') + '"]')
         .set('checked', true);
       return this.trigger('change');
     },

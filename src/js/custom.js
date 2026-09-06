@@ -24,8 +24,8 @@ module.exports = function(minified) {
             'trend_style',
             "trend_hour",
             "trend_hour_width",
-            "trend_hour_style"
-            
+            "trend_hour_style",
+            "trend_auto_adjust_max"            
         ];
         if (this.get()) {
             for (const index in items) {
@@ -52,7 +52,7 @@ module.exports = function(minified) {
     const mmol_mgdl = 18.016;
 
     clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
-        let deprecated = [ "show_delta", "show_trend", "show_slope", "show_unit" ];
+        //let deprecated = [ "show_delta", "show_trend", "show_slope", "show_unit" ];
         const bgl_names = [ "trend_low", "trend_high", "trend_average", "trend_critical"]; 
         console.debug("Hiding deprecated items");
         for (const index in deprecated) {
@@ -62,6 +62,7 @@ module.exports = function(minified) {
 
         var usepng = clayConfig.getItemByMessageKey('use_png');
         usepng.on('change', show_hide_trend);
+        usepng.trigger('change');
 
         // convert function
         var convert_bgl = function () {

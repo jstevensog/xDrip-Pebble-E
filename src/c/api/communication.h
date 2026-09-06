@@ -85,20 +85,20 @@ typedef struct comm_bgl_value_t {
 
 typedef struct comm_bgl_data_t {
     uint32_t        timestamp;      // timestamp of bgl value
-    comm_bgl_value  bgl;
+    comm_bgl_value  bgl;            // bgl value
 } comm_bgl_data;
 
 typedef union  comm_bgl_delta_t {
     struct {
-        int8_t          value;
+        int8_t          value;              // bgl delta in mg/dl
         uint8_t : 3;
-        uint8_t         expired : 1;
-        uint8_t         hidden : 1;
-        uint8_t         undefined : 1; 
-        uint8_t         display_units : 1;
-        uint8_t         is_mmol : 1;
+        uint8_t         expired : 1;        // Sensor is expired
+        uint8_t         hidden : 1;         // BGL value is hidden (xDrip+ setting)
+        uint8_t         undefined : 1;      // BGL value is undefined, this is usualy a warming up sensor
+        uint8_t         display_units : 1;  // Display mmol/l or mg/dl
+        uint8_t         is_mmol : 1;        // Value should be displayed in mmol/l
     };
-    uint16_t raw;
+    uint16_t raw;                           // convenience blob
 } comm_bgl_delta;
 
 typedef struct comm_bgl_series_t {
@@ -107,37 +107,37 @@ typedef struct comm_bgl_series_t {
     comm_bgl_value  bgl_values[];   // open ended array of values
 } comm_bgl_series;
 
-typedef uint8_t comm_phonebat;
+typedef uint8_t comm_phonebat;      // Phone battery in percent
 
 typedef struct comm_message_t {
-    uint32_t length;
-    char    *message;
+    uint32_t length;        // Length of the message
+    char    *message;       // Message, MUST BE A UTF-8 encoded null terminated cstring
 } comm_message;
 
 typedef union  {
     struct {
-        uint16_t high_line;
-        uint16_t high_limit;
+        uint16_t high_line;     // High line value in mg/dl
+        uint16_t high_limit;    // High limit in mg/dl (usually either what user set or 400)
     };
-    uint32_t raw;
+    uint32_t raw;               // Convenience blob
 } comm_high_limit;
 typedef union {
     struct {
-        uint16_t low_line;
-        uint16_t low_limit;
+        uint16_t low_line;      // Low line value in mg/dl
+        uint16_t low_limit;     // Low limit in mg/dl (usually either what user set or 40)
     };
-    uint32_t raw;
+    uint32_t raw;               // Convenience blob
 } comm_low_limit;
-typedef uint8_t comm_vibe;
-typedef uint8_t comm_slopeval;
+typedef uint8_t comm_vibe;      // Vibate type 
+typedef uint8_t comm_slopeval;  // Slope icon value
 typedef struct {
-    uint16_t length;
-    uint8_t  *data;
+    uint16_t length;            // PNG data blob length
+    uint8_t  *data;             // PNG data blob
 } comm_png_data;
 
 
-typedef uint32_t comm_sensor_time_left;
-typedef uint32_t comm_bwp_value;
+typedef uint32_t comm_sensor_time_left; // Not implemented
+typedef uint32_t comm_bwp_value;        // Not implemented
 
 typedef struct comm_health_t {
     uint16_t heart_rate;   // current heart rate in BPM, 0 = not available
@@ -148,6 +148,9 @@ typedef struct comm_health_t {
 
 /*
  * Callback struct
+ *
+ * All callbacks are registered on comm_init, this way a user
+ * can provide which to support and all others are ignored
  */
 typedef struct comm_callback_t {
     void (*phonebat)(comm_phonebat value);
@@ -167,9 +170,19 @@ typedef struct comm_callback_t {
     void (*health)(comm_health value);
 } comm_callback;
 
-
+/**
+ * Initialize the comms with a callback function blob
+ */
 void comm_init(comm_callback *cb);
+
+/**
+ * Handle a tuple of data, place this in the app mesage processing thread or function
+ */
 void comm_handle(Tuple *data);
+
+/**
+ * Request a png of a specific size
+ */
 void comm_request_png(DictionaryIterator *iter, GRect bounds);
 // Write the current heart rate / step total into an already-open outbox
 // dictionary. Fields that are 0 are skipped. Kept here so any face can report

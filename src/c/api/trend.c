@@ -34,15 +34,21 @@ void trend_init(Layer *layer) {
     config.average_color = persist_exists(SET_BGL_AVERAGE_COLOUR) ? GColorFromHEX(persist_read_int(SET_BGL_AVERAGE_COLOUR)) : COLOR_FALLBACK(GColorYellow, GColorWhite);
     config.good_color = persist_exists(SET_BGL_GOOD_COLOUR) ? GColorFromHEX(persist_read_int(SET_BGL_GOOD_COLOUR)) : COLOR_FALLBACK(GColorGreen, GColorWhite);
     config.low_color = persist_exists(SET_BGL_LOW_COLOUR) ? GColorFromHEX(persist_read_int(SET_BGL_LOW_COLOUR)) : COLOR_FALLBACK(GColorBlue, GColorWhite);
+    config.high_line_color = persist_exists(SET_HIGH_LINE_COLOUR) ? GColorFromHEX(persist_read_int(SET_HIGH_LINE_COLOUR)) : COLOR_FALLBACK(GColorRed, GColorWhite);
+    config.low_line_color = persist_exists(SET_LOW_LINE_COLOUR) ? GColorFromHEX(persist_read_int(SET_LOW_LINE_COLOUR)) : COLOR_FALLBACK(GColorBlue, GColorWhite);
+
+    /* Colors */
     config.bgl_low = persist_exists(SET_BGL_LOW) ? persist_read_int(SET_BGL_LOW) : 72;
     config.bgl_average = persist_exists(SET_BGL_AVERAGE) ? persist_read_int(SET_BGL_AVERAGE) : 144;
     config.bgl_high = persist_exists(SET_BGL_HIGH) ? persist_read_int(SET_BGL_HIGH) : 190;
     config.bgl_critical = persist_exists(SET_BGL_CRITICAL) ? persist_read_int(SET_BGL_CRITICAL) : 210;
-    config.high_line_color = persist_exists(SET_HIGH_LINE_COLOUR) ? GColorFromHEX(persist_read_int(SET_HIGH_LINE_COLOUR)) : COLOR_FALLBACK(GColorRed, GColorWhite);
-    config.low_line_color = persist_exists(SET_LOW_LINE_COLOUR) ? GColorFromHEX(persist_read_int(SET_LOW_LINE_COLOUR)) : COLOR_FALLBACK(GColorBlue, GColorWhite);
-    config.trend_width = persist_exists(SET_TREND_WIDTH) ? persist_read_int(SET_TREND_WIDTH) : 4;
+
+    /* Styles */
     config.style = persist_exists(SET_TREND_STYLE) ? persist_read_int(SET_TREND_STYLE) : TREND_STYLE_DOTS;
     config.hl_line_style = persist_exists(SET_LINE_STYLE) ? persist_read_int(SET_LINE_STYLE) : TREND_LINE_STYLE_SOLID;
+
+    /* Line widths */
+    config.trend_width = persist_exists(SET_TREND_WIDTH) ? persist_read_int(SET_TREND_WIDTH) : 4;
     config.line_width = persist_exists(SET_LINE_WIDTH) ? persist_read_int(SET_LINE_WIDTH) : 4;
 
     /* Values for high/low lines */
@@ -57,14 +63,21 @@ void trend_init(Layer *layer) {
     config.hour_line_style = persist_exists(SET_HOUR_STYLE) ? persist_read_int(SET_HOUR_STYLE) : TREND_LINE_STYLE_SOLID;
     config.hour_line_enabled = persist_exists(SET_HOUR_ENABLED) ? persist_read_int(SET_HOUR_ENABLED) : 0;
 
+    /* other */
+    config.auto_adjust_max = persist_exists(SET_AUTO_ADJUST_MAX) ? persist_read_int(SET_AUTO_ADJUST_MAX) : 0;
+
     config.bgl.initialized = 0;
 
     TRACE(TREND_LOG "Setting callback");
     layer_set_update_proc((Layer *) config.layer, trend_layer_callback);
+    layer_set_hidden(config.layer, false);
 }
 
 void trend_deinit(void) {
-    if (config.layer != NULL) layer_set_update_proc(config.layer, NULL); // discard
+    if (config.layer != NULL) {
+        layer_set_hidden(config.layer, true);
+        layer_set_update_proc(config.layer, NULL); // discard
+    }
     config.layer = NULL;
     config.bgl.initialized = 0;
 }
@@ -210,8 +223,18 @@ static bool draw_trend_lines(Layer *layer, GContext *ctx) {
     // top is 0,0
     // excape if no line needs to be drawn
     GRect bounds = layer_get_bounds(layer);
-    const int16_t h = BGL_TO_Y(config.bgl_high_line, config, bounds); 
-    const int16_t l = BGL_TO_Y(config.bgl_low_line, config, bounds); 
+    int16_t h = 0;
+    int16_t l = 0;
+    int16_t highest = 0, limit = config.bgl_high_limit;
+    if (config.auto_adjust_max) {
+        for (int i = 0; i < config.bgl.size; i++) {
+            if (config.bgl.values[i] > highest) highest = config.bgl.values[i];
+        }
+        config.bgl_high_limit = highest > config.bgl_high_line + (config.bgl_high_line / 20)? highest : config.bgl_high_line + (config.bgl_high_line / 20);
+    }
+    h = BGL_TO_Y(config.bgl_high_line, config, bounds); 
+    l = BGL_TO_Y(config.bgl_low_line, config, bounds); 
+    if (config.auto_adjust_max) config.bgl_high_limit = limit;
     TRACE(TREND_LOG "Draw lines, high: %d, low %d", h, l);
 
 #ifndef PBL_PLATFORM_APLITE
@@ -325,7 +348,6 @@ static bool draw_trend_lines(Layer *layer, GContext *ctx) {
                         graphics_draw_pixel(ctx, (GPoint) { i, y });
                     }
                     break;
-                case TREND_LINE_STYLE_EDGES:
                     graphics_draw_line(ctx, (GPoint) { (int) i, 0 }, (GPoint) { (int) i, bounds.size.h / 5});
                     graphics_draw_line(ctx, (GPoint) { (int) i, bounds.size.h - (bounds.size.h / 5) }, (GPoint) { (int) i, bounds.size.h});
                     break;
@@ -360,7 +382,6 @@ void trend_draw(void) {
 
 void trend_set_series(comm_bgl_series *values) {
 
-#ifndef PBL_PLATFORM_APLITE
     TRACE(TREND_LOG "Trend set series"); 
     if (!config.bgl.initialized) {
         DEBUG("Initializing");
@@ -379,14 +400,13 @@ void trend_set_series(comm_bgl_series *values) {
         config.bgl.index = config.bgl.index % (config.bgl.size);
     }
     trend_draw();
-#endif
 }
 
 void trend_set_value(comm_bgl_data *value) {
     TRACE(TREND_LOG "Trend set value");
-    config.bgl.values[config.bgl.index % (config.bgl.size - 1)] = value->bgl.value;
+    config.bgl.values[config.bgl.index % (config.bgl.size)] = value->bgl.value;
     config.bgl.index++;
-    config.bgl.index = config.bgl.index % (config.bgl.size - 1);
+    config.bgl.index = config.bgl.index % (config.bgl.size);
     trend_draw();
 
 }
@@ -484,6 +504,11 @@ void trend_process_config(Tuple *data) {
             break;
         case SET_HOUR_WIDTH:
             persist_write_int(SET_HOUR_WIDTH, data->value->int8);
+            config.hour_line_width = data->value->int8;
+            trend_draw();
+            break;
+        case SET_AUTO_ADJUST_MAX:
+            persist_write_int(SET_AUTO_ADJUST_MAX, data->value->int8);
             config.hour_line_width = data->value->int8;
             trend_draw();
             break;
