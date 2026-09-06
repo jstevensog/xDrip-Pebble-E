@@ -103,7 +103,8 @@ typedef union  comm_bgl_delta_t {
 
 typedef struct comm_bgl_series_t {
     uint32_t        timestamp;      // current timestamp of last reading
-    uint16_t        length;         // values to receive
+    uint16_t        length : 15;    // values to receive
+    uint16_t        hidden : 1;     // Value is hidden
     comm_bgl_value  bgl_values[];   // open ended array of values
 } comm_bgl_series;
 
@@ -131,8 +132,9 @@ typedef union {
 typedef uint8_t comm_vibe;      // Vibate type 
 typedef uint8_t comm_slopeval;  // Slope icon value
 typedef struct {
-    uint16_t length;            // PNG data blob length
-    uint8_t  *data;             // PNG data blob
+    uint16_t length : 15;       // PNG data blob length
+    uint16_t hidden : 1;        // PNG trend is hidden
+    uint8_t  data[];            // PNG data blob
 } comm_png_data;
 
 
@@ -166,7 +168,7 @@ typedef struct comm_callback_t {
     void (*bgl_timestamp)(uint32_t timestamp);
     void (*bwp_value)(comm_bwp_value value);
     void (*sensor_time_left)(comm_sensor_time_left value);
-    void (*png)(comm_png_data data);
+    void (*png)(comm_png_data *data);
     void (*health)(comm_health value);
 } comm_callback;
 

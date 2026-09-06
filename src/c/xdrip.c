@@ -20,7 +20,6 @@ static bool global_lock = false;
 static bool use_png = false;
 static bool show_trend = true;
 static bool show_delta = true;
-static bool show_unit = false;
 static bool show_slope = true;
 
 bool display_message = false;
@@ -174,7 +173,7 @@ void set_bgl_timestamp(uint32_t timestamp);
 void set_bgl_value(comm_bgl_value value);
 void set_bgl_data(comm_bgl_data *value); 
 void set_bgl_series(comm_bgl_series *series); 
-void set_png(comm_png_data data);
+void set_png(comm_png_data *data);
 #endif
 
 
@@ -1988,30 +1987,6 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
                 }
 #endif
                 break;
-
-                /*
-                 * Optional for testing, need clay settings items
-            case SET_SHOW_UNIT:
-                show_unit = data->value->uint8 != 0;
-                persist_write_bool(SET_SHOW_UNIT, show_unit);
-                text_layer_set_text(delta_layer, "???"); // temp set
-                break;
-            case SET_SHOW_DELTA:
-                show_delta = data->value->uint8 != 0;
-                persist_write_bool(SET_SHOW_DELTA, show_delta);
-                layer_set_hidden(text_layer_get_layer(delta_layer), !show_delta);
-                break;
-            case SET_SHOW_SLOPE:
-                show_slope = data->value->uint8 != 0;
-                persist_write_bool(SET_SHOW_SLOPE, show_trend);
-                layer_set_hidden(bitmap_layer_get_layer(icon_layer), !show_slope);
-                break;
-            case SET_SHOW_TREND:
-                show_trend = data->value->uint8 != 0;
-                persist_write_bool(SET_SHOW_TREND, show_trend);
-                layer_set_hidden(bitmap_layer_get_layer(bg_trend_layer), !show_trend);
-                break;
-*/
             /**
              * end of clay settings
              */
@@ -2689,7 +2664,6 @@ static void init_cgm(void)
 {
 	LOG("init_cgm");
 	use_png = persist_exists(SET_USE_PNG) ? persist_read_bool(SET_USE_PNG) : false;
-	show_unit = persist_exists(SET_SHOW_UNIT) ? persist_read_bool(SET_SHOW_UNIT) : false;
 	show_slope = persist_exists(SET_SHOW_SLOPE) ? persist_read_bool(SET_SHOW_SLOPE) : true;
 	show_delta = persist_exists(SET_SHOW_DELTA) ? persist_read_bool(SET_SHOW_DELTA) : true;
 	show_trend = persist_exists(SET_SHOW_TREND) ? persist_read_bool(SET_SHOW_TREND) : true;
@@ -2838,6 +2812,10 @@ static void init_cgm(void)
     comm_init(&comm_callbacks);
 #endif
 
+    if (!show_trend) {
+        layer_set_hidden(bitmap_layer_get_layer(bg_trend_layer_draw), true);
+        layer_set_hidden(bitmap_layer_get_layer(bg_trend_layer_png), true);
+    }
 	LOG("init_cgm done.");
 }	// end init_cgm
 
@@ -2938,7 +2916,6 @@ void set_phone_battery(comm_phonebat value) {
 void set_bgl_delta(comm_bgl_delta value) {
 	DEBUG("Delta units: undefined: %d mmol: %d display: %d value: %d hidden: %d", 
 			value.undefined, value.is_mmol, value.display_units, value.value, value.hidden);
-	if (value.display_units != show_unit) value.display_units = show_unit;
 	if (value.expired) {
 		snprintf(current_bg_delta, sizeof(current_bg_delta), "Expired");
 	} else if (value.undefined) {
@@ -3016,32 +2993,48 @@ void set_bgl_data(comm_bgl_data *value) {
  * Since all data is in flight and copied by the Bitmap creation we 
  * do not have to copy it
  */
-void set_png(comm_png_data data) {
+void set_png(comm_png_data *data) {
 	TRACE("Setting PNG");
-	if(bg_trend_bitmap != NULL)
-	{
-		INFO("Destroying bg_trend_bitmap");
-		gbitmap_destroy(bg_trend_bitmap);
-		bg_trend_bitmap = NULL;
-	}
+    if (!data->hidden != show_trend) {
+        show_trend = !data->hidden;
+        layer_set_hidden(bitmap_layer_get_layer(bg_trend_layer_png), !show_trend);
+        persist_write_bool(SET_SHOW_TREND, show_trend);
+    }
+    if (show_trend) {
+        if(bg_trend_bitmap != NULL)
+        {
+            INFO("Destroying bg_trend_bitmap");
+            gbitmap_destroy(bg_trend_bitmap);
+            bg_trend_bitmap = NULL;
+        }
 
-	bg_trend_bitmap = gbitmap_create_from_png_data(data.data, data.length);
-	if(bg_trend_bitmap != NULL)
-	{
-		LOG("bg_trend_bitmap created, setting to layer");
-		bitmap_layer_set_bitmap(bg_trend_layer_png, bg_trend_bitmap);
-	}
-	else
-	{
-		WARNING("bg_trend_bitmap creation FAILED!");
-	}
-	layer_set_hidden(bitmap_layer_get_layer(bg_trend_layer_png), !show_trend);
+        bg_trend_bitmap = gbitmap_create_from_png_data(data->data, data->length);
+        if(bg_trend_bitmap != NULL)
+        {
+            LOG("bg_trend_bitmap created, setting to layer");
+            bitmap_layer_set_bitmap(bg_trend_layer_png, bg_trend_bitmap);
+        }
+        else
+        {
+            WARNING("bg_trend_bitmap creation FAILED!");
+        }
+    }
+#ifdef PBL_HEALTH
+    health_schedule_send(); // xDrip is awake now - report HR/steps shortly
+#endif
 	dirty.need_cgm = 0;
 }
 
 void set_bgl_series(comm_bgl_series *series) {
     dirty.need_cgm = 0;
     trend_set_series(series);
+    ERROR("%04X %d", series->length, series->hidden);
+    if (!series->hidden != show_trend) {
+        show_trend = !series->hidden;
+        layer_set_hidden(bitmap_layer_get_layer(bg_trend_layer_draw), !show_trend);
+        trend_set_hidden(!show_trend);
+        persist_write_bool(SET_SHOW_TREND, show_trend);
+    }
 #ifdef PBL_HEALTH
     health_schedule_send(); // xDrip is awake now - report HR/steps shortly
 #endif

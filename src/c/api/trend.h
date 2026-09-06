@@ -186,6 +186,7 @@ void trend_set_high_line(comm_high_limit value);
 void trend_set_low_line(comm_low_limit value);
 
 int trend_isinitialized(void);
+void trend_set_hidden(bool value);
 
 /**
  * convert bgl to y, respecting limits and bounds

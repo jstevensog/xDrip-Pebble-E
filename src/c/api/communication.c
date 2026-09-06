@@ -62,11 +62,7 @@ void comm_handle(Tuple *data) {
             break;
         case FRAMEWORK_PNG_IMAGE:
             TRACE(CM "PNG image data");
-            comm_png_data pngdata = {
-                .length = data->length,
-                .data = data->value->data
-            };
-            if (cb->png != NULL) cb->png(pngdata);
+            if (cb->png != NULL) cb->png((comm_png_data *) data->value->data);
             break;
         case FRAMEWORK_SENSOR_TIME_LEFT:
             TRACE(CM "Sensor expiry time left");
