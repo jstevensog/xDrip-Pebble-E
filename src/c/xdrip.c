@@ -174,6 +174,7 @@ void set_bgl_value(comm_bgl_value value);
 void set_bgl_data(comm_bgl_data *value); 
 void set_bgl_series(comm_bgl_series *series); 
 void set_png(comm_png_data *data);
+void set_message(comm_message message);
 #endif
 
 
@@ -424,12 +425,12 @@ void update_health_metric_displays() {
 	}	
 #if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_FLINT)
 	if(bottom_left_metric == METRIC_HEARTRATE || bottom_right_metric == METRIC_HEARTRATE) {
-        snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "Wait.. \U0001F493");
+		snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "Wait.. \U0001F493");
 		HealthServiceAccessibilityMask hr = health_service_metric_accessible(HealthMetricHeartRateBPM, time(NULL), time(NULL));
-        HealthValue val = health_service_peek_current_value(HealthMetricHeartRateBPM);
+		HealthValue val = health_service_peek_current_value(HealthMetricHeartRateBPM);
 		LOG("Heart Rate data is \"%lu\"", (uint32_t)val);
 		if (hr & HealthServiceAccessibilityMaskAvailable || (dirty.hbm && val != current_hbm)) {
-            // value can either be changed or new available, check if changed then update (e.g. initial condition) 
+			// value can either be changed or new available, check if changed then update (e.g. initial condition) 
 			if(val > 0 && val != current_hbm) {
 				// Display HRM value
 				current_hbm = val;
@@ -457,14 +458,14 @@ static void health_poll(void) {
 
 	time_t now = time(NULL);
 	if (health_service_metric_accessible(HealthMetricHeartRateBPM, now, now)
-	    & HealthServiceAccessibilityMaskAvailable) {
+		& HealthServiceAccessibilityMaskAvailable) {
 		HealthValue bpm = health_service_peek_current_value(HealthMetricHeartRateBPM);
 		if (bpm > 0) health_hr = bpm;
 	}
 
 	time_t day_start = time_start_of_today();
 	if (health_service_metric_accessible(HealthMetricStepCount, day_start, now)
-	    & HealthServiceAccessibilityMaskAvailable) {
+		& HealthServiceAccessibilityMaskAvailable) {
 		health_steps = health_service_sum_today(HealthMetricStepCount);
 	}
 }
@@ -1960,36 +1961,36 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 				reset_timer_callback_cgm(2);
 				break;
 
-            case SET_COLLECT_HEALTH:
+			case SET_COLLECT_HEALTH:
 #ifdef PBL_HEALTH
-                LOG("Got SET_COLLECT_HEALTH: %u", data->value->uint8);
-                {
-                    bool want = (data->value->uint8 != 0);
-                    if (want != collect_health) {
-                        collect_health = want;
-                        persist_write_bool(SET_COLLECT_HEALTH, collect_health);
+				LOG("Got SET_COLLECT_HEALTH: %u", data->value->uint8);
+				{
+					bool want = (data->value->uint8 != 0);
+					if (want != collect_health) {
+						collect_health = want;
+						persist_write_bool(SET_COLLECT_HEALTH, collect_health);
 #if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_DIORITE) || defined(PBL_PLATFORM_FLINT) || defined(PBL_PLATFORM_GABBRO)
-                        // sample HR on a fixed cadence while collecting so we
-                        // have fresh values; ~10 min trades data rate for battery
-                        health_service_set_heart_rate_sample_period(want ? 600 : 0);
+						// sample HR on a fixed cadence while collecting so we
+						// have fresh values; ~10 min trades data rate for battery
+						health_service_set_heart_rate_sample_period(want ? 600 : 0);
 #endif
-                        if (want) {
-                            health_poll();
-                        } else {
-                            health_hr = 0;
-                            health_steps = 0;
-                            if (health_send_timer != NULL) {
-                                app_timer_cancel(health_send_timer);
-                                health_send_timer = NULL;
-                            }
-                        }
-                    }
-                }
+						if (want) {
+							health_poll();
+						} else {
+							health_hr = 0;
+							health_steps = 0;
+							if (health_send_timer != NULL) {
+								app_timer_cancel(health_send_timer);
+								health_send_timer = NULL;
+							}
+						}
+					}
+				}
 #endif
-                break;
-            /**
-             * end of clay settings
-             */
+				break;
+			/**
+			 * end of clay settings
+			 */
 			default:
 #ifdef ENABLE_TREND_RENDERER
 				trend_process_config(data);
@@ -2798,24 +2799,25 @@ static void init_cgm(void)
 	comm_callbacks.low_limit = trend_set_low_line;
 	comm_callbacks.high_limit = trend_set_high_line;
 #endif
-    comm_callbacks.phonebat = set_phone_battery;
-    comm_callbacks.slopeval = set_icon;
-    comm_callbacks.vibe = set_vibrate;
-    comm_callbacks.bgl_delta = set_bgl_delta;
-    comm_callbacks.bgl_series = set_bgl_series; 
-    comm_callbacks.bgl_data = set_bgl_data;
-    comm_callbacks.bgl_timestamp = set_bgl_timestamp;
-    comm_callbacks.bgl_value = set_bgl_value;
-    comm_callbacks.png = set_png;
-    // the watch is the health data source, so nothing to receive
-    comm_callbacks.health = NULL;
-    comm_init(&comm_callbacks);
+	comm_callbacks.message = set_message;
+	comm_callbacks.phonebat = set_phone_battery;
+	comm_callbacks.slopeval = set_icon;
+	comm_callbacks.vibe = set_vibrate;
+	comm_callbacks.bgl_delta = set_bgl_delta;
+	comm_callbacks.bgl_series = set_bgl_series; 
+	comm_callbacks.bgl_data = set_bgl_data;
+	comm_callbacks.bgl_timestamp = set_bgl_timestamp;
+	comm_callbacks.bgl_value = set_bgl_value;
+	comm_callbacks.png = set_png;
+	// the watch is the health data source, so nothing to receive
+	comm_callbacks.health = NULL;
+	comm_init(&comm_callbacks);
 #endif
 
-    if (!show_trend) {
-        layer_set_hidden(bitmap_layer_get_layer(bg_trend_layer_draw), true);
-        layer_set_hidden(bitmap_layer_get_layer(bg_trend_layer_png), true);
-    }
+	if (!show_trend) {
+		layer_set_hidden(bitmap_layer_get_layer(bg_trend_layer_draw), true);
+		layer_set_hidden(bitmap_layer_get_layer(bg_trend_layer_png), true);
+	}
 	LOG("init_cgm done.");
 }	// end init_cgm
 
@@ -2970,22 +2972,22 @@ void set_bgl_value(comm_bgl_value value) {
  * update bgl values and timestamp
  */
 void set_bgl_data(comm_bgl_data *value) {
-    TRACE("Set BGL Data");
-    if (value->timestamp != current_cgm_time) {
-        DEBUG("%d vs %d %d", value->timestamp, current_cgm_time, value->timestamp - current_cgm_time);
-        set_bgl_value(value->bgl); // always show bgl value
-        if (value->timestamp - current_cgm_time > 360) {
-            dirty.need_cgm = 1;
-            // we likely missed a value, set minutes timer to zero and wait for global udpate
-            reset_timer_callback_cgm((value->timestamp - time(NULL)) + (60));
-        } else if (!use_png && !dirty.need_cgm) trend_set_value(value);
-        set_bgl_timestamp(value->timestamp); // can be marked dirty, so might not update
+	TRACE("Set BGL Data");
+	if (value->timestamp != current_cgm_time) {
+		DEBUG("%d vs %d %d", value->timestamp, current_cgm_time, value->timestamp - current_cgm_time);
+		set_bgl_value(value->bgl); // always show bgl value
+		if (value->timestamp - current_cgm_time > 360) {
+			dirty.need_cgm = 1;
+			// we likely missed a value, set minutes timer to zero and wait for global udpate
+			reset_timer_callback_cgm((value->timestamp - time(NULL)) + (60));
+		} else if (!use_png && !dirty.need_cgm) trend_set_value(value);
+		set_bgl_timestamp(value->timestamp); // can be marked dirty, so might not update
 #ifdef PBL_HEALTH
-        health_schedule_send(); // xDrip is awake now - report HR/steps shortly
+		health_schedule_send(); // xDrip is awake now - report HR/steps shortly
 #endif
-    } else {
-        WARNING("Received same bgl value twice!");
-    }
+	} else {
+		WARNING("Received same bgl value twice!");
+	}
 
 }
 
@@ -2995,48 +2997,48 @@ void set_bgl_data(comm_bgl_data *value) {
  */
 void set_png(comm_png_data *data) {
 	TRACE("Setting PNG");
-    if (!data->hidden != show_trend) {
-        show_trend = !data->hidden;
-        layer_set_hidden(bitmap_layer_get_layer(bg_trend_layer_png), !show_trend);
-        persist_write_bool(SET_SHOW_TREND, show_trend);
-    }
-    if (show_trend) {
-        if(bg_trend_bitmap != NULL)
-        {
-            INFO("Destroying bg_trend_bitmap");
-            gbitmap_destroy(bg_trend_bitmap);
-            bg_trend_bitmap = NULL;
-        }
+	if (!data->hidden != show_trend) {
+		show_trend = !data->hidden;
+		layer_set_hidden(bitmap_layer_get_layer(bg_trend_layer_png), !show_trend);
+		persist_write_bool(SET_SHOW_TREND, show_trend);
+	}
+	if (show_trend) {
+		if(bg_trend_bitmap != NULL)
+		{
+			INFO("Destroying bg_trend_bitmap");
+			gbitmap_destroy(bg_trend_bitmap);
+			bg_trend_bitmap = NULL;
+		}
 
-        bg_trend_bitmap = gbitmap_create_from_png_data(data->data, data->length);
-        if(bg_trend_bitmap != NULL)
-        {
-            LOG("bg_trend_bitmap created, setting to layer");
-            bitmap_layer_set_bitmap(bg_trend_layer_png, bg_trend_bitmap);
-        }
-        else
-        {
-            WARNING("bg_trend_bitmap creation FAILED!");
-        }
-    }
+		bg_trend_bitmap = gbitmap_create_from_png_data(data->data, data->length);
+		if(bg_trend_bitmap != NULL)
+		{
+			LOG("bg_trend_bitmap created, setting to layer");
+			bitmap_layer_set_bitmap(bg_trend_layer_png, bg_trend_bitmap);
+		}
+		else
+		{
+			WARNING("bg_trend_bitmap creation FAILED!");
+		}
+	}
 #ifdef PBL_HEALTH
-    health_schedule_send(); // xDrip is awake now - report HR/steps shortly
+	health_schedule_send(); // xDrip is awake now - report HR/steps shortly
 #endif
 	dirty.need_cgm = 0;
 }
 
 void set_bgl_series(comm_bgl_series *series) {
-    dirty.need_cgm = 0;
-    trend_set_series(series);
-    ERROR("%04X %d", series->length, series->hidden);
-    if (!series->hidden != show_trend) {
-        show_trend = !series->hidden;
-        layer_set_hidden(bitmap_layer_get_layer(bg_trend_layer_draw), !show_trend);
-        trend_set_hidden(!show_trend);
-        persist_write_bool(SET_SHOW_TREND, show_trend);
-    }
+	dirty.need_cgm = 0;
+	trend_set_series(series);
+	ERROR("%04X %d", series->length, series->hidden);
+	if (!series->hidden != show_trend) {
+		show_trend = !series->hidden;
+		layer_set_hidden(bitmap_layer_get_layer(bg_trend_layer_draw), !show_trend);
+		trend_set_hidden(!show_trend);
+		persist_write_bool(SET_SHOW_TREND, show_trend);
+	}
 #ifdef PBL_HEALTH
-    health_schedule_send(); // xDrip is awake now - report HR/steps shortly
+	health_schedule_send(); // xDrip is awake now - report HR/steps shortly
 #endif
 }
 
