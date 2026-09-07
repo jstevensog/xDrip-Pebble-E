@@ -2155,7 +2155,7 @@ void window_load_cgm(Window *window_cgm)
 	upper_face_layer = bitmap_layer_create(GRect(0,0,144,89));
 	lower_face_layer = bitmap_layer_create(GRect(0,89,144,165));
 	// icon layer dimensions
-	icon_layer = bitmap_layer_create(GRect(85, -7, 78, 51));
+	icon_layer = bitmap_layer_create(GRect(83, -7, 61, 61));
 	// trend bitmap layer dimensions
 	bg_trend_layer_png = bitmap_layer_create(GRect(0,24,144,64));
 	bitmap_layer_set_compositing_mode(bg_trend_layer_png, GCompOpSet);
@@ -2197,7 +2197,7 @@ void window_load_cgm(Window *window_cgm)
 	upper_face_layer = bitmap_layer_create(GRect(0,0,144,84));
 	lower_face_layer = bitmap_layer_create(GRect(0,84,144,165));
 	// icon layer dimensions
-	icon_layer = bitmap_layer_create(GRect(85, -9, 78, 49));
+	icon_layer = bitmap_layer_create(GRect(83, -9, 61, 61));
 	bitmap_layer_set_compositing_mode(icon_layer, GCompOpSet);
 	// trend bitmap layer dimensions and composition mode
 	bg_trend_layer_png = bitmap_layer_create(GRect(0,0,144,84));
@@ -2245,7 +2245,7 @@ void window_load_cgm(Window *window_cgm)
 	upper_face_layer = bitmap_layer_create(GRect(0,0,180,84));
 	lower_face_layer = bitmap_layer_create(GRect(0,84,180,165));
 	// icon layer size and composition mode
-	icon_layer = bitmap_layer_create(GRect(120, 30, 78, 50));
+	icon_layer = bitmap_layer_create(GRect(119, 30, 61, 61));
 	bitmap_layer_set_compositing_mode(icon_layer, GCompOpSet);
 	// trend bitmap layer dimensions and composition mode
 	bg_trend_layer_png = bitmap_layer_create(GRect(0,0,144,84));
@@ -2288,7 +2288,7 @@ void window_load_cgm(Window *window_cgm)
 	upper_face_layer = bitmap_layer_create(GRect(0,0,144,88));
 	lower_face_layer = bitmap_layer_create(GRect(0,89,144,165));
 	// icon layer dimensions
-	icon_layer = bitmap_layer_create(GRect(85, -7, 78, 51));
+	icon_layer = bitmap_layer_create(GRect(83, -7, 61, 61));
 	// trend bitmap layer dimensions
 	bg_trend_layer_png = bitmap_layer_create(GRect(0,24,144,64));
 	bitmap_layer_set_compositing_mode(bg_trend_layer_png, GCompOpSet);
@@ -2327,7 +2327,7 @@ void window_load_cgm(Window *window_cgm)
 	upper_face_layer = bitmap_layer_create(GRect(0,0,200,114));
 	lower_face_layer = bitmap_layer_create(GRect(0,115,200,228));
 	// icon layer diemnsions and composition mode.
-	icon_layer = bitmap_layer_create(GRect(146, -9, 78, 49));
+	icon_layer = bitmap_layer_create(GRect(139, -9, 61, 61));
 	bitmap_layer_set_compositing_mode(icon_layer, GCompOpSet);
 	// trend bitmap layer dimensions and composition mode
 	bg_trend_layer_png = bitmap_layer_create(GRect(0,0,200,114));
