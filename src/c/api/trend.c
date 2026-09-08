@@ -319,37 +319,43 @@ static bool draw_trend_lines(Layer *layer, GContext *ctx) {
     }
     s = 0;
     w = 0;
+    ERROR("%d", config.hour_line_width);
     graphics_context_set_stroke_width(ctx, config.hour_line_width);
     graphics_context_set_stroke_color(ctx, COLOR_FALLBACK(config.hour_line_color, GColorWhite));
+    graphics_context_set_fill_color(ctx, COLOR_FALLBACK(config.hour_line_color, GColorWhite));
     if (config.hour_line_enabled) {
-        for (float i = 0.0; (int) i < bounds.size.w; i += hour_interval) {
+        for (float i = hour_interval; (int) i < bounds.size.w; i += hour_interval) {
             // yes we use float here
-            //
+            s = 0;
             switch (config.hour_line_style) {
                 default:
                 case TREND_LINE_STYLE_SOLID:
                     graphics_draw_line(ctx, (GPoint) { (int) i, 0 }, (GPoint) { (int) i, bounds.size.h});
                     break;
                 case TREND_LINE_STYLE_DASHED:
-                    s = 2;
-                    w = 2;
+                    s = config.hour_line_width;
                 // fall through
                 case TREND_LINE_STYLE_DASHED_WIDE:
-                    s += 2;
-                    w += 2;
+                    s += 3 + config.hour_line_width;
+                    w = (config.hour_line_width*3) >> 1;
                     for (int y = 0; y < bounds.size.h; y+=s+w) {
                         graphics_draw_line(ctx, (GPoint) { i, y }, (GPoint) { i, y+w});
                     }
                     break;
-                case TREND_LINE_STYLE_DOTTED:
-                    s = 3;
-                // fall through
                 case TREND_LINE_STYLE_DOTTED_SPARSE:
-                    s += 2;
+                    s = config.hour_line_width;;
+                // fall through
+                case TREND_LINE_STYLE_DOTTED:
+                    s += 1 + config.hour_line_width;
                     for (int y = 0; y < bounds.size.h; y+=s) {
-                        graphics_draw_pixel(ctx, (GPoint) { i, y });
+                        graphics_fill_rect(ctx, (GRect) 
+                                { 
+                                    { i - (config.hour_line_width >> 1), y },
+                                    { config.hour_line_width, config.hour_line_width } 
+                                }, 1, GCornerNone);
                     }
                     break;
+                case TREND_LINE_STYLE_EDGES:
                     graphics_draw_line(ctx, (GPoint) { (int) i, 0 }, (GPoint) { (int) i, bounds.size.h / 5});
                     graphics_draw_line(ctx, (GPoint) { (int) i, bounds.size.h - (bounds.size.h / 5) }, (GPoint) { (int) i, bounds.size.h});
                     break;
