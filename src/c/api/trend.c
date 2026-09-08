@@ -381,12 +381,13 @@ void trend_layer_callback(Layer *layer, GContext *ctx) {
         }
     }
 
+    TRACE(TREND_LOG "Drawing high/low lines");
+    draw_trend_lines(layer, ctx);
+
     if (config.bgl.initialized) {
         TRACE(TREND_LOG "Drawing trend line");
         draw_trend(layer, ctx);
     }
-    TRACE(TREND_LOG "Drawing high/low lines");
-    draw_trend_lines(layer, ctx);
     config.redraw = 0; 
 
     if (config.auto_adjust_max) config.bgl_high_limit = limit;
