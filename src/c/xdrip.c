@@ -927,13 +927,6 @@ void sync_error_callback_cgm(DictionaryResult appsync_dict_error, AppMessageResu
 
 	// erase cgm and app ago times
 	text_layer_set_text(cgmtime_layer, "");
-	//text_layer_set_text(time_app_layer, "");
-
-	// erase cgm icon
-	//create_update_bitmap(&cgmicon_bitmap,cgmicon_layer,TIMEAGO_ICONS[NONE_TIMEAGO_ICON_INDX]);
-
-	// turn phone icon off
-	//create_update_bitmap(&appicon_bitmap,appicon_layer,TIMEAGO_ICONS[PHONEOFF_ICON_INDX]);
 
 	// check if need to vibrate
 	if (!AppSyncErrAlert)
@@ -1004,12 +997,6 @@ void inbox_dropped_handler_cgm(AppMessageResult appmsg_indrop_error, void *conte
 	// erase cgm and app ago times
 	text_layer_set_text(cgmtime_layer, "");
 	//text_layer_set_text(time_app_layer, "");
-
-	// erase cgm icon
-	//create_update_bitmap(&cgmicon_bitmap,cgmicon_layer,TIMEAGO_ICONS[NONE_TIMEAGO_ICON_INDX]);
-
-	// turn phone icon off
-	//create_update_bitmap(&appicon_bitmap,appicon_layer,TIMEAGO_ICONS[PHONEOFF_ICON_INDX]);
 
 	// check if need to vibrate
 	if (!AppMsgInDropAlert)
@@ -1319,13 +1306,9 @@ static void load_cgmtime()
 		// Init code or error code; set text layer & icon to empty value
 		TRACE("load_cgmtime, CGM TIME AGO INIT OR ERROR CODE: %s", cgm_label_buffer);
 		text_layer_set_text(cgmtime_layer, "");
-		//create_update_bitmap(&cgmicon_bitmap,cgmicon_layer,TIMEAGO_ICONS[NONE_TIMEAGO_ICON_INDX]);
 	}
 	else
 	{
-		// set rcvr on icon
-		//create_update_bitmap(&cgmicon_bitmap,cgmicon_layer,TIMEAGO_ICONS[RCVRON_ICON_INDX]);
-
 		time_now = time(NULL);
 		/*
 		* Since 4.17 (or maybe 4.16) get_UTC_offset accepts isdst in addition 
@@ -1387,7 +1370,6 @@ static void load_cgmtime()
 		else
 		{
 			strncpy (formatted_cgm_timeago, "---", TIMEAGO_BUFFER_SIZE);
-			//create_update_bitmap(&cgmicon_bitmap,cgmicon_layer,TIMEAGO_ICONS[NONE_TIMEAGO_ICON_INDX]);
 		}
 
 		text_layer_set_text(cgmtime_layer, formatted_cgm_timeago);
