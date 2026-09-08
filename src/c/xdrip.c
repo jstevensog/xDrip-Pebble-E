@@ -2343,10 +2343,10 @@ void window_load_cgm(Window *window_cgm)
 	}
 	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
 	// phone/bridge batter level layer diemnsions
-	bottom_left_text_layer = text_layer_create(GRect(2, 203 - 115, 100, 24));
+	bottom_left_text_layer = text_layer_create(GRect(2, 203 - 115, 100, 32));
 	text_layer_set_text_alignment(bottom_left_text_layer, GTextAlignmentLeft);
 	// watch battery level layer dimensions
-	bottom_right_text_layer = text_layer_create(GRect(98, 203 - 115, 100, 24));
+	bottom_right_text_layer = text_layer_create(GRect(98, 203 - 115, 100, 32));
 	text_layer_set_text_alignment(bottom_right_text_layer, GTextAlignmentRight);
 
 #endif
@@ -2431,10 +2431,10 @@ void window_load_cgm(Window *window_cgm)
 	date_app_layer = text_layer_create(GRect( 26, 178 - 121, 206,  38));
 	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
 	// phone/bridge batter level layer diemnsions
-	bottom_left_text_layer = text_layer_create(GRect( 69, 236 - 121,  130,  26));
+	bottom_left_text_layer = text_layer_create(GRect( 69, 236 - 121,  130,  34));
 	text_layer_set_text_alignment(bottom_left_text_layer, GTextAlignmentLeft);
 	// watch battery level layer dimensions
-	bottom_right_text_layer = text_layer_create(GRect( 65, 210 - 121,  130,  26));
+	bottom_right_text_layer = text_layer_create(GRect( 65, 210 - 121,  130,  34));
 	text_layer_set_text_alignment(bottom_right_text_layer, GTextAlignmentCenter);
 
 #endif
@@ -2529,13 +2529,21 @@ void window_load_cgm(Window *window_cgm)
 	LOG("Creating Left Metric Text layer");
 	text_layer_set_text_color(bottom_left_text_layer, fg_colour);
 	text_layer_set_background_color(bottom_left_text_layer, GColorClear);
+#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_GABBRO)
+	text_layer_set_font(bottom_left_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+#else
 	text_layer_set_font(bottom_left_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+#endif
 
 	// right metric layer
 	LOG("Creating Right Metric Text layer");
 	text_layer_set_text_color(bottom_right_text_layer, fg_colour);
 	text_layer_set_background_color(bottom_right_text_layer, GColorClear);
+#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_GABBRO)
+	text_layer_set_font(bottom_right_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+#else
 	text_layer_set_font(bottom_right_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+#endif
 
 	// Layer definitions
 	LOG("Setting Layer order");
