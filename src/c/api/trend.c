@@ -4,7 +4,6 @@
  */
 #include <pebble.h>
 
-#include "../xdrip.h"
 #include "../debug.h"
 #include "communication.h"
 
@@ -101,7 +100,6 @@ static inline void draw_bgl_point(trend_bgl_value value, int16_t x, GRect bounds
     graphics_context_set_stroke_color(ctx, color);
     
     GPoint point = {x, BGL_TO_Y(value, config, bounds)};
-
     graphics_draw_circle(ctx, point, 0);
 
 }
@@ -227,16 +225,8 @@ static bool draw_trend_lines(Layer *layer, GContext *ctx) {
     GRect bounds = layer_get_bounds(layer);
     int16_t h = 0;
     int16_t l = 0;
-    int16_t highest = 0, limit = config.bgl_high_limit;
-    if (config.auto_adjust_max) {
-        for (int i = 0; i < config.bgl.size; i++) {
-            if (config.bgl.values[i] > highest) highest = config.bgl.values[i];
-        }
-        config.bgl_high_limit = highest > config.bgl_high_line + (config.bgl_high_line / 20)? highest : config.bgl_high_line + (config.bgl_high_line / 20);
-    }
     h = BGL_TO_Y(config.bgl_high_line, config, bounds); 
     l = BGL_TO_Y(config.bgl_low_line, config, bounds); 
-    if (config.auto_adjust_max) config.bgl_high_limit = limit;
     TRACE(TREND_LOG "Draw lines, high: %d, low %d", h, l);
 
 #ifndef PBL_PLATFORM_APLITE
@@ -247,7 +237,6 @@ static bool draw_trend_lines(Layer *layer, GContext *ctx) {
     graphics_context_set_stroke_width(ctx, config.line_width);
 #ifndef PBL_PLATFORM_APLITE
     switch (config.hl_line_style) {
-        default:
         case TREND_LINE_STYLE_EDGES:
             if (config.bgl_high_line) {
                 graphics_context_set_stroke_color(ctx, COLOR_FALLBACK(config.high_line_color, GColorWhite));
@@ -261,6 +250,7 @@ static bool draw_trend_lines(Layer *layer, GContext *ctx) {
                 graphics_draw_line(ctx, (GPoint) { bounds.size.w - (bounds.size.w / 5), l }, (GPoint) { bounds.size.w, l});
             }
             break;
+        default:
         case TREND_LINE_STYLE_SOLID:
 #endif
             TRACE(TREND_LOG "Lines -> Solid");
@@ -276,33 +266,43 @@ static bool draw_trend_lines(Layer *layer, GContext *ctx) {
             break;
         case TREND_LINE_STYLE_DOTTED_SPARSE:
             TRACE(TREND_LOG "Lines -> Dotted with extra space");
-            s = 3;
+            s = config.line_width;
             // fall through
         case TREND_LINE_STYLE_DOTTED:
             TRACE(TREND_LOG "Lines -> Dotted");
-            s += 2;
+            s += 1 + config.line_width;
             if (config.bgl_high_line) {
                 graphics_context_set_stroke_color(ctx, COLOR_FALLBACK(config.high_line_color, GColorWhite));
+                graphics_context_set_fill_color(ctx, COLOR_FALLBACK(config.high_line_color, GColorWhite));
+                ERROR("%d %d", config.line_width, s);
                 for (int x = 0; x < bounds.size.w; x+=s) {
-                    graphics_draw_pixel(ctx, (GPoint) { x, h });
+                    graphics_fill_rect(ctx, (GRect) 
+                            { 
+                                { x, h },
+                                { config.line_width, config.line_width } 
+                            }, 1, GCornerNone);
                 }
             }
             if (config.bgl_low_line) {
                 graphics_context_set_stroke_color(ctx, COLOR_FALLBACK(config.low_line_color, GColorWhite));
+                graphics_context_set_fill_color(ctx, COLOR_FALLBACK(config.low_line_color, GColorWhite));
                 for (int x = 0; x < bounds.size.w; x+=s) {
-                    graphics_draw_pixel(ctx, (GPoint) { x, l });
+                    graphics_fill_rect(ctx, (GRect) 
+                            { 
+                                { x, l },
+                                { config.line_width, config.line_width } 
+                            }, 1, GCornerNone);
                 }
             }
             break;
         case TREND_LINE_STYLE_DASHED_WIDE:
             TRACE(TREND_LOG "Lines -> Dashed - wide");
-            s = 3;
-            w = 2;
+            s = config.line_width;
             // fall through
         case TREND_LINE_STYLE_DASHED:
             TRACE(TREND_LOG "Lines -> Dashed");
-            s += 2;
-            w += 2;
+            s += 3 + config.line_width;
+            w = config.line_width;
             if (config.bgl_high_line) {
                 graphics_context_set_stroke_color(ctx, COLOR_FALLBACK(config.high_line_color, GColorWhite));
                 for (int x = 0; x < bounds.size.w; x+=s+w) {
@@ -361,7 +361,20 @@ static bool draw_trend_lines(Layer *layer, GContext *ctx) {
 }
 
 void trend_layer_callback(Layer *layer, GContext *ctx) {
-    INFO("Drawing trend");
+    TRACE("Drawing trend");
+    // auto scale
+    int16_t highest = 0, limit = config.bgl_high_limit;
+    if (config.auto_adjust_max) {
+        for (int i = 0; i < config.bgl.size; i++) {
+            if (config.bgl.values[i] > highest) highest = config.bgl.values[i];
+        }
+        if (highest <= config.bgl_high_line) {
+            config.bgl_high_limit = config.bgl_high_line + (config.bgl_high_line / 20); 
+        } else {
+            config.bgl_high_limit = highest; 
+        }
+    }
+
     if (config.bgl.initialized) {
         TRACE(TREND_LOG "Drawing trend line");
         draw_trend(layer, ctx);
@@ -369,6 +382,8 @@ void trend_layer_callback(Layer *layer, GContext *ctx) {
     TRACE(TREND_LOG "Drawing high/low lines");
     draw_trend_lines(layer, ctx);
     config.redraw = 0; 
+
+    if (config.auto_adjust_max) config.bgl_high_limit = limit;
 }
 
 void trend_draw(void) {
@@ -511,7 +526,7 @@ void trend_process_config(Tuple *data) {
             break;
         case SET_AUTO_ADJUST_MAX:
             persist_write_int(SET_AUTO_ADJUST_MAX, data->value->int8);
-            config.hour_line_width = data->value->int8;
+            config.auto_adjust_max = data->value->int8;
             trend_draw();
             break;
         default:
