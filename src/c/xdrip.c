@@ -3031,15 +3031,14 @@ void set_png(comm_png_data *data) {
 }
 
 void set_bgl_series(comm_bgl_series *series) {
-	dirty.need_cgm = 0;
-	trend_set_series(series);
-	ERROR("%04X %d", series->length, series->hidden);
-	if (!series->hidden != show_trend) {
-		show_trend = !series->hidden;
-		layer_set_hidden(bitmap_layer_get_layer(bg_trend_layer_draw), !show_trend);
-		trend_set_hidden(!show_trend);
-		persist_write_bool(SET_SHOW_TREND, show_trend);
-	}
+    dirty.need_cgm = 0;
+    trend_set_series(series);
+    if (!series->hidden != show_trend) {
+        show_trend = !series->hidden;
+        layer_set_hidden(bitmap_layer_get_layer(bg_trend_layer_draw), !show_trend);
+        trend_set_hidden(!show_trend);
+        persist_write_bool(SET_SHOW_TREND, show_trend);
+    }
 #ifdef PBL_HEALTH
 	health_schedule_send(); // xDrip is awake now - report HR/steps shortly
 #endif
