@@ -193,8 +193,8 @@ void trend_set_hidden(bool value);
  */
 #define BGL_TO_Y(bgl, config, bounds) (\
             bounds.size.h - \
-            ((int32_t) (bounds.size.h * (bgl - config.bgl_low_limit))) /\
-            (config.bgl_high_limit - config.bgl_low_limit)\
+            (((int32_t)bounds.size.h * ((int32_t)bgl - (int32_t) config.bgl_low_limit)) /\
+            ((int32_t) config.bgl_high_limit - (int32_t) config.bgl_low_limit))\
         )
 
 #endif
