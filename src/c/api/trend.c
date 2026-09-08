@@ -147,6 +147,8 @@ static bool draw_trend(Layer *layer, GContext *ctx) {
     graphics_context_set_stroke_width(ctx, config.trend_width); // constant
 
     GRect bounds = layer_get_bounds(layer);
+    //set the trend height bounds to be less the line width to make sure we don't lose it when it borderst the top of the layer.
+    bounds.size.h = bounds.size.h - config.line_width;
 #ifdef PBL_PLATFORM_APLITE
     bool interp = true; // do not interp on lines 
 #else

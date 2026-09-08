@@ -112,6 +112,33 @@
           "type": "font",
           "name": "GOTHAM_BOLD_60",
           "file": "GothamBold.ttf"
+        },
+        {
+          "characterRegex": "[0-9:APM ]",
+          "type": "font",
+          "name": "GOTHAM_BOLD_54",
+          "file": "GothamBold.ttf",
+          "targetPlatforms": [
+		"emery"
+          ]
+        },
+        {
+          "characterRegex": "[0-9:APM ]",
+          "type": "font",
+          "name": "GOTHAM_BOLD_BG_56",
+          "file": "GothamBold.ttf",
+          "targetPlatforms": [
+		"emery"
+          ]
+        },
+        {
+          "characterRegex": "[0-9:APM ]",
+          "type": "font",
+          "name": "GOTHAM_BOLD_BG_64",
+          "file": "GothamBold.ttf",
+          "targetPlatforms": [
+		"gabbro"
+          ]
         }
       ]
     },
