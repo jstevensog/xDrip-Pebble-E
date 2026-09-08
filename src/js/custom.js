@@ -120,17 +120,19 @@ module.exports = function(minified) {
 
         // hour line masking
         var hours = clayConfig.getItemByMessageKey('trend_hour');
-        hours.on('change', function() {
+        var hours_function = function() {
             const width = clayConfig.getItemByMessageKey('trend_hour_width');
             const style = clayConfig.getItemByMessageKey('trend_hour_style');
-            if (hours.get()) {
+            if (this.get()) {
                 width.enable();
                 style.enable();
             } else {
                 width.disable();
                 style.disable();
             }
-        });
+        };
+
+        hours.on('change', hours_function);
         hours.trigger('change');
 
 
