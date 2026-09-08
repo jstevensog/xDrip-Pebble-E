@@ -383,6 +383,7 @@ static void hr_draw_callback(void *context) {
 		text_layer_set_text(bottom_right_text_layer, s_hrm_buffer);
 	}
 	hr_draw_timer = NULL;
+    dirty.hbm = 0;
 }
 #endif
 
@@ -426,19 +427,19 @@ void update_health_metric_displays() {
 	}	
 #if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_FLINT)
 	if(bottom_left_metric == METRIC_HEARTRATE || bottom_right_metric == METRIC_HEARTRATE) {
-		snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "Wait.. \U0001F493");
 		HealthServiceAccessibilityMask hr = health_service_metric_accessible(HealthMetricHeartRateBPM, time(NULL), time(NULL));
 		HealthValue val = health_service_peek_current_value(HealthMetricHeartRateBPM);
 		LOG("Heart Rate data is \"%lu\"", (uint32_t)val);
-		if (hr & HealthServiceAccessibilityMaskAvailable || (dirty.hbm && val != current_hbm)) {
-			// value can either be changed or new available, check if changed then update (e.g. initial condition) 
+		if (hr & HealthServiceAccessibilityMaskAvailable || (val != 0 && val != current_hbm)) {
+            // value can either be changed or new available, check if changed then update (e.g. initial condition) 
 			if(val > 0 && val != current_hbm) {
 				// Display HRM value
 				current_hbm = val;
 				dirty.hbm = 1;
 				snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "%lu \U0001F493", (uint32_t)val);
 			}
-		} else if (current_hbm == 0 && dirty.hbm) {
+		} else if (current_hbm == 0) {
+            dirty.hbm = 1;
 			snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "Wait.. \U0001F493");
 		}
 
