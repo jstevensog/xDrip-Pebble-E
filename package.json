@@ -123,7 +123,7 @@
           ]
         },
         {
-          "characterRegex": "[0-9:APM ]",
+          "characterRegex": "[0-9. ]",
           "type": "font",
           "name": "GOTHAM_BOLD_BG_56",
           "file": "GothamBold.ttf",
@@ -132,7 +132,7 @@
           ]
         },
         {
-          "characterRegex": "[0-9:APM ]",
+          "characterRegex": "[0-9. ]",
           "type": "font",
           "name": "GOTHAM_BOLD_BG_64",
           "file": "GothamBold.ttf",
