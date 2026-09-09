@@ -2158,10 +2158,10 @@ void window_load_cgm(Window *window_cgm)
 	// time watch layer dimenssions
 	time_watch_layer = text_layer_create(GRect(0, 84 - 89, 143, 44));
 	text_layer_set_text_alignment(time_watch_layer, GTextAlignmentCenter);
-	// date layer dimenstions
+	// date layer dimensions
 	date_app_layer = text_layer_create(GRect(0, 124 - 89, 143, 29));
 	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
-	// phone/bridge batter level layer diemnsions
+	// phone/bridge batter level layer dimensions
 	bottom_left_text_layer = text_layer_create(GRect(0, 148 - 89, 59, 18));
 	text_layer_set_text_alignment(bottom_left_text_layer, GTextAlignmentLeft);
 	//watch battery level layer dimensions
@@ -2204,10 +2204,10 @@ void window_load_cgm(Window *window_cgm)
 	// time watch layer dimenssions
 	time_watch_layer = text_layer_create(GRect(0, 82 - 84, 143, 44));
 	text_layer_set_text_alignment(time_watch_layer, GTextAlignmentCenter);
-	// date layer dimenstions
+	// date layer dimensions
 	date_app_layer = text_layer_create(GRect(0, 124 - 84, 143, 29));
 	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
-	// phone/bridge batter level layer diemnsions
+	// phone/bridge batter level layer dimensions
 	bottom_left_text_layer = text_layer_create(GRect(0, 148 - 84, 72, 20));
 	layer_set_bounds((Layer *) bottom_left_text_layer, GRect(0, -1, 72, 20)); // fixes bounding box with latest sdk
 	text_layer_set_text_alignment(bottom_left_text_layer, GTextAlignmentLeft);
@@ -2250,10 +2250,10 @@ void window_load_cgm(Window *window_cgm)
 	// time watch layer dimenssions
 	time_watch_layer = text_layer_create(GRect(18, 82 - 84, 143, 44));
 	text_layer_set_text_alignment(time_watch_layer, GTextAlignmentCenter);
-	// date layer dimenstions
+	// date layer dimensions
 	date_app_layer = text_layer_create(GRect(18, 124 - 84, 143, 26));
 	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
-	// phone/bridge batter level layer diemnsions
+	// phone/bridge batter level layer dimensions
 	bottom_left_text_layer = text_layer_create(GRect(48, 150 - 84, 1, 1));
 	text_layer_set_text_alignment(bottom_left_text_layer, GTextAlignmentLeft);
 	// watch battery level layer dimensions
@@ -2291,10 +2291,10 @@ void window_load_cgm(Window *window_cgm)
 	// time watch layer dimenssions
 	time_watch_layer = text_layer_create(GRect(0, 84 - 89, 143, 44));
 	text_layer_set_text_alignment(time_watch_layer, GTextAlignmentCenter);
-	// date layer dimenstions
+	// date layer dimensions
 	date_app_layer = text_layer_create(GRect(0, 124 - 89, 143, 29));
 	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
-	// phone/bridge batter level layer diemnsions
+	// phone/bridge batter level layer dimensions
 	bottom_left_text_layer = text_layer_create(GRect(0, 148 - 89, 59, 18));
 	text_layer_set_text_alignment(bottom_left_text_layer, GTextAlignmentLeft);
 	// watch battery level layer dimensions
@@ -2309,7 +2309,7 @@ void window_load_cgm(Window *window_cgm)
 	//upper and lower face layer dimensions
 	upper_face_layer = bitmap_layer_create(GRect(0,0,200,114));
 	lower_face_layer = bitmap_layer_create(GRect(0,115,200,228));
-	// icon layer diemnsions and composition mode.
+	// icon layer dimensions and composition mode.
 	icon_layer = bitmap_layer_create(GRect(139, -9, 61, 61));
 	bitmap_layer_set_compositing_mode(icon_layer, GCompOpSet);
 	// trend bitmap layer dimensions and composition mode
@@ -2335,18 +2335,18 @@ void window_load_cgm(Window *window_cgm)
 		time_watch_layer = text_layer_create(GRect(0, 111 - 115, 200, 60));
 	}
 	text_layer_set_text_alignment(time_watch_layer, GTextAlignmentCenter);
-	// date layer dimenstions
+	// date layer dimensions
 	if (display_seconds) {
 		date_app_layer = text_layer_create(GRect(0, 168 - 115, 200, 39));
 	} else {
 		date_app_layer = text_layer_create(GRect(0, 176 - 115, 200, 39));
 	}
 	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
-	// phone/bridge batter level layer diemnsions
-	bottom_left_text_layer = text_layer_create(GRect(2, 203 - 115, 100, 32));
+	// left metric layer dimensions
+	bottom_left_text_layer = text_layer_create(GRect(2, 199 - 115, 100, 32));
 	text_layer_set_text_alignment(bottom_left_text_layer, GTextAlignmentLeft);
-	// watch battery level layer dimensions
-	bottom_right_text_layer = text_layer_create(GRect(98, 203 - 115, 100, 32));
+	// right metric layer dimensions
+	bottom_right_text_layer = text_layer_create(GRect(98, 199 - 115, 100, 32));
 	text_layer_set_text_alignment(bottom_right_text_layer, GTextAlignmentRight);
 
 #endif
@@ -2368,7 +2368,7 @@ void window_load_cgm(Window *window_cgm)
 	bg_trend_layer_draw = bitmap_layer_create(GRect(0,24,144,64));
 	bitmap_layer_set_compositing_mode(bg_trend_layer_draw, GCompOpSet);
 	// delta layer dimensions
-	delta_layer = text_layer_create(GRect(0, 58, 143, 50));
+	delta_layer = text_layer_create(GRect(0, 58, 143, 50))
 	text_layer_set_text_alignment(delta_layer, GTextAlignmentLeft);
 	// message layer dimensions
 	message_layer = text_layer_create(GRect(0, 36, 143, 50));
@@ -2378,16 +2378,16 @@ void window_load_cgm(Window *window_cgm)
 	// cgmtime layer dimensions
 	cgmtime_layer = text_layer_create(GRect(104, 58, 40, 24));
 	text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentRight);
-	// time watch layer dimenssions
+	// time watch layer dimensions
 	time_watch_layer = text_layer_create(GRect(0, 84 - 89, 143, 44));
 	text_layer_set_text_alignment(time_watch_layer, GTextAlignmentCenter);
-	// date layer dimenstions
+	// date layer dimensions
 	date_app_layer = text_layer_create(GRect(0, 124 - 89, 143, 29));
 	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
-	// phone/bridge batter level layer diemnsions
+	// left metric layer dimensions
 	bottom_left_text_layer = text_layer_create(GRect(0, 148 - 89, 59, 18));
 	text_layer_set_text_alignment(bottom_left_text_layer, GTextAlignmentLeft);
-	// watch battery level layer dimensions
+	// right metric level layer dimensions
 	bottom_right_text_layer = text_layer_create(GRect(81, 148 - 89, 59, 18));
 	text_layer_set_text_alignment(bottom_right_text_layer, GTextAlignmentRight);
 
@@ -2424,17 +2424,17 @@ void window_load_cgm(Window *window_cgm)
 	// cgmtime layer dimensions
 	cgmtime_layer = text_layer_create(GRect(  7,  84,  58,  35));
 	text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentRight);
-	// time watch layer dimenssions
-	time_watch_layer = text_layer_create(GRect( 26, 118 - 121, 206,  64));
+	// time watch layer dimensions
+	time_watch_layer = text_layer_create(GRect( 26, 118 - 129, 206,  64));
 	text_layer_set_text_alignment(time_watch_layer, GTextAlignmentCenter);
-	// date layer dimenstions
-	date_app_layer = text_layer_create(GRect( 26, 178 - 121, 206,  38));
+	// date layer dimensions
+	date_app_layer = text_layer_create(GRect( 26, 178 - 129, 206,  38));
 	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
-	// phone/bridge batter level layer diemnsions
-	bottom_left_text_layer = text_layer_create(GRect( 69, 236 - 121,  130,  34));
+	// right metric layer dimensions
+	bottom_left_text_layer = text_layer_create(GRect( 69, 226 - 121,  130,  34));
 	text_layer_set_text_alignment(bottom_left_text_layer, GTextAlignmentLeft);
-	// watch battery level layer dimensions
-	bottom_right_text_layer = text_layer_create(GRect( 65, 210 - 121,  130,  34));
+	// left metric layer dimensions
+	bottom_right_text_layer = text_layer_create(GRect( 65, 208 - 121,  130,  34));
 	text_layer_set_text_alignment(bottom_right_text_layer, GTextAlignmentCenter);
 
 #endif
