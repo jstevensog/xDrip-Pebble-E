@@ -191,16 +191,10 @@ static bool draw_trend(Layer *layer, GContext *ctx) {
                             config.bgl.values[(config.bgl.index + index) % (config.bgl.size)], 
                             config.bgl.values[(config.bgl.index + index + 1) % (config.bgl.size)], 
                             t += interval);
-                    /* TRACE(TREND_LOG "Line %d %d %d %d %d %d %d", */
-                    /*         config.bgl.size, config.bgl.index, index, */
-                    /*         y0, y1,  */
-                    /*         config.bgl.values[(config.bgl.index + index) % (config.bgl.size)],  */
-                    /*         config.bgl.values[(config.bgl.index + index + 1) % (config.bgl.size)]); */
                     draw_bgl_line(y0, y1, i, i+1, bounds, ctx);
                     if (t >= (1 << 16)) {
                         index++;
                         t %= 1 << 16;
-                        /* TRACE(TREND_LOG "Index: %hu of %hu, %hu", index, config.bgl.size, t); */
                     }
                 }
             }
