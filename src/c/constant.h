@@ -4,6 +4,51 @@
 
 #include <pebble.h>
 
+/**
+ * Settings values and other constants
+ */
+#define CGM_ICON_KEY			0	// TUPLE_CSTRING, MAX 2 BYTES (10)
+#define CGM_BG_KEY			    1	// TUPLE_CSTRING, MAX 4 BYTES (253 OR 22.2)
+#define CGM_TCGM_KEY			2	// TUPLE_INT, 4 BYTES (CGM TIME)
+#define CGM_TAPP_KEY			3	// TUPLE_INT, 4 BYTES (APP / PHONE TIME)
+#define CGM_DLTA_KEY			4	// TUPLE_CSTRING, MAX 5 BYTES (BG DELTA, -100 or -10.0)
+#define CGM_UBAT_KEY			5	// TUPLE_CSTRING, MAX 3 BYTES (UPLOADER BATTERY, 100)
+#define CGM_NAME_KEY			6	// TUPLE_CSTRING, MAX 9 BYTES (Christine)
+#define CGM_TREND_BEGIN_KEY		7	// TUPLE_INT, 4 BYTES (length of CGM_TREND_DATA_KEY
+#define CGM_TREND_DATA_KEY		8	// TUPLE_BYTE[], No Maximum, based on value found in CGM_TREND_DATA_KEY
+#define CGM_TREND_END_KEY		9	// TUPLE_INT, always 0.
+#define CGM_MESSAGE_KEY		 	10	// TUPLE_CSTRING, Message to display flashing in mid screen
+#define CGM_VIBE_KEY			11	// TUPLE_INT, Vibe pattern to alert with
+#define SET_DISP_SECS			100	// Setting key - Display Seconds
+#define SET_FG_COLOUR			101	// Setting key - Foreground Colour
+#define SET_BG_COLOUR			102	// Setting key - Background Colour
+#define SET_VIBE_REPEAT		 	103	// Setting key - Vibration Repeat
+#define SET_NO_VIBE			    104	// Setting key - No Vibrations
+#define SET_LIGHT_ON_CHG		105	// Setting key - Backlight on when charging
+#define SET_SAMECOLOUR			106	// Setting key - Same Colours top and bottom
+#define SET_NO_DELTA			107	// Setting key - Do not display the Delta value
+#define SET_NO_ARROWS			108	// Setting key - Do not show arrows
+#define SET_HIGH_LINE			110	// Setting key - Enable High line on graph.
+#define SET_LOW_LINE			111	// Setting key - Enable Low line on graph.
+#define SET_COLLECT_HEALTH		112	// setting key - Enable Health collection
+#define SET_MESSAGE_TIMEOUT		113	// Setting key - Message timeout
+#define SET_BOLD_TIMEAGO		114	// Setting key - Meke the TimeAgo text bold if true
+#define SET_BOTTOM_LEFT_TEXT	115	// Setting key - What to display in the bottom left text field
+#define SET_BOTTOM_RIGHT_TEXT	116	// Setting key - What to display in the bottom right text field
+#define SET_USE_PNG             117     // Set the use of PNG images from xDrip or local rendered
+#define SET_SHOW_UNIT           118     // Show unit in delta screen
+#define SET_SHOW_DELTA          119     // Show the delta
+#define SET_SHOW_SLOPE          120     // Show the slope icon
+#define SET_SHOW_TREND          121     // Show the trend
+#define CGM_SYNC_KEY			1000	// key pebble will use to request an update.	This should probably include the "capabilities" bits
+#define PBL_PLATFORM			1001	// key pebble will use to send it's platform	This is probably not required under the new famework.
+#define PBL_APP_VER			    1002	// key pebble will use to send the face/app version.	This is probably not required under the new framework.
+#define PBL_TREND_SIZE			1003	// key pebble will use to send trend image size.
+#define PBL_TREND_LINES		 	1004	// key pebble will use to send trend line options.
+#define PBL_TREND_PERIOD		1005	// key pebble will use to send the trend period it wants.
+#define PBL_DISP_OPTS			1006	// key pebble will use to send display options (delta/arrows).
+#define PBL_VIBE_OPTS			1007	// key pebble will use to send vibration options (alerts, missed signal, no bluetooth)
+
 // Metric Display defines
 #define METRIC_NONE		     0
 #define METRIC_PHONEBATT	 1

@@ -30,11 +30,6 @@
 /*
  * Settings from clay
  */
-#define SET_USE_PNG                 117     // Set the use of PNG images from xDrip or local rendered
-#define SET_SHOW_UNIT               118     // Show unit in delta screen    @deprecated
-#define SET_SHOW_DELTA              119     // Show the delta               @deprecated
-#define SET_SHOW_SLOPE              120     // Show the slope icon          @deprecated
-#define SET_SHOW_TREND              121     // Show the trend               @deprecated
 #define SET_BGL_CRITICAL_COLOUR     301     // Colour of the top of the trend line above SET_BGL_CRITICAL
 #define SET_BGL_HIGH_COLOUR         302     // Colour of the high part of the trend line between SET_BGL_HIGH and SET_BGL_CRITICAL
 #define SET_BGL_AVERAGE_COLOUR      303     // Colour of the middle part of the trend line between SET_BGL_AVERAGE and SET_BGL_HIGH
