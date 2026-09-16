@@ -389,7 +389,7 @@ static void hr_draw_callback(void *context) {
 
 // update_health_metric_displays - Updates the bottom left and right metrics displays if they are displaying health metrics
 void update_health_metric_displays() {
-	static char step_count_text[9];
+	static char step_count_text[11];
 	int step_count;
 
 	// If there are no health metrics to display, do nothing and return.
@@ -410,7 +410,7 @@ void update_health_metric_displays() {
 				dirty.step_count = 1;
 				current_step_count = step_count;
 				LOG("Steps today: %d", step_count);
-				snprintf(step_count_text,8, "%i s", step_count);
+				snprintf(step_count_text,10, "%i \U0001F9B6", step_count);
 			}
 		} else {
 			// No data recorded yet today
@@ -1515,8 +1515,8 @@ static void load_battlevel()
 	{
 		// Zero battery level; set here, so if we get zero later we know we have an error instead
 		INFO("load_battlevel: 0 value");
-		if(bottom_left_metric == METRIC_PHONEBATT) text_layer_set_text(bottom_left_text_layer, "0%");
-		if(bottom_right_metric == METRIC_PHONEBATT) text_layer_set_text(bottom_right_text_layer, "0%");
+		if(bottom_left_metric == METRIC_PHONEBATT) text_layer_set_text(bottom_left_text_layer, "0% \U0001F4F1");
+		if(bottom_right_metric == METRIC_PHONEBATT) text_layer_set_text(bottom_right_text_layer, "0% \U0001F4F1");
 		if (!LowBatteryAlert)
 		{
 			INFO("load_battlevel: 0 value, vibe");
@@ -1546,11 +1546,11 @@ static void load_battlevel()
 
 	// get current battery level and set battery level text with percent
 #ifdef PBL_ROUND
-	snprintf(battlevel_percent, BATTLEVEL_FORMATTED_SIZE, " %lu%%", current_battlevel);
+	snprintf(battlevel_percent, BATTLEVEL_FORMATTED_SIZE, "%lu%% \U0001F4F1", current_battlevel);
 #elif PBL_COLOR
-	snprintf(battlevel_percent, BATTLEVEL_FORMATTED_SIZE, " B:%lu%%", current_battlevel);
+	snprintf(battlevel_percent, BATTLEVEL_FORMATTED_SIZE, "%lu%% \U0001F4F1", current_battlevel);
 #else
-	snprintf(battlevel_percent, BATTLEVEL_FORMATTED_SIZE, "B:%lu%%", current_battlevel);
+	snprintf(battlevel_percent, BATTLEVEL_FORMATTED_SIZE, "%lu%% \U0001F4F1", current_battlevel);
 #endif
 	LOG("load_battlevel: %s\%", battlevel_percent);
 #ifndef PBL_ROUND
