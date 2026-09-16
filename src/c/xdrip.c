@@ -107,11 +107,6 @@ void health_schedule_send(void) {
 // battery_handler - updates the pebble battery percentage.
 static void battery_handler()
 {
-    BatteryChargeState charge_state = battery_state_service_peek();
-	// If there are no battery level metric display elements, exit
-	if(state.left_text_field != METRIC_WATCHBATT && state.right_text_field != METRIC_WATCHBATT) {
-		return;
-	}
     state.battery_is_charging = charge_state.is_charging;
     state.battery_level = charge_state.charge_percent;
 
