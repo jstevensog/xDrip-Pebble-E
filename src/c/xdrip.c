@@ -512,20 +512,20 @@ static void health_schedule_send(void) {
 static void battery_handler(BatteryChargeState charge_state)
 {
 
-	static char watch_battlevel_percent[9];
 	// If there are no battery level metric display elements, exit
 	if(bottom_left_metric != METRIC_WATCHBATT && bottom_right_metric != METRIC_WATCHBATT) {
 		return;
 	}
+	static char watch_battlevel_percent[11];
 
 #ifdef PBL_COLOR 
 	#ifdef PBL_ROUND
 	snprintf(watch_battlevel_percent, BATTLEVEL_FORMATTED_SIZE, "%i%% ", charge_state.charge_percent);
 	#else
-	snprintf(watch_battlevel_percent, BATTLEVEL_FORMATTED_SIZE, "W:%i%% ", charge_state.charge_percent);
+	snprintf(watch_battlevel_percent, BATTLEVEL_FORMATTED_SIZE, "%i%% \U0000231A ", charge_state.charge_percent);
 	#endif
 #else
-	snprintf(watch_battlevel_percent, BATTLEVEL_FORMATTED_SIZE, "W:%i%%", charge_state.charge_percent);
+	snprintf(watch_battlevel_percent, BATTLEVEL_FORMATTED_SIZE, "%i%% \U0000231A", charge_state.charge_percent);
 #endif
 	LOG(" battery_handler: watch_battlevel_percent: %s", watch_battlevel_percent);
 	LOG(" battery_handler: BackLightOnCharge: %u", BacklightOnCharge);

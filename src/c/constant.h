@@ -83,7 +83,7 @@
 
 
 // BATTERY LEVEL FORMATTED SIZE used for Bridge/Phone and Watch battery indications
-#define BATTLEVEL_FORMATTED_SIZE 8
+#define BATTLEVEL_FORMATTED_SIZE 10
 
 // global constants for time durations
 #define MINUTEAGO ((uint8_t) 60)
