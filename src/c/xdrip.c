@@ -1995,9 +1995,9 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 				comm_handle(data);
 #endif
 				//assume dictionary from xDrip.  So reset the stale_data_timer
-				if(stale_data_timer != NULL || !app_timer_reschedule(stale_data_timer, stale_data_timeout))
+				if(stale_data_timer != NULL)
 				{
-					stale_data_timer = app_timer_register(stale_data_timeout, handle_stale_data_tick, NULL);
+					app_timer_reschedule(stale_data_timer, stale_data_timeout);
 				}
 				/* LOG("inbox_received_handler_cgm: Dictionary Key not recognised: %ld", data->key); */
 			break;
@@ -2073,7 +2073,7 @@ void handle_stale_data_tick(void *data)
 {
 	INFO("handle_stale_data_tick: entered");
 	alert_handler_cgm(APPSYNC_ERR_VIBE);
-	stale_data_timer = app_timer_register(stale_data_timeout, handle_stale_data_tick, NULL);
+	app_timer_reschedule(stale_data_timer,stale_data_timeout);
 }
 
 // second tick handler, used for seconds display
