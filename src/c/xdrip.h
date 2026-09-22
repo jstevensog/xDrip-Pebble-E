@@ -61,6 +61,7 @@
 #define SET_BOLD_TIMEAGO		114	// Setting key - Meke the TimeAgo text bold if true
 #define SET_BOTTOM_LEFT_TEXT	        115	// Setting key - What to display in the bottom left text field
 #define SET_BOTTOM_RIGHT_TEXT	        116	// Setting key - What to display in the bottom right text field
+#define STALE_DATA_ALERT_TIMEOUT	122	// Setting key - How long to wait on data from xDrip before alerting through vibration.
 #define CGM_SYNC_KEY			1000	// key pebble will use to request an update.	This should probably include the "capabilities" bits
 #define PBL_PLATFORM			1001	// key pebble will use to send it's platform	This is probably not required under the new famework.
 #define PBL_APP_VER			1002	// key pebble will use to send the face/app version.	This is probably not required under the new framework.
@@ -98,6 +99,7 @@ int myBGAtoi(char *str);
 //Handler functions and callbacks
 void handle_bluetooth_cgm(bool bt_connected);
 void handle_message_tick(void *data);
+void handle_stale_data_tick(void *data);
 void handle_minute_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cgm);
 void handle_second_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cgm);
 void inbox_dropped_handler_cgm(AppMessageResult appmsg_indrop_error, void *context);

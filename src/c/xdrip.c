@@ -89,6 +89,12 @@ static uint32_t message_tick_timeout = 15000; // default of 15s
 static AppTimer *message_tick_timer = NULL;
 
 /**
+* Stale data timer.  User definable from 6 minutes to 15 minutes.
+* Indicates to the user by vibration that there has not been an update to readings data for a while.
+*/
+static uint32_t stale_data_timeout = 360000; // default 6 minutes
+static AppTimer *stale_data_timer = NULL;
+/**
  * Global window and UI variables
  */
 // ANYTHING THAT IS CALLED BY PEBBLE API HAS TO BE NOT STATIC
@@ -1840,6 +1846,12 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 				persist_write_bool(SET_VIBE_REPEAT, vibe_repeat);
 			break;
 
+			case STALE_DATA_ALERT_TIMEOUT:
+				LOG("Got the Stale Data Alert Timeout, setting is %i", data->value->uint32);
+				stale_data_timeout = data->value->uint32 * 60000;
+				persist_write_int(STALE_DATA_ALERT_TIMEOUT, data->value->uint32);
+			break;
+
 			case SET_NO_VIBE:
 				LOG("Got No Vibe Key, message is \"%lx\"", data->value->uint32);
 				TurnOffAllVibrations = data->value->uint8 != 0;
@@ -1982,6 +1994,11 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 #ifdef ENABLE_COMM_FRAMEWORK
 				comm_handle(data);
 #endif
+				//assume dictionary from xDrip.  So reset the stale_data_timer
+				if(stale_data_timer != NULL || !app_timer_reschedule(stale_data_timer, stale_data_timeout))
+				{
+					stale_data_timer = app_timer_register(stale_data_timeout, handle_stale_data_tick, NULL);
+				}
 				/* LOG("inbox_received_handler_cgm: Dictionary Key not recognised: %ld", data->key); */
 			break;
 		}
@@ -2051,6 +2068,15 @@ void handle_message_tick(void *data)
 	if (display_message) message_tick_timer = app_timer_register(message_tick_timeout, handle_message_tick, NULL);
 }
 
+// stale data tick handler
+void handle_stale_data_tick(void *data)
+{
+	INFO("handle_stale_data_tick: entered");
+	alert_handler_cgm(APPSYNC_ERR_VIBE);
+	stale_data_timer = app_timer_register(stale_data_timeout, handle_stale_data_tick, NULL);
+}
+
+// second tick handler, used for seconds display
 void handle_second_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cgm)
 {
 	TRACE("handle_second_tick_cgm:");
@@ -2663,12 +2689,14 @@ void window_unload_cgm(Window *window_cgm)
 static void init_cgm(void)
 {
 	LOG("init_cgm");
+	//Load persistent settings
 	use_png = persist_exists(SET_USE_PNG) ? persist_read_bool(SET_USE_PNG) : false;
 	show_slope = persist_exists(SET_SHOW_SLOPE) ? persist_read_bool(SET_SHOW_SLOPE) : true;
 	show_delta = persist_exists(SET_SHOW_DELTA) ? persist_read_bool(SET_SHOW_DELTA) : true;
 	show_trend = persist_exists(SET_SHOW_TREND) ? persist_read_bool(SET_SHOW_TREND) : true;
+	stale_data_timeout = persist_exists(STALE_DATA_ALERT_TIMEOUT) ? persist_read_int(STALE_DATA_ALERT_TIMEOUT) : 360000;
+	LOG("init_cgm: stale_data_timeout \"%u\".", stale_data_timeout);
 
-	//Load persistent settings
 	display_seconds = persist_exists(SET_DISP_SECS)? persist_read_bool(SET_DISP_SECS) : false;
 	LOG("init_cgm: display_seccongs \"%u\".", display_seconds);
 	vibe_repeat = persist_exists(SET_VIBE_REPEAT)? persist_read_bool(SET_VIBE_REPEAT) : true;
@@ -2743,6 +2771,7 @@ static void init_cgm(void)
 
 	tick_timer_service_subscribe(MINUTE_UNIT, &handle_minute_tick_cgm);
 	message_tick_timer = app_timer_register(message_tick_timeout, handle_message_tick, NULL);
+	stale_data_timer = app_timer_register(stale_data_timeout, handle_stale_data_tick, NULL);
 
 	// subscribe to the bluetooth connection service
 	bluetooth_connection_service_subscribe(handle_bluetooth_cgm);
@@ -2835,6 +2864,7 @@ static void deinit_cgm(void)
 	TRACE("DEINIT, UNSUBSCRIBE TICK TIMER");
 	tick_timer_service_unsubscribe();
 	app_timer_cancel(message_tick_timer);
+	app_timer_cancel(stale_data_timer);
 
 	// unsubscribe to the bluetooth connection service
 	TRACE("DEINIT, UNSUBSCRIBE BLUETOOTH");

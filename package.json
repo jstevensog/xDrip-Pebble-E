@@ -179,6 +179,7 @@
       "show_delta": 119,
       "show_slope": 120,
       "show_trend": 121,
+      "stale_data_delay": 122,
       "trend_critical_color": 301,
       "trend_high_color": 302,
       "trend_average_color": 303,

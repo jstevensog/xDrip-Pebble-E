@@ -26,6 +26,15 @@
     "defaultValue": false
   },
   {
+      "type": "slider",
+      "messageKey": "stale_data_delay",
+      "defaultValue": 6,
+      "label": "Alert when no data recieved for X minutes",
+      "min": 6,
+      "max": 16,
+      "step": 1
+  },
+  {
     "type": "toggle",
     "messageKey": "lightoncharge",
     "label": "Backlight on when watch is charging",
