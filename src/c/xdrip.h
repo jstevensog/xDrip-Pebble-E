@@ -64,6 +64,7 @@ int myBGAtoi(char *str);
 //Handler functions and callbacks
 void handle_bluetooth_cgm(bool bt_connected);
 void handle_message_tick(void *data);
+void handle_stale_data_tick(void *data);
 void handle_minute_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cgm);
 void handle_second_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cgm);
 void inbox_dropped_handler_cgm(AppMessageResult appmsg_indrop_error, void *context);

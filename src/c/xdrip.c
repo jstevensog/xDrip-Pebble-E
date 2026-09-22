@@ -414,6 +414,15 @@ void timer_callback_cgm(void *data)
 // format current time from watch
 
 
+// stale data tick handler
+void handle_stale_data_tick(void *data)
+{
+	INFO("handle_stale_data_tick: entered");
+	alert_handler_cgm(APPSYNC_ERR_VIBE);
+	stale_data_timer = app_timer_register(stale_data_timeout, handle_stale_data_tick, NULL);
+}
+
+// second tick handler, used for seconds display
 void handle_second_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cgm)
 {
 	TRACE("handle_second_tick_cgm:");
@@ -463,6 +472,9 @@ static void init_cgm(void)
 
 	tick_timer_service_subscribe(MINUTE_UNIT, &handle_minute_tick_cgm);
 
+	message_tick_timer = app_timer_register(message_tick_timeout, handle_message_tick, NULL);
+	stale_data_timer = app_timer_register(stale_data_timeout, handle_stale_data_tick, NULL);
+
 	// subscribe to the bluetooth connection service
 	bluetooth_connection_service_subscribe(handle_bluetooth_cgm);
 
@@ -510,6 +522,9 @@ static void deinit_cgm(void)
 	// unsubscribe to the tick timer service
 	TRACE("DEINIT, UNSUBSCRIBE TICK TIMER");
 	tick_timer_service_unsubscribe();
+
+	app_timer_cancel(message_tick_timer);
+	app_timer_cancel(stale_data_timer);
 
 	// unsubscribe to the bluetooth connection service
 	TRACE("DEINIT, UNSUBSCRIBE BLUETOOTH");
