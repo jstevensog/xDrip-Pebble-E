@@ -271,11 +271,13 @@ void handle_bluetooth_cgm(bool bt_connected)
 		// Bluetooth is on, reset state.bluetooth_alert
 		TRACE("HANDLE BT: BLUETOOTH ON");
 		state.bluetooth_alert = false;
+		send_cmd_cgm();
 		if (BT_timer == NULL)
 		{
 			// no timer is set, so need to reset timer pop
 			state.bluetooth_timer_pop = false;
 		}
+		// mark data as dirty to prompt hb send
 #ifdef PBL_COLOR
         CALLBACK(state.wf_cb.update_colours);
 #endif
@@ -307,7 +309,7 @@ void BT_timer_callback(void *data)
 // Needs to include configuration values that xDrip can read and respond to.
 static void send_cmd_cgm(void)
 {
-	AppMessageResult sendcmd_openerr = APP_MSG_OK;
+	AppMessageResult sendcmd_openerr = APP_MSG_NOT_CONNECTED;
 	AppMessageResult sendcmd_senderr = APP_MSG_OK;
 	DictionaryIterator *iter = NULL;
 
@@ -320,13 +322,14 @@ static void send_cmd_cgm(void)
 
 	// if bt escapes early (above) outbox_begin MAY NOT be triggered as it will leave the outbox in
 	// an unrecoverable state, the entire function must be performed if app_message_outbox_begin succeeds.
-	sendcmd_openerr = app_message_outbox_begin(&iter);
 
-	if (sendcmd_openerr != APP_MSG_OK)
+	while (sendcmd_openerr != APP_MSG_OK)
 	{
+		sendcmd_openerr = app_message_outbox_begin(&iter);
 		ERROR("send_cmd_cgm: ERR CODE: %i RES: %s", sendcmd_openerr, translate_app_error(sendcmd_openerr));
 		// proceed to send since it's the only way to recover
-		goto send_appmsg;
+		// goto send_appmsg;
+		psleep(500);
 	}
 
     comm_request_heartbeat(
@@ -340,7 +343,7 @@ static void send_cmd_cgm(void)
 
 	dict_write_end(iter);
 
-send_appmsg:
+//send_appmsg:
 	TRACE("send_cmd_cgm: Opening outbox");
 	sendcmd_senderr = app_message_outbox_send();
 	if (sendcmd_senderr != APP_MSG_OK && sendcmd_senderr != APP_MSG_BUSY && sendcmd_senderr != APP_MSG_SEND_REJECTED)
@@ -418,9 +421,13 @@ void timer_callback_cgm(void *data)
 void handle_stale_data_tick(void *data)
 {
 	INFO("handle_stale_data_tick: entered");
+	text_layer_set_text(delta_layer, "Stale Data!");
 	alert_handler_cgm(APPSYNC_ERR_VIBE);
-	app_timer_reschedule(stale_data_timer,stale_data_timeout);
-	text_layer_set_text(delta_layer, "STALE DATA");
+	if(stale_data_timer == NULL || !app_timer_reschedule(stale_data_timer,stale_data_timeout)) 
+	{
+		INFO("handle_stale_data_tick: reset stale_data_timer to %l", stale_data_timeout);
+		app_timer_register(stale_data_timeout, handle_stale_data_tick, NULL);
+	}
 }
 
 // second tick handler, used for seconds display
