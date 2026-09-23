@@ -147,6 +147,9 @@ static GFont bg_value_font;
 static uint8_t bottom_left_metric = 1;
 static uint8_t bottom_right_metric = 1;
 
+//function prototypes
+static void send_cmd_cgm(void);
+
 #ifdef PBL_HEALTH
 TextLayer *step_count_text_layer = NULL;
 #if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_FLINT) || defined(PBL_PLATFORM_GABBRO)
@@ -806,11 +809,13 @@ void handle_bluetooth_cgm(bool bt_connected)
 		// Bluetooth is on, reset BluetoothAlert
 		TRACE("HANDLE BT: BLUETOOTH ON");
 		BluetoothAlert = false;
+		send_cmd_cgm();
 		if (BT_timer == NULL)
 		{
 			// no timer is set, so need to reset timer pop
 			BT_timer_pop = false;
 		}
+		// mark data as dirty to prompt hb send
 #ifdef PBL_COLOR
 		if(SameColourTopAndBottom) {
 			text_layer_set_text_color(delta_layer, fg_colour);
@@ -1618,7 +1623,7 @@ static void load_battlevel()
 // Needs to include configuration values that xDrip can read and respond to.
 static void send_cmd_cgm(void)
 {
-	AppMessageResult sendcmd_openerr = APP_MSG_OK;
+	AppMessageResult sendcmd_openerr = APP_MSG_NOT_CONNECTED;
 	AppMessageResult sendcmd_senderr = APP_MSG_OK;
 	DictionaryIterator *iter = NULL;
 
@@ -1631,13 +1636,14 @@ static void send_cmd_cgm(void)
 
 	// if bt escapes early (above) outbox_begin MAY NOT be triggered as it will leave the outbox in
 	// an unrecoverable state, the entire function must be performed if app_message_outbox_begin succeeds.
-	sendcmd_openerr = app_message_outbox_begin(&iter);
 
-	if (sendcmd_openerr != APP_MSG_OK)
+	while (sendcmd_openerr != APP_MSG_OK)
 	{
+		sendcmd_openerr = app_message_outbox_begin(&iter);
 		ERROR("send_cmd_cgm: ERR CODE: %i RES: %s", sendcmd_openerr, translate_app_error(sendcmd_openerr));
 		// proceed to send since it's the only way to recover
-		goto send_appmsg;
+		// goto send_appmsg;
+		psleep(500);
 	}
 	comm_heartbeat hb;
 	hb.raw = 0; // reset
@@ -1682,7 +1688,7 @@ static void send_cmd_cgm(void)
 
 	dict_write_end(iter);
 
-send_appmsg:
+//send_appmsg:
 	TRACE("send_cmd_cgm: Opening outbox");
 	sendcmd_senderr = app_message_outbox_send();
 	if (sendcmd_senderr != APP_MSG_OK && sendcmd_senderr != APP_MSG_BUSY && sendcmd_senderr != APP_MSG_SEND_REJECTED)
@@ -1848,8 +1854,10 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 
 			case STALE_DATA_ALERT_TIMEOUT:
 				LOG("Got the Stale Data Alert Timeout, setting is %i", data->value->uint32);
-				stale_data_timeout = data->value->uint32 * 60000;
-				persist_write_int(STALE_DATA_ALERT_TIMEOUT, data->value->uint32);
+				if(data->value->uint32 >=6) {
+					stale_data_timeout = data->value->uint32 * 60000;
+					persist_write_int(STALE_DATA_ALERT_TIMEOUT, data->value->uint32);
+				}
 			break;
 
 			case SET_NO_VIBE:
@@ -1995,9 +2003,10 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 				comm_handle(data);
 #endif
 				//assume dictionary from xDrip.  So reset the stale_data_timer
-				if(stale_data_timer != NULL)
+				INFO("Recieved comms from xDrip.  Resetting stale_data_timer to %i minutes", stale_data_timeout);
+				if(stale_data_timer == NULL || !app_timer_reschedule(stale_data_timer, stale_data_timeout))
 				{
-					app_timer_reschedule(stale_data_timer, stale_data_timeout);
+					app_timer_register(stale_data_timeout, handle_stale_data_tick, NULL);
 				}
 				/* LOG("inbox_received_handler_cgm: Dictionary Key not recognised: %ld", data->key); */
 			break;
@@ -2072,9 +2081,13 @@ void handle_message_tick(void *data)
 void handle_stale_data_tick(void *data)
 {
 	INFO("handle_stale_data_tick: entered");
+	text_layer_set_text(delta_layer, "Stale Data!");
 	alert_handler_cgm(APPSYNC_ERR_VIBE);
-	app_timer_reschedule(stale_data_timer,stale_data_timeout);
-	text_layer_set_text(delta_layer, "STALE DATA");
+	if(stale_data_timer == NULL || !app_timer_reschedule(stale_data_timer,stale_data_timeout)) 
+	{
+		INFO("handle_stale_data_tick: reset stale_data_timer to %l", stale_data_timeout);
+		app_timer_register(stale_data_timeout, handle_stale_data_tick, NULL);
+	}
 }
 
 // second tick handler, used for seconds display
@@ -2695,7 +2708,7 @@ static void init_cgm(void)
 	show_slope = persist_exists(SET_SHOW_SLOPE) ? persist_read_bool(SET_SHOW_SLOPE) : true;
 	show_delta = persist_exists(SET_SHOW_DELTA) ? persist_read_bool(SET_SHOW_DELTA) : true;
 	show_trend = persist_exists(SET_SHOW_TREND) ? persist_read_bool(SET_SHOW_TREND) : true;
-	stale_data_timeout = persist_exists(STALE_DATA_ALERT_TIMEOUT) ? persist_read_int(STALE_DATA_ALERT_TIMEOUT) : 360000;
+	stale_data_timeout = persist_exists(STALE_DATA_ALERT_TIMEOUT) ? persist_read_int(STALE_DATA_ALERT_TIMEOUT) * 60000 : 360000;
 	LOG("init_cgm: stale_data_timeout \"%u\".", stale_data_timeout);
 
 	display_seconds = persist_exists(SET_DISP_SECS)? persist_read_bool(SET_DISP_SECS) : false;
