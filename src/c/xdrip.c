@@ -420,6 +420,7 @@ void handle_stale_data_tick(void *data)
 	INFO("handle_stale_data_tick: entered");
 	alert_handler_cgm(APPSYNC_ERR_VIBE);
 	app_timer_reschedule(stale_data_timer,stale_data_timeout);
+	text_layer_set_text(delta_layer, "STALE DATA");
 }
 
 // second tick handler, used for seconds display
