@@ -4,24 +4,24 @@
 #include "../debug.h"
 #include "ui_insulin.h"
 
-static AppState *state = NULL;
+extern AppState state;
 
-static Layer *root = NULL;
-static Layer *bg = NULL;
+Layer *root = NULL;
+Layer *bg = NULL;
 
-static TextLayer *bolus_up = NULL;
-static TextLayer *bolus_text = NULL;
-static TextLayer *bolus_down = NULL;
+TextLayer *bolus_up = NULL;
+TextLayer *bolus_text = NULL;
+TextLayer *bolus_down = NULL;
 
-static TextLayer *basal_up = NULL;
-static TextLayer *basal_text = NULL;
-static TextLayer *basal_down = NULL;
+TextLayer *basal_up = NULL;
+TextLayer *basal_text = NULL;
+TextLayer *basal_down = NULL;
 
-static TextLayer *back = NULL;
-static TextLayer *enter = NULL;
+TextLayer *back = NULL;
+TextLayer *enter = NULL;
 
-static int bolus_value = 16;
-static int basal_value = 16;
+int bolus_value = 16;
+int basal_value = 16;
 
 #define BOLUS_UP_X 10
 #define BOLUS_UP_Y 10
@@ -71,7 +71,7 @@ static int basal_value = 16;
 static char bolus_tx[12];
 static char basal_tx[12];
 static int touch_region = 0;
-TouchServiceHandler cb;
+static TouchServiceHandler cb;
 
 static bool bolus_enabled = false;
 static bool basal_enabled = false;
@@ -148,13 +148,12 @@ void insulin_touch_handler(const TouchEvent *event, void *context) {
     }
 }
 
-static char *bolus_up_text = "+";
-static char *bolus_down_text = "-";
-static char *back_text = "<";
-static char *enter_text = "Ok";
+char *bolus_up_text = "+";
+char *bolus_down_text = "-";
+char *back_text = "<";
+char *enter_text = "Ok";
 
-void insulin_display_init(AppState *val, Layer *root, TouchServiceHandler handoff) {
-    state = val;
+void insulin_display_init(Layer *root, TouchServiceHandler handoff) {
     cb = handoff;
     // bg
     bg = layer_create((GRect) { {0, 0}, {PBL_DISPLAY_WIDTH, PBL_DISPLAY_HEIGHT }});

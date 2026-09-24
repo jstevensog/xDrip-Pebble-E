@@ -6,7 +6,7 @@
 #define insulin_display_init(...)
 #define insulin_display_deinit(...)
 #else
-void insulin_display_init(AppState *val, Layer *root, TouchServiceHandler handoff);
+void insulin_display_init(Layer *root, TouchServiceHandler handoff);
 void insulin_display_deinit(void);
 #endif
 #endif
