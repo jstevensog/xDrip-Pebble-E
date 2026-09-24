@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <pebble.h>
 
+#include "../xdrip.h"
+
 /**
  * Message codes for framework communication
  */
@@ -25,6 +27,7 @@
 // value means "not available" and is not written. See comm_send_health().
 #define FRAMEWORK_HEALTH_HR         2013
 #define FRAMEWORK_HEALTH_STEPS      2014
+#define FRAMEWORK_BASAL_BOLUS       2015
 
 #define SENSOR_STATE_ACTIVE         0
 #define SENSOR_STATE_WARMUP         1
@@ -157,6 +160,12 @@ typedef struct comm_health_t {
     uint32_t steps;        // step count so far today, 0 = not available
 } comm_health;
 
+
+typedef struct comm_basal_bolus_t {
+    uint8_t basal;
+    uint8_t bolus;
+} comm_basal_bolus;
+
 #pragma pack()
 
 /*
@@ -181,12 +190,12 @@ typedef struct comm_callback_t {
     void (*sensor_info)(comm_sensor_info *value);
     void (*png)(comm_png_data *data);
     void (*health)(comm_health value);
-} comm_callback;
+} CommunicationCallbacks;
 
 /**
  * Initialize the comms with a callback function blob
  */
-void comm_init(comm_callback *cb);
+void comm_init(CommunicationCallbacks *cb);
 
 /**
  * Handle a tuple of data, place this in the app mesage processing thread or function
@@ -208,10 +217,14 @@ void comm_send_health(DictionaryIterator *iter, comm_health data);
  */
 void comm_request_heartbeat(
         DictionaryIterator *iter,
-        bool use_png, Layer *pnglayer,
+        bool use_png, GRect png_bounds,
         bool update_lines,
         bool update_cgm, uint32_t current_cgm_time, 
         bool update_battery,
         bool update_sensor
 );
+
+#ifdef ENABLE_TOUCH
+void comm_send_basal_bolus(int32_t basal, int32_t bolus);
+#endif
 #endif // __COMMUNICATION_H__

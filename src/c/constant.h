@@ -199,4 +199,6 @@
 
 #define BWP_SYMBOL "😐"
 
+#define TRUE 1
+#define FALSE 0
 #endif // __CONSTANT_H__

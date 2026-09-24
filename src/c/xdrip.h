@@ -15,7 +15,7 @@
 /*
  * Highly experimental, requires custom firmware
  */
-//#define ENABLE_TOUCH
+#define ENABLE_TOUCH
 
 /** 
  * Face name
@@ -83,4 +83,6 @@ void reset_timer_callback_cgm(int32_t seconds);
 void update_health_metric_displays();
 void health_handler(HealthEventType event, void *context);
 #endif
+
+int mgdl_to_mmoll_str(int mgdl, char *result, const int size, int unit);
 #endif // __XDRIP_H__

@@ -5,9 +5,9 @@
 
 #define CM "COMM FW: "
 
-comm_callback *cb = NULL;
+static CommunicationCallbacks *cb = NULL;
 
-void comm_init(comm_callback *callbacks) {
+void comm_init(CommunicationCallbacks *callbacks) {
     cb = callbacks;
 }
 
@@ -49,8 +49,8 @@ void comm_handle(Tuple *data) {
             TRACE(CM "Update value");
             comm_bgl_data *value = (comm_bgl_data *) data->value->data;
             if (cb->bgl_data != NULL) cb->bgl_data(value);
-            /* if (cb->bgl_timestamp != NULL) cb->bgl_timestamp(value->timestamp); */
-            /* if (cb->bgl_value != NULL) cb->bgl_value(value->bgl); */
+            if (cb->bgl_timestamp != NULL) cb->bgl_timestamp(value->timestamp);
+            if (cb->bgl_value != NULL) cb->bgl_value(value->bgl);
             break;
         case FRAMEWORK_BGL_SERIES:
             TRACE(CM "BGL Data stream");
@@ -110,7 +110,7 @@ extern uint32_t current_cgm_time; // for now steal time, we could track it local
 
 void comm_request_heartbeat(
         DictionaryIterator *iter,
-        bool use_png, Layer *pnglayer,
+        bool use_png, GRect png_bounds,
         bool update_lines,
         bool update_cgm, uint32_t current_cgm_time, 
         bool update_battery,
@@ -155,8 +155,8 @@ void comm_request_heartbeat(
 		hb.send_slope_arrow = 1;
 		hb.send_delta_value = 1;
 		dict_write_uint32(iter, FRAMEWORK_BGL_VALUE, current_cgm_time); // request update
-		if (use_png && pnglayer != NULL) {
-			comm_request_png(iter, layer_get_bounds(pnglayer));
+		if (use_png) {
+			comm_request_png(iter, png_bounds);
 		}
 	}
 
@@ -175,5 +175,52 @@ void comm_send_health(DictionaryIterator *iter, comm_health data) {
     if (iter == NULL) return;
     if (data.heart_rate > 0) dict_write_uint32(iter, FRAMEWORK_HEALTH_HR, data.heart_rate);
     if (data.steps > 0)      dict_write_uint32(iter, FRAMEWORK_HEALTH_STEPS, data.steps);
+}
+#endif
+
+// health_send_values - push the current heart rate + step total to the phone as
+// a standalone AppMessage via the comm framework. Scheduled ~2s after an
+// incoming CGM push (health_schedule_send), when xDrip's process is awake and
+// its broadcast receiver will actually get the reply.
+// // TODO fix health
+/* static void health_send_values(void *data) { */
+/* 	health_send_timer = NULL; */
+/* 	if (!state.collect_health || state.bluetooth_alert) return; */
+/*  */
+/* 	health_poll(); */
+/* 	if (state.hbm == 0 && state.step_count == 0) return; */
+/*  */
+/* 	DictionaryIterator *iter = NULL; */
+/* 	if (app_message_outbox_begin(&iter) != APP_MSG_OK) { */
+/* 		LOG("health_send_values: outbox busy"); */
+/* 		return; */
+/* 	} */
+/* 	comm_send_health(iter, (comm_health){ */
+/* 		.heart_rate = (uint16_t) state.hbm, */
+/* 		.steps = (uint32_t) state.step_count, */
+/* 	}); */
+/*  */
+/* 	dict_write_end(iter); */
+/* 	if (app_message_outbox_send() == APP_MSG_OK) { */
+/* 		LOG("health_send_values: sent hr=%ld steps=%ld", state.step_count, state.step_count); */
+/* 	} */
+/* } */
+
+#ifdef ENABLE_TOUCH
+void comm_send_basal_bolus(int32_t basal, int32_t bolus) {
+    DictionaryIterator *iter = NULL;
+	if (app_message_outbox_begin(&iter) != APP_MSG_OK) {
+		LOG("health_send_values: outbox busy");
+		return;
+	}
+    comm_basal_bolus values = {
+        .basal = basal,
+        .bolus = bolus
+    };
+    dict_write_data(iter, FRAMEWORK_BASAL_BOLUS, (uint8_t *) &values, sizeof(values));
+	dict_write_end(iter);
+	if (app_message_outbox_send() == APP_MSG_OK) {
+        LOG("Send basal and bolus values: %d %d", basal, bolus);
+	}
 }
 #endif

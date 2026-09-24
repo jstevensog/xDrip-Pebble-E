@@ -268,7 +268,6 @@ static bool draw_trend_lines(Layer *layer, GContext *ctx) {
             if (config.bgl_high_line) {
                 graphics_context_set_stroke_color(ctx, COLOR_FALLBACK(config.high_line_color, GColorWhite));
                 graphics_context_set_fill_color(ctx, COLOR_FALLBACK(config.high_line_color, GColorWhite));
-                ERROR("%d %d", config.line_width, s);
                 for (int x = 0; x < bounds.size.w; x+=s) {
                     graphics_fill_rect(ctx, (GRect) 
                             { 
@@ -558,5 +557,5 @@ void trend_set_low_line(comm_low_limit value) {
 int trend_isinitialized(void) { return config.bgl.initialized; }
 
 void trend_set_hidden(bool value) {
-    layer_set_hidden(config.layer, value);
+    if (config.layer != NULL) layer_set_hidden(config.layer, value);
 }

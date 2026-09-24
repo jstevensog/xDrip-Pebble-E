@@ -85,7 +85,11 @@ typedef struct {
     int16_t size;                           // Actual size of series (depends on update rate and hours) 
     int16_t index;                          // Current index of the series 
     int8_t  hours;                          // Number of hours displayed
+#ifndef PBL_PLATFORM_APLITE
     trend_bgl_value values[PBL_DISPLAY_WIDTH]; // Values, maximum is the display width
+#else
+    trend_bgl_value values[20*4]; // Values, maximum is the display width
+#endif
 } bgl_array;
 
 
