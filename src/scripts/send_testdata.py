@@ -89,9 +89,12 @@ def parse_record(record: bytes):
     try:
         filename = record[8:24].replace(b"\x01", b"").decode('ascii')
         line_no = int.from_bytes(record[35:37], 'little')
-        message = record[37:-5].decode('ascii')
+        message = record[37:-5].decode('ascii', errors='ignore')
     except:
-        print(record.hex())
+        try:
+            message = record[37:-11].decode('ascii', errors='ignore')
+        except:
+            print(record.hex())
     return filename, line_no, message
 
 
@@ -222,6 +225,7 @@ async def main():
         exit(1)
     except Exception as e:
         print(f"Failed to connect: {e}")
+        raise
         exit(1)
     pebble.send_packet(RawAppRunState(command=1, uuid=ud.bytes))
     await asyncio.sleep(2)
