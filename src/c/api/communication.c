@@ -1,14 +1,17 @@
 #include "communication.h"
 #include "../xdrip.h"
 #include "../debug.h"
+#include "../api/settings.h"
 #include <pebble.h>
 
 #define CM "COMM FW: "
 
+static AppState *state = NULL;
 static CommunicationCallbacks *cb = NULL;
 
-void comm_init(CommunicationCallbacks *callbacks) {
-    cb = callbacks;
+void comm_init(void *value) {
+    state = value;
+    cb = &state->comm_callbacks;
 }
 
 void comm_handle(Tuple *data) {
@@ -115,7 +118,8 @@ void comm_request_heartbeat(
         bool update_cgm, uint32_t current_cgm_time, 
         bool update_battery,
         bool update_sensor
-) {
+)
+{
 	comm_heartbeat hb = {0}; // force zero init
 
     // send if we are a colour pebble or not 
@@ -170,7 +174,8 @@ void comm_request_heartbeat(
 }
 
 #ifdef PBL_HEALTH
-void comm_send_health(DictionaryIterator *iter, comm_health data) {
+void comm_send_health(DictionaryIterator *iter, comm_health data)
+{
     TRACE(CM "Sending health hr=%d steps=%d", data.heart_rate, (int) data.steps);
     if (iter == NULL) return;
     if (data.heart_rate > 0) dict_write_uint32(iter, FRAMEWORK_HEALTH_HR, data.heart_rate);

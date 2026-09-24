@@ -2,7 +2,6 @@
 #define __SETTINGS_H__
 #include <stdint.h>
 #include <pebble.h>
-#include "communication.h"
 #include "callbacks.h"
 
 /**

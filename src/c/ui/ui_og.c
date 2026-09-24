@@ -2060,7 +2060,8 @@ void window_unload_cgm(Window *window_cgm)
  * init WF state
  */
 
-void ui_og_init(AppState *value) {
+void ui_og_init(AppState *value)
+{
     state = value; 
     state->wf_cb.set_message = set_message;
     state->wf_cb.set_icon = set_icon;
@@ -2172,7 +2173,8 @@ void ui_og_init(AppState *value) {
 	if (state->show_message) update_message_timeout(state->message_timeout);
 }
 
-void ui_og_deinit(void) {
+void ui_og_deinit(void)
+{
 	app_timer_cancel(message_tick_timer);
 
 	// destroy the window if it exists
@@ -2190,6 +2192,7 @@ void ui_og_deinit(void) {
 
 }
 
-GRect ui_og_trend_bounds(void) {
+GRect ui_og_trend_bounds(void) 
+{
     return layer_get_bounds(bitmap_layer_get_layer(bg_trend_layer_png));
 }
