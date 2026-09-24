@@ -22,15 +22,16 @@ AppTimer *hr_draw_timer = NULL;
 AppTimer *message_tick_timer = NULL;
 
 // Strings
-static char last_bg[6] = "lastb";
-static char current_bg_delta[14] = "current_bg_de";
-static char formatted_cgm_timeago[12] = "formatted_c";
-static char time_watch_format[12] = TIME_24H_FORMAT;
-static char time_watch_text[9] = "00:00:00";
-static char date_app_text[11] = "Wed 13 Jan";
-static char message_layer_text[12] = "message_lay";
-static char left_text[12];
-static char right_text[12];
+char last_bg[6] = "lastb";
+char current_bg_delta[BGDELTA_MSGSTR_SIZE] = "current_bg_de";
+char formatted_bg_delta[BGDELTA_FORMATTED_SIZE];
+char formatted_cgm_timeago[12] = "formatted_c";
+char time_watch_format[12] = TIME_24H_FORMAT;
+char time_watch_text[9] = "00:00:00";
+char date_app_text[11] = "Wed 13 Jan";
+char message_layer_text[12] = "message_lay";
+char left_text[12];
+char right_text[12];
 
 GFont time_font;
 GFont time_font_small;
@@ -1231,8 +1232,6 @@ void load_cgmtime()
 	// NOTE: buffers have to be and hardcoded
 	uint32_t cgm_timeago = 0, time_now = 0;
 	int cgm_timeago_diff = 0;
-	char formatted_cgm_timeago[10];
-	char cgm_label_buffer[6];
 
 	// CODE START
 #ifdef TEST_MODE
@@ -1240,7 +1239,6 @@ void load_cgmtime()
 #endif
 
 	// initialize label buffer
-	strncpy(cgm_label_buffer, "", LABEL_BUFFER_SIZE);
 
 	if (state.cgm_time == 0)
 	{
@@ -1280,7 +1278,7 @@ void load_cgmtime()
 		//state.cgm_timeago = abs(time_now - state.cgm_time);
 		cgm_timeago = (time_now - state.cgm_time);
 
-		TRACE("load_cgmtime: cgm_label_buffer: %s, state.cgm_timeago\"%lu\"", cgm_label_buffer);
+		TRACE("load_cgmtime: state.cgm_timeago\"%lu\"", state.cgm_timeago);
 
 		if (cgm_timeago < MINUTEAGO)
 		{
@@ -1290,23 +1288,17 @@ void load_cgmtime()
 		else if (cgm_timeago < HOURAGO)
 		{
 			cgm_timeago_diff = (cgm_timeago / MINUTEAGO);
-			snprintf(formatted_cgm_timeago, TIMEAGO_BUFFER_SIZE, "%i", cgm_timeago_diff);
-			strncpy(cgm_label_buffer, "m", LABEL_BUFFER_SIZE);
-			strcat(formatted_cgm_timeago, cgm_label_buffer);
+			snprintf(formatted_cgm_timeago, TIMEAGO_BUFFER_SIZE, "%i m", cgm_timeago_diff);
 		}
 		else if (cgm_timeago < DAYAGO)
 		{
 			cgm_timeago_diff = (cgm_timeago / HOURAGO);
-			snprintf(formatted_cgm_timeago, TIMEAGO_BUFFER_SIZE, "%i", cgm_timeago_diff);
-			strncpy(cgm_label_buffer, "h", LABEL_BUFFER_SIZE);
-			strcat(formatted_cgm_timeago, cgm_label_buffer);
+			snprintf(formatted_cgm_timeago, TIMEAGO_BUFFER_SIZE, "%i h", cgm_timeago_diff);
 		}
 		else if (cgm_timeago < WEEKAGO)
 		{
 			cgm_timeago_diff = (cgm_timeago / DAYAGO);
-			snprintf(formatted_cgm_timeago, TIMEAGO_BUFFER_SIZE, "%i", cgm_timeago_diff);
-			strncpy(cgm_label_buffer, "d", LABEL_BUFFER_SIZE);
-			strcat(formatted_cgm_timeago, cgm_label_buffer);
+			snprintf(formatted_cgm_timeago, TIMEAGO_BUFFER_SIZE, "%i d", cgm_timeago_diff);
 		}
 		else
 		{
@@ -1327,7 +1319,6 @@ void load_bg_delta()
 
 	// VARIABLES
 	// NOTE: buffers have to be and hardcoded
-	char formatted_bg_delta[BGDELTA_FORMATTED_SIZE];
 
 	// CODE START
 

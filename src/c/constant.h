@@ -127,7 +127,7 @@
 // message size constants
 #define ICON_MSGSTR_SIZE 4
 #define BG_MSGSTR_SIZE 6
-#define BGDELTA_MSGSTR_SIZE 13
+#define BGDELTA_MSGSTR_SIZE 14
 #define BATTLEVEL_MSGSTR_SIZE 5
 
 
