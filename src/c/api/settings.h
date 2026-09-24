@@ -15,6 +15,7 @@ typedef struct {
     uint32_t sensor_info : 1;
 } dirty_markers;
 
+#pragma pack(push, a, 1)
 typedef struct {
 
     // boolean settings
@@ -55,9 +56,8 @@ typedef struct {
     // state
     union {
         struct {
-            uint8_t icon;
-            uint8_t battery_level;
-            uint8_t phone_battery_level;
+            uint32_t stored_time;
+            uint8_t storage_marker;
             uint32_t cgm_time;
             uint32_t app_time;
             uint32_t sensor_end_time;
@@ -78,9 +78,13 @@ typedef struct {
             uint32_t phone_off_alert : 1;
             uint32_t battery_low_alert : 1;
 
-            uint32_t stored_time;
+            uint8_t icon;
+            uint8_t battery_level;
+            uint8_t phone_battery_level;
+            comm_bgl_delta delta;
+            comm_bgl_value bgl_value;
         };
-        uint8_t state_blob[(sizeof(uint32_t) * 8) + (sizeof(uint8_t) * 3)];
+        uint8_t state_blob[(sizeof(uint32_t) * 8) + (sizeof(uint8_t) * 4) + sizeof(comm_bgl_value) + sizeof(comm_bgl_delta)];
     };
 
     // global dirty markers
@@ -92,8 +96,11 @@ typedef struct {
     WatchfaceCallbacks wf_cb;
     
 } AppState;
+#pragma pack(pop, a)
 
 void settings_init(AppState *state);
 void settings_handle(Tuple *data);
 void settings_deinit(void);
+
+#define STORAGE_MARKER 0x02
 #endif // __SETTINGS_H__

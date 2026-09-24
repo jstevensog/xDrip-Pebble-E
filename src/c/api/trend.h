@@ -56,6 +56,7 @@
 
 #define TREND_LOG "TREND :: "
 
+#pragma pack(push, trend, 1)
 typedef int16_t trend_bgl_value; 
 
 /*
@@ -81,6 +82,8 @@ typedef enum {
 } trend_line_style;
 
 typedef struct {
+    int32_t stored_time;                    // time at which data was stored for recovery
+    uint8_t marker;                         // marker to flag dirty
     int8_t  initialized;                    // 0 if no series received, 1 afterwards 
     int16_t size;                           // Actual size of series (depends on update rate and hours) 
     int16_t index;                          // Current index of the series 
@@ -90,7 +93,6 @@ typedef struct {
 #else
     trend_bgl_value values[20*4]; // Values, maximum is the display width
 #endif
-    uint32_t stored_time;                   // time at which data was stored for recovery
 } bgl_array;
 
 
@@ -125,6 +127,7 @@ typedef struct {
     trend_line_style hour_line_style;   // Hour line style
     int8_t      redraw;                 // Redraw value (not really working right now)
 } trend_config;
+#pragma pack(pop, trend)
 
 /**
  * Called by main function to initialize values and load config from persistent storage
@@ -186,6 +189,7 @@ void trend_set_high_line(comm_high_limit value);
 void trend_set_low_line(comm_low_limit value);
 
 int trend_isinitialized(void);
+int16_t trend_last_value(void);
 void trend_set_hidden(bool value);
 
 /**
@@ -197,4 +201,5 @@ void trend_set_hidden(bool value);
             ((int32_t) config.bgl_high_limit - (int32_t) config.bgl_low_limit))\
         )
 
+#define TREND_MARKER 0x01
 #endif

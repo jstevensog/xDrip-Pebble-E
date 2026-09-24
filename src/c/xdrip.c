@@ -329,8 +329,8 @@ static void send_cmd_cgm(void)
 
 	while (sendcmd_openerr != APP_MSG_OK)
 	{
-		sendcmd_openerr = app_message_outbox_begin(&iter);
 		ERROR("send_cmd_cgm: ERR CODE: %i RES: %s", sendcmd_openerr, translate_app_error(sendcmd_openerr));
+		sendcmd_openerr = app_message_outbox_begin(&iter);
 		// proceed to send since it's the only way to recover
 		// goto send_appmsg;
 		psleep(500);
@@ -519,6 +519,13 @@ static void init_cgm(void)
 	//subscribe to the battery handler
 	battery_state_service_subscribe(battery_handler);
     battery_handler();
+
+
+    // subscribe to the minute and second timers
+    if (state.enable_seconds) tick_timer_service_subscribe(SECOND_UNIT, state.gl_cb.second_tick);
+
+	tick_timer_service_subscribe(MINUTE_UNIT, state.gl_cb.minutes_tick);
+
 #ifdef PBL_HEALTH
 	//subscribe to the health service
 	if(!health_service_events_subscribe(health_handler, NULL)) {

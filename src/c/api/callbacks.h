@@ -32,6 +32,8 @@ typedef struct {
     void (*update_stale_timeout)(void);
     void (*health_poll)(void);
     void (*health_schedule_send)(void);
+    void (*minutes_tick)(struct tm* tick_time_cgm, TimeUnits units_changed_cgm);
+    void (*second_tick)(struct tm* tick_time_cgm, TimeUnits units_changed_cgm);
 } GlobalCallbacks;
 
 /*

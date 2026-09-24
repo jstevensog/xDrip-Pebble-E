@@ -25,7 +25,7 @@ AppTimer *message_tick_timer = NULL;
 char last_bg[6] = "lastb";
 char current_bg_delta[BGDELTA_MSGSTR_SIZE] = "current_bg_de";
 char formatted_bg_delta[BGDELTA_FORMATTED_SIZE];
-char formatted_cgm_timeago[12] = "formatted_c";
+char formatted_cgm_timeago[TIMEAGO_BUFFER_SIZE] = "formatted";
 char time_watch_format[12] = TIME_24H_FORMAT;
 char time_watch_text[9] = "00:00:00";
 char date_app_text[11] = "Wed 13 Jan";
@@ -100,14 +100,6 @@ void load_icon(void);
 void load_cgmtime(void);
 void load_bg_delta(void);
 void load_battlevel_phone(void);
-
-dirty_markers dirty = {
-	.delta = 1,
-	.need_cgm = 1,
-	.step_count = 0,
-	.hbm = 1,
-    .sensor_info = 1
-};
 
 extern AppState state;
 
@@ -240,14 +232,14 @@ static void hr_draw_callback(void *context) {
     char *buffer = state.left_text_field == METRIC_HEARTRATE ? left_text : right_text;
     if (state.hbm == 0) snprintf(buffer, sizeof(left_text), "Wait.. \U0001F493");
 	// defer HR update untill measurement stabelizes
-	if (state.left_text_field == METRIC_HEARTRATE && dirty.hbm) {
+	if (state.left_text_field == METRIC_HEARTRATE && state.dirty.hbm) {
 		text_layer_set_text(bottom_left_text_layer, buffer);
 	}
-	if (state.right_text_field == METRIC_HEARTRATE && dirty.hbm) {
+	if (state.right_text_field == METRIC_HEARTRATE && state.dirty.hbm) {
 		text_layer_set_text(bottom_right_text_layer, buffer);
 	}
 	hr_draw_timer = NULL;
-    dirty.hbm = 0;
+    state.dirty.hbm = 0;
 }
 #endif
 
@@ -722,7 +714,7 @@ void update_seconds_timer(bool sw) {
     {
         if (sw) {
             // register second timer
-            tick_timer_service_subscribe(SECOND_UNIT, &handle_second_tick_cgm);
+            tick_timer_service_subscribe(SECOND_UNIT, &seconds_tick);
             // resize time and date layer iff PT2
             if (HIGH_RES()) {
                 layer_set_frame((Layer *) time_watch_layer, GRect(0, 121, 200, 60));
@@ -832,6 +824,7 @@ void update_message(void) {
 // snprintf does not support float!
 void comm_set_bgl_delta(comm_bgl_delta value) {
     char text[14];
+    state.delta = value;
 	DEBUG("Delta units: undefined: %d mmol: %d display: %d value: %d hidden: %d", 
 			value.undefined, value.is_mmol, value.display_units, value.value, value.hidden);
 	if (value.expired) set_delta("Expired", sizeof("Expired"));
@@ -881,6 +874,7 @@ void comm_set_bgl_timestamp(uint32_t timestamp) {
 
 void comm_set_bgl_value(comm_bgl_value value) {
 	TRACE("Set BGL Value");
+    state.bgl_value = value;
 	if (value.is_mmol) {
 		mgdl_to_mmoll_str(value.value, last_bg, sizeof(last_bg), 0);
 	} else {
@@ -1390,12 +1384,6 @@ void load_bg_delta()
 
 	if (layer_get_hidden(text_layer_get_layer(delta_layer)) == state.show_delta) {
 		layer_set_hidden(text_layer_get_layer(delta_layer), !state.show_delta);
-	}
-
-	if (!state.dirty.delta) {
-
-		TRACE("Delta not dirty, not changing");
-		return;
 	}
 
 	text_layer_set_text(delta_layer, formatted_bg_delta);
@@ -1984,20 +1972,10 @@ void window_load_cgm(Window *window_cgm)
 	layer_insert_above_sibling(text_layer_get_layer(bottom_left_text_layer), text_layer_get_layer(time_watch_layer));
 	layer_insert_above_sibling(text_layer_get_layer(bottom_right_text_layer), text_layer_get_layer(time_watch_layer));
 
-	if (!state.use_png) trend_init(bitmap_layer_get_layer(bg_trend_layer_draw));
 
 	// put " " (space) in bg field so logo continues to show
 	// " " (space) also shows these are init values, not bad or null values
 	// Setting all default values here
-
-	// prep for battery display, even if we don't have one.
-	state.icon = 255; // no icon set and ignore
-	snprintf(last_bg, BG_MSGSTR_SIZE, " ");
-	state.cgm_time = 0;
-	state.app_time = 0;
-	snprintf(current_bg_delta, BGDELTA_MSGSTR_SIZE, "LOAD");
-	state.phone_battery_level = 255;
-	state.battery_level = 255;
 
 #ifdef TEST_MODE
 	snprintf(current_bg_delta, BGDELTA_MSGSTR_SIZE, "+0.08");
@@ -2013,15 +1991,30 @@ void window_load_cgm(Window *window_cgm)
 	text_layer_set_text(delta_layer,"0.5mmol");
 #endif
 	LOG("Setting display values to correct state");
+    state.dirty.delta = 1;
+    state.dirty.hbm = 1;
+    state.dirty.sensor_info = 1;
+    state.dirty.step_count = 1;
+    comm_set_bgl_value(state.bgl_value);
+    comm_set_bgl_delta(state.delta);
     update_colours();
+    update_battery_state();
+    update_timeago();
+    update_left_field();
+    update_right_field();
+    update_sensor_info_displays();
+    update_message();
+    update_health_metric_displays();
 	draw_date_from_app();
 	load_cgmtime();
 	load_bg();
 	load_icon();
 	load_bg_delta();
 	load_battlevel_phone();
-    update_battery_state();
 
+	if (!state.use_png) {
+        trend_init(bitmap_layer_get_layer(bg_trend_layer_draw));
+    }
 	layer_mark_dirty(text_layer_get_layer(bg_layer));
 
 
@@ -2100,6 +2093,9 @@ void ui_og_init(AppState *value)
 #endif
     state.wf_cb.trend_bounds = ui_og_trend_bounds;
 
+    // timers
+    state.gl_cb.minutes_tick = minutes_tick;
+    state.gl_cb.second_tick = seconds_tick;
 
     // malloc text archives
 

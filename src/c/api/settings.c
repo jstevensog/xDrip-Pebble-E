@@ -14,14 +14,23 @@ void settings_init(AppState *values) {
     // set local pointer
     state = values;
 
+	// prep for battery display, even if we don't have one.
+	state->icon = NOT_CALIBRATED; // no icon set and ignore
+	state->cgm_time = 0;
+	state->app_time = 0;
+	state->phone_battery_level = 255;
+	state->battery_level = 255;
+
     // fetch previous data (if available)
     if (persist_exists(STORED_DATA)) {
         uint8_t *tmp = malloc(sizeof(state->state_blob)); 
         if (tmp != NULL) {
-            uint32_t *tmp_time = (uint32_t *) &tmp[sizeof(state->state_blob) - sizeof(uint32_t)]; 
-            persist_read_data(STORED_DATA, tmp, sizeof(state->state_blob));
-            if ((uint32_t)time(NULL) - *tmp_time > 30 * SECONDS_PER_MINUTE) {
+            status_t st = persist_read_data(STORED_DATA, tmp, sizeof(state->state_blob));
+            if (st != sizeof(state->state_blob)) ERROR("Could not load data: %d", st);
+            uint32_t *tmp_time = (uint32_t *) tmp; 
+            if ((uint32_t)time(NULL) - *tmp_time > 5 * SECONDS_PER_MINUTE || tmp[4] != STORAGE_MARKER) {
                 persist_delete(STORED_DATA);
+                WARNING("Deleting persistent storage");
                 // do nothing, values will remain zero
             } else {
                 memcpy(state->state_blob, tmp, sizeof(state->state_blob));
@@ -53,9 +62,6 @@ void settings_init(AppState *values) {
 #endif
     state->stale_data_timeout = persist_exists(STALE_DATA_ALERT_TIMEOUT) ? persist_read_int(STALE_DATA_ALERT_TIMEOUT) : 6 * 60000;
 
-    state->battery_level = 255;
-    state->phone_battery_level = 255;
-
     LOG_SETTING(use_png);
     LOG_SETTING(show_slope);
     LOG_SETTING(show_delta);
@@ -80,7 +86,8 @@ void settings_init(AppState *values) {
 
 void settings_deinit(void) {
     state->stored_time = time(NULL);
-    persist_write_data(STORED_DATA, state->state_blob, sizeof(state->state_blob));
+    state->storage_marker = STORAGE_MARKER;
+    status_t st = persist_write_data(STORED_DATA, state->state_blob, sizeof(state->state_blob));
 }
 
 #define SETTING_BOOL(name, value, field) \

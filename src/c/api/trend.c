@@ -24,15 +24,17 @@ static void trend_layer_callback(Layer *layer, GContext *ctx);
 
 void trend_init(Layer *layer) {
     config.layer = layer;
-
+    config.bgl.initialized = 0;
     if (persist_exists(STORED_TREND)) {
         uint8_t *tmp = malloc(sizeof(config.bgl)); 
         if (tmp != NULL) {
-            uint32_t *tmp_time = (uint32_t *) &tmp[sizeof(config.bgl) - sizeof(uint32_t)]; 
-            persist_read_data(STORED_DATA, tmp, sizeof(config.bgl));
-            if ((uint32_t)time(NULL) - *tmp_time > 30 * SECONDS_PER_MINUTE) {
-                persist_delete(STORED_DATA);
+            persist_read_data(STORED_TREND, tmp, sizeof(config.bgl));
+            int32_t *tmp_time = (int32_t *) tmp; 
+            if ((int32_t)time(NULL) - *tmp_time > 5 * SECONDS_PER_MINUTE || tmp[4] != TREND_MARKER) {
+                persist_delete(STORED_TREND);
+                WARNING(TREND_LOG "Could not load data");
                 // do nothing, values will remain zero
+                config.bgl.initialized = 0;
             } else {
                 memcpy(&config.bgl, tmp, sizeof(config.bgl));
             }
@@ -79,11 +81,10 @@ void trend_init(Layer *layer) {
     /* other */
     config.auto_adjust_max = persist_exists(SET_AUTO_ADJUST_MAX) ? persist_read_int(SET_AUTO_ADJUST_MAX) : 0;
 
-    config.bgl.initialized = 0;
-
     TRACE(TREND_LOG "Setting callback");
     layer_set_update_proc((Layer *) config.layer, trend_layer_callback);
     layer_set_hidden(config.layer, false);
+    trend_draw();
 }
 
 void trend_deinit(void) {
@@ -93,6 +94,7 @@ void trend_deinit(void) {
     }
     // store data for recovery
     config.bgl.stored_time = time(NULL);
+    config.bgl.marker = TREND_MARKER;
     persist_write_data(STORED_TREND, &config.bgl, sizeof(config.bgl));
     // in case this isn't a program exit, invalidate
     config.layer = NULL;
@@ -573,6 +575,7 @@ void trend_set_low_line(comm_low_limit value) {
 }
 
 int trend_isinitialized(void) { return config.bgl.initialized; }
+int16_t trend_last_value(void) {  return config.bgl.values[config.bgl.index]; }
 
 void trend_set_hidden(bool value) {
     if (config.layer != NULL) layer_set_hidden(config.layer, value);
