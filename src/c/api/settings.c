@@ -34,6 +34,7 @@ void settings_init(AppState *values) {
 	state->foreground_colour = persist_exists(SET_FG_COLOUR)? GColorFromHEX(persist_read_int(SET_FG_COLOUR)) : COLOR_FALLBACK(GColorWhite,GColorWhite);
 	state->background_colour = persist_exists(SET_BG_COLOUR)? GColorFromHEX(persist_read_int(SET_BG_COLOUR)) : COLOR_FALLBACK(GColorDukeBlue,GColorBlack);
 #endif
+    state->stale_data_timeout = persist_exists(STALE_DATA_ALERT_TIMEOUT) ? persist_read_int(STALE_DATA_ALERT_TIMEOUT) : 6 * 60000;
 
     state->battery_level = 255;
     state->phone_battery_level = 255;
@@ -79,6 +80,11 @@ void settings_init(AppState *values) {
 {\
     SETTING_INT(name, value, field);\
     CALLBACK(state->wf_cb.callback, __VA_ARGS__);\
+}
+#define SETTING_INT_CB_GL(name, value, field, callback, ...) \
+{\
+    SETTING_INT(name, value, field);\
+    CALLBACK(state->gl_cb.callback, __VA_ARGS__);\
 }
 
 void settings_handle(Tuple *data) {
@@ -153,6 +159,11 @@ void settings_handle(Tuple *data) {
 #ifdef PBL_HEALTH
             SETTING_BOOL_CB(collect_health, data->value->uint8, SET_COLLECT_HEALTH, update_collect_health);
 #endif
+            break;
+        case STALE_DATA_ALERT_TIMEOUT:
+            if (data->value->uint32 >= 6) {
+                SETTING_INT_CB_GL(stale_data_timeout, data->value->int32 * 60000, STALE_DATA_ALERT_TIMEOUT, update_stale_timeout);
+            }
             break;
         default:
             break;

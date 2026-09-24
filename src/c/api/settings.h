@@ -42,6 +42,7 @@ typedef struct {
     uint32_t fields_same_colour : 1;
     uint32_t bold_timeago : 1;
     uint32_t battery_is_charging : 1;
+    uint32_t use_analogue_wf : 1;
 
 
     // Values
@@ -59,6 +60,7 @@ typedef struct {
     uint32_t cgm_time;
     uint32_t app_time;
     uint32_t sensor_end_time;
+    uint32_t stale_data_timeout;
    
 #ifdef PBL_HEALTH
     int32_t step_count;

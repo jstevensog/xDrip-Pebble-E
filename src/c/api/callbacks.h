@@ -29,6 +29,7 @@ typedef struct {
 
 typedef struct {
     void (*alert_handler)(uint8_t alertvalue);
+    void (*update_stale_timeout)(void);
 } GlobalCallbacks;
 
 /*
@@ -53,6 +54,7 @@ typedef struct comm_callback_t {
     void (*sensor_info)(comm_sensor_info *value);
     void (*png)(comm_png_data *data);
     void (*health)(comm_health value);
+    void (*update_health_send_timer)(void);
 } CommunicationCallbacks;
 
 #define CALLBACK(name, ...)  \

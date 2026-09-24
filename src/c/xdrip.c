@@ -25,12 +25,14 @@ AppSync sync_cgm;
 AppTimer *timer_cgm = NULL;
 AppTimer *BT_timer = NULL;
 AppTimer *health_send_timer = NULL;
+AppTimer *stale_data_timer = NULL;
 time_t time_now = 0;
 
 // global variable for bluetooth connection
 bool bluetooth_connected_cgm = true;
 
-
+void reset_stale_timer_callback(void);
+static void send_cmd_cgm(void);
 /**
  * predefines
  */
@@ -107,6 +109,8 @@ void health_schedule_send(void) {
 // battery_handler - updates the pebble battery percentage.
 static void battery_handler()
 {
+    BatteryChargeState charge_state = battery_state_service_peek();
+
     state.battery_is_charging = charge_state.is_charging;
     state.battery_level = charge_state.charge_percent;
 
@@ -272,6 +276,7 @@ void handle_bluetooth_cgm(bool bt_connected)
 		TRACE("HANDLE BT: BLUETOOTH ON");
 		state.bluetooth_alert = false;
 		send_cmd_cgm();
+
 		if (BT_timer == NULL)
 		{
 			// no timer is set, so need to reset timer pop
@@ -376,6 +381,13 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 #ifdef ENABLE_TREND_RENDERER
         if (data->key >= 300 && data->key < 400) trend_process_config(data);
 #endif
+
+        //assume dictionary from xDrip.  So reset the stale_data_timer
+        if(data->key == FRAMEWORK_BGL_VALUE) 
+        {
+            INFO("Recieved comms from xDrip.  Resetting stale_data_timer to %i minutes", state.stale_data_timeout);
+            reset_stale_timer_callback();
+        }
 #ifdef ENABLE_COMM_FRAMEWORK
         if (data->key >= 2000 && data->key < 3000) comm_handle(data);
 #endif
@@ -389,6 +401,12 @@ void reset_timer_callback_cgm(int32_t seconds) {
 	if (timer_cgm == NULL || !app_timer_reschedule(timer_cgm, retimer)) {
 		timer_cgm = app_timer_register(retimer, timer_callback_cgm, NULL);
 	}
+}
+
+void reset_stale_timer_callback(void) {
+    if (NULL == stale_data_timer || !app_timer_reschedule(stale_data_timer, state.stale_data_timeout)) {
+        app_timer_register(state.stale_data_timeout, handle_stale_data_tick, NULL);
+    }
 }
 
 void timer_callback_cgm(void *data)
@@ -421,12 +439,13 @@ void timer_callback_cgm(void *data)
 void handle_stale_data_tick(void *data)
 {
 	INFO("handle_stale_data_tick: entered");
-	text_layer_set_text(delta_layer, "Stale Data!");
-	alert_handler_cgm(APPSYNC_ERR_VIBE);
-	if(stale_data_timer == NULL || !app_timer_reschedule(stale_data_timer,stale_data_timeout)) 
+    CALLBACK(state.wf_cb.set_delta, "Stale Data!", sizeof("Stale Data!")); 
+    CALLBACK(state.gl_cb.alert_handler, APPSYNC_ERR_VIBE);
+
+	if(stale_data_timer == NULL || !app_timer_reschedule(stale_data_timer,state.stale_data_timeout)) 
 	{
-		INFO("handle_stale_data_tick: reset stale_data_timer to %l", stale_data_timeout);
-		app_timer_register(stale_data_timeout, handle_stale_data_tick, NULL);
+		INFO("handle_stale_data_tick: reset stale_data_timer to %l", state.stale_data_timeout);
+		app_timer_register(state.stale_data_timeout, handle_stale_data_tick, NULL);
 	}
 }
 
@@ -471,7 +490,16 @@ static void init_cgm(void)
 {
 	LOG("init_cgm");
     settings_init(&state); // register appmg updates and callbacks
-    ui_og_init(&state); // register main ui and callbacks
+    
+    if (state.use_analogue_wf) {
+#ifdef PBL_PLATFORM_GABBRO
+        // not yet implemented
+#endif
+    } else {
+        ui_og_init(&state); // register main ui and callbacks
+    }
+    state.gl_cb.alert_handler = alert_handler_cgm;
+    state.gl_cb.update_stale_timeout = reset_stale_timer_callback;
 
 	TRACE("INIT CODE IN");
 
@@ -480,8 +508,7 @@ static void init_cgm(void)
 
 	tick_timer_service_subscribe(MINUTE_UNIT, &handle_minute_tick_cgm);
 
-	message_tick_timer = app_timer_register(message_tick_timeout, handle_message_tick, NULL);
-	stale_data_timer = app_timer_register(stale_data_timeout, handle_stale_data_tick, NULL);
+	stale_data_timer = app_timer_register(state.stale_data_timeout, handle_stale_data_tick, NULL);
 
 	// subscribe to the bluetooth connection service
 	bluetooth_connection_service_subscribe(handle_bluetooth_cgm);
@@ -531,7 +558,6 @@ static void deinit_cgm(void)
 	TRACE("DEINIT, UNSUBSCRIBE TICK TIMER");
 	tick_timer_service_unsubscribe();
 
-	app_timer_cancel(message_tick_timer);
 	app_timer_cancel(stale_data_timer);
 
 	// unsubscribe to the bluetooth connection service

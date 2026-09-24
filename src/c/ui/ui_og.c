@@ -261,12 +261,12 @@ void update_health_metric_displays() {
             LOG("Data unavailable!");
         }
         if(state.left_text_field == METRIC_STEPS && state.dirty.step_count) {
-            snprintf(left_text, 8, "%i s", step_count);
+            snprintf(left_text, 8, "%i \U0001F9B6", step_count);
             text_layer_set_text(bottom_left_text_layer, left_text);
             state.dirty.step_count = 0;
         }
         if(state.right_text_field == METRIC_STEPS && state.dirty.step_count) {
-            snprintf(right_text, 8, "%i s", step_count);
+            snprintf(right_text, 8, "%i \U0001F9B6", step_count);
             text_layer_set_text(bottom_right_text_layer, right_text);
             state.dirty.step_count = 0;
         }
@@ -476,7 +476,7 @@ inline void set_battery_data(char *watch_battlevel_percent, size_t length, int v
 	snprintf(watch_battlevel_percent, length, "%i%% ", state.battery_level);
 	#else
 #if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_GABBRO)
-	snprintf(watch_battlevel_percent, length, "\U0001F50B %i%% ", state.battery_level);
+	snprintf(watch_battlevel_percent, length, "\U0000231A %i%% ", state.battery_level);
 #else
 	snprintf(watch_battlevel_percent, length, "W:%i%% ", state.battery_level);
 #endif
@@ -766,10 +766,14 @@ void update_collect_health(void) {
 #if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_DIORITE)
     // sample HR on a fixed cadence while collecting so we
     // have fresh values; ~10 min trades data rate for battery
-    health_service_set_heart_rate_sample_period(state.collect_health ? 600 : 0);
 #endif
     if (state.collect_health) {
-        // TODO fix health_poll();
+#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_DIORITE)
+        // sample HR on a fixed cadence while collecting so we
+        // have fresh values; ~10 min trades data rate for battery
+        health_service_set_heart_rate_sample_period(state.collect_health ? 600 : 0);
+#endif
+        health_poll();
     } else {
         health_hr = 0;
         health_steps = 0;
