@@ -44,7 +44,6 @@ typedef struct {
     uint32_t battery_is_charging : 1;
     uint32_t use_analogue_wf : 1;
 
-
     // Values
     GColor foreground_colour;
     GColor background_colour;
@@ -54,30 +53,35 @@ typedef struct {
     uint8_t right_text_field;
 
     // state
-    uint8_t icon;
-    uint8_t battery_level;
-    uint8_t phone_battery_level;
-    uint32_t cgm_time;
-    uint32_t app_time;
-    uint32_t sensor_end_time;
-    uint32_t stale_data_timeout;
-   
-#ifdef PBL_HEALTH
-    int32_t step_count;
-    int32_t hbm;
-#endif
+    union {
+        struct {
+            uint8_t icon;
+            uint8_t battery_level;
+            uint8_t phone_battery_level;
+            uint32_t cgm_time;
+            uint32_t app_time;
+            uint32_t sensor_end_time;
+            uint32_t stale_data_timeout;
+        
+            int32_t step_count;
+            int32_t hbm;
 
-    uint32_t special_value_alert : 1;
-    uint32_t double_up_down_alert : 1;
-    uint32_t app_sync_error_alert : 1;
-    uint32_t app_msg_in_drop_alert : 1;
-    uint32_t app_msg_out_fail_alert : 1;
-    uint32_t bluetooth_alert : 1;
-    uint32_t bluetooth_timer_pop : 1;
-    uint32_t bluetooth_message_off : 1;
-    uint32_t bluetooth_is_connected : 1;
-    uint32_t phone_off_alert : 1;
-    uint32_t battery_low_alert : 1;
+            uint32_t special_value_alert : 1;
+            uint32_t double_up_down_alert : 1;
+            uint32_t app_sync_error_alert : 1;
+            uint32_t app_msg_in_drop_alert : 1;
+            uint32_t app_msg_out_fail_alert : 1;
+            uint32_t bluetooth_alert : 1;
+            uint32_t bluetooth_timer_pop : 1;
+            uint32_t bluetooth_message_off : 1;
+            uint32_t bluetooth_is_connected : 1;
+            uint32_t phone_off_alert : 1;
+            uint32_t battery_low_alert : 1;
+
+            uint32_t stored_time;
+        };
+        uint8_t state_blob[(sizeof(uint32_t) * 8) + (sizeof(uint8_t) * 3)];
+    };
 
     // global dirty markers
     dirty_markers dirty;
@@ -91,4 +95,5 @@ typedef struct {
 
 void settings_init(AppState *state);
 void settings_handle(Tuple *data);
+void settings_deinit(void);
 #endif // __SETTINGS_H__

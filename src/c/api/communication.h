@@ -203,4 +203,5 @@ void comm_send_basal_bolus(int32_t basal, int32_t bolus);
 void sync_error_callback_cgm(DictionaryResult appsync_dict_error, AppMessageResult appsync_error, void *context);
 void inbox_dropped_handler_cgm(AppMessageResult appmsg_indrop_error, void *context);
 void outbox_failed_handler_cgm(DictionaryIterator *failed, AppMessageResult appmsg_outfail_error, void *context);
+void health_send_values(void *data);
 #endif // __COMMUNICATION_H__

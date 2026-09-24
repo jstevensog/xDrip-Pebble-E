@@ -41,6 +41,8 @@
 #define SET_SHOW_SLOPE          120     // Show the slope icon
 #define SET_SHOW_TREND          121     // Show the trend
 #define STALE_DATA_ALERT_TIMEOUT	122 // Setting key - How long to wait on data from xDrip before alerting through vibration.
+#define STORED_DATA             123     // Stored watchface state identifier
+#define STORED_TREND            124     // Stored trend data identifier
 #define CGM_SYNC_KEY			1000	// key pebble will use to request an update.	This should probably include the "capabilities" bits
 #define PBL_PLATFORM			1001	// key pebble will use to send it's platform	This is probably not required under the new famework.
 #define PBL_APP_VER			    1002	// key pebble will use to send the face/app version.	This is probably not required under the new framework.

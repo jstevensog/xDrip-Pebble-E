@@ -6,7 +6,7 @@
 
 #include "../debug.h"
 #include "communication.h"
-
+#include "../constant.h"
 #include "trend.h"
 
 
@@ -25,6 +25,20 @@ static void trend_layer_callback(Layer *layer, GContext *ctx);
 void trend_init(Layer *layer) {
     config.layer = layer;
 
+    if (persist_exists(STORED_TREND)) {
+        uint8_t *tmp = malloc(sizeof(config.bgl)); 
+        if (tmp != NULL) {
+            uint32_t *tmp_time = (uint32_t *) &tmp[sizeof(config.bgl) - sizeof(uint32_t)]; 
+            persist_read_data(STORED_DATA, tmp, sizeof(config.bgl));
+            if ((uint32_t)time(NULL) - *tmp_time > 30 * SECONDS_PER_MINUTE) {
+                persist_delete(STORED_DATA);
+                // do nothing, values will remain zero
+            } else {
+                memcpy(&config.bgl, tmp, sizeof(config.bgl));
+            }
+            free(tmp);
+        }
+    }
     /*
      * trend settings
      */
@@ -77,6 +91,10 @@ void trend_deinit(void) {
         layer_set_hidden(config.layer, true);
         layer_set_update_proc(config.layer, NULL); // discard
     }
+    // store data for recovery
+    config.bgl.stored_time = time(NULL);
+    persist_write_data(STORED_TREND, &config.bgl, sizeof(config.bgl));
+    // in case this isn't a program exit, invalidate
     config.layer = NULL;
     config.bgl.initialized = 0;
 }

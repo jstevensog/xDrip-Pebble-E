@@ -79,7 +79,6 @@ extern AppTimer *health_send_timer;
  * functions
  */
 #ifdef PBL_HEALTH
-/* void health_poll(void); */
 /* void health_send_values(void *data); */
 /* void health_schedule_send(void); */
 #endif
@@ -232,8 +231,25 @@ void draw_date_from_app()
 
 // update_health_metric_displays - Updates the bottom left and right metrics displays if they are displaying health metrics
 #ifndef PBL_HEALTH
-#define update_health_metric_displays()
+#define update_health_metric_displays(...)
 #else
+#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_DEORITE)
+static void hr_draw_callback(void *context) {
+	INFO("Drawing HRM");
+    char *buffer = state.left_text_field == METRIC_HEARTRATE ? left_text : right_text;
+    if (state.hbm == 0) snprintf(buffer, sizeof(left_text), "Wait.. \U0001F493");
+	// defer HR update untill measurement stabelizes
+	if (state.left_text_field == METRIC_HEARTRATE && dirty.hbm) {
+		text_layer_set_text(bottom_left_text_layer, buffer);
+	}
+	if (state.right_text_field == METRIC_HEARTRATE && dirty.hbm) {
+		text_layer_set_text(bottom_right_text_layer, buffer);
+	}
+	hr_draw_timer = NULL;
+    dirty.hbm = 0;
+}
+#endif
+
 void update_health_metric_displays() {
 	int step_count = 0;
 
@@ -290,7 +306,7 @@ void update_health_metric_displays() {
         }
 
         if (state.dirty.hbm && (hr_draw_timer == NULL || !app_timer_reschedule(hr_draw_timer, 1000))) {
-            // TODO fix hr_draw_timer = app_timer_register(1000, hr_draw_callback, NULL);
+            hr_draw_timer = app_timer_register(2000, hr_draw_callback, NULL);
         }
     }
 #endif
@@ -434,7 +450,7 @@ void minutes_tick(struct tm *tick_time_cgm, TimeUnits units_changed) {
 #ifdef PBL_HEALTH
 		// keep health_hr / health_steps current; the send itself is driven off
 		// an incoming CGM push (health_schedule_send), not this tick
-		// TODO FIX health_poll();
+		CALLBACK(state.gl_cb.health_poll);
 #endif
         update_sensor_info_displays(); 
 	}
@@ -630,7 +646,7 @@ void update_colours(void)
 	text_layer_set_text_color(date_app_layer, state.foreground_colour);
 	text_layer_set_background_color(bottom_right_text_layer, GColorClear);
 	text_layer_set_background_color(bottom_left_text_layer, GColorClear);
-	// update the watch battery colours etc.
+	// update the right metric colours etc.
 	update_battery_state();
 #else
     if(state.fields_same_colour) {
@@ -773,7 +789,7 @@ void update_collect_health(void) {
         // have fresh values; ~10 min trades data rate for battery
         health_service_set_heart_rate_sample_period(state.collect_health ? 600 : 0);
 #endif
-        health_poll();
+		CALLBACK(state.gl_cb.health_poll);
     } else {
         health_hr = 0;
         health_steps = 0;
@@ -1489,7 +1505,7 @@ void load_battlevel_phone()
 #ifdef PBL_COLOR
 	// if neither bottom metric is battery indication, then return immediately and don't process the colours.
 	if(state.left_text_field != METRIC_PHONEBATT && state.right_text_field != METRIC_PHONEBATT) {
-		TRACE("load_battlevel: No watch battery displays, done");
+		TRACE("load_battlevel: No right metric displays, done");
 		return;
 	}
 	if ( (current_battlevel > 0) && (current_battlevel <= 30) && (state.left_text_field == METRIC_PHONEBATT || state.right_text_field == METRIC_PHONEBATT) )
@@ -1574,13 +1590,13 @@ void window_load_cgm(Window *window_cgm)
 	// time watch layer dimenssions
 	time_watch_layer = text_layer_create(GRect(0, 84 - 89, 143, 44));
 	text_layer_set_text_alignment(time_watch_layer, GTextAlignmentCenter);
-	// date layer dimenstions
+	// date layer dimensions
 	date_app_layer = text_layer_create(GRect(0, 124 - 89, 143, 29));
 	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
-	// phone/bridge batter level layer diemnsions
+	// left metric layer dimensions
 	bottom_left_text_layer = text_layer_create(GRect(0, 148 - 89, 59, 18));
 	text_layer_set_text_alignment(bottom_left_text_layer, GTextAlignmentLeft);
-	//watch battery level layer dimensions
+	//right metric level layer dimensions
 	bottom_right_text_layer = text_layer_create(GRect(81, 148 - 89, 59, 18));
 	text_layer_set_text_alignment(bottom_right_text_layer, GTextAlignmentRight);
 
@@ -1623,11 +1639,11 @@ void window_load_cgm(Window *window_cgm)
 	// date layer dimenstions
 	date_app_layer = text_layer_create(GRect(0, 124 - 84, 143, 29));
 	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
-	// phone/bridge batter level layer diemnsions
+	// left metric layer dimensions
 	bottom_left_text_layer = text_layer_create(GRect(0, 148 - 84, 72, 20));
 	layer_set_bounds((Layer *) bottom_left_text_layer, GRect(0, -1, 72, 20)); // fixes bounding box with latest sdk
 	text_layer_set_text_alignment(bottom_left_text_layer, GTextAlignmentLeft);
-	// watch battery level layer dimensions
+	// right metric level layer dimensions
 	bottom_right_text_layer = text_layer_create(GRect(72, 148 - 84, 72, 20));
 	layer_set_bounds((Layer *) bottom_right_text_layer, GRect(0, -1, 72, 20)); // fixes bounding box with latest sdk
 	text_layer_set_text_alignment(bottom_right_text_layer, GTextAlignmentRight);
@@ -1669,10 +1685,10 @@ void window_load_cgm(Window *window_cgm)
 	// date layer dimenstions
 	date_app_layer = text_layer_create(GRect(18, 124 - 84, 143, 26));
 	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
-	// phone/bridge batter level layer diemnsions
+	// left metric layer dimensions
 	bottom_left_text_layer = text_layer_create(GRect(48, 150 - 84, 1, 1));
 	text_layer_set_text_alignment(bottom_left_text_layer, GTextAlignmentLeft);
-	// watch battery level layer dimensions
+	// right metric level layer dimensions
 	bottom_right_text_layer = text_layer_create(GRect(45, 150 - 84, 90, 18));
 	text_layer_set_text_alignment(bottom_right_text_layer, GTextAlignmentCenter);
 
@@ -1710,10 +1726,10 @@ void window_load_cgm(Window *window_cgm)
 	// date layer dimenstions
 	date_app_layer = text_layer_create(GRect(0, 124 - 89, 143, 29));
 	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
-	// phone/bridge batter level layer diemnsions
+	// left metric layer dimensions
 	bottom_left_text_layer = text_layer_create(GRect(0, 148 - 89, 59, 18));
 	text_layer_set_text_alignment(bottom_left_text_layer, GTextAlignmentLeft);
-	// watch battery level layer dimensions
+	// right metric level layer dimensions
 	bottom_right_text_layer = text_layer_create(GRect(81, 148 - 89, 59, 18));
 	text_layer_set_text_alignment(bottom_right_text_layer, GTextAlignmentRight);
 
@@ -1725,7 +1741,7 @@ void window_load_cgm(Window *window_cgm)
 	//upper and lower face layer dimensions
 	upper_face_layer = bitmap_layer_create(GRect(0,0,200,114));
 	lower_face_layer = bitmap_layer_create(GRect(0,115,200,228));
-	// icon layer diemnsions and composition mode.
+	// icon layer dimensions and composition mode.
 	icon_layer = bitmap_layer_create(GRect(139, -9, 61, 61));
 	bitmap_layer_set_compositing_mode(icon_layer, GCompOpSet);
 	// trend bitmap layer dimensions and composition mode
@@ -1758,11 +1774,11 @@ void window_load_cgm(Window *window_cgm)
 		date_app_layer = text_layer_create(GRect(0, 176 - 115, 200, 39));
 	}
 	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
-	// phone/bridge batter level layer diemnsions
-	bottom_left_text_layer = text_layer_create(GRect(2, 203 - 115, 100, 24));
+	// left metric layer dimensions
+	bottom_left_text_layer = text_layer_create(GRect(2, 199 - 115, 100, 32));
 	text_layer_set_text_alignment(bottom_left_text_layer, GTextAlignmentLeft);
-	// watch battery level layer dimensions
-	bottom_right_text_layer = text_layer_create(GRect(98, 203 - 115, 100, 24));
+	// right metric level layer dimensions
+	bottom_right_text_layer = text_layer_create(GRect(98, 199 - 115, 100, 32));
 	text_layer_set_text_alignment(bottom_right_text_layer, GTextAlignmentRight);
 
 #endif
@@ -1800,10 +1816,10 @@ void window_load_cgm(Window *window_cgm)
 	// date layer dimenstions
 	date_app_layer = text_layer_create(GRect(0, 124 - 89, 143, 29));
 	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
-	// phone/bridge batter level layer diemnsions
+	// left metric layer dimensions
 	bottom_left_text_layer = text_layer_create(GRect(0, 148 - 89, 59, 18));
 	text_layer_set_text_alignment(bottom_left_text_layer, GTextAlignmentLeft);
-	// watch battery level layer dimensions
+	// right metric level layer dimensions
 	bottom_right_text_layer = text_layer_create(GRect(81, 148 - 89, 59, 18));
 	text_layer_set_text_alignment(bottom_right_text_layer, GTextAlignmentRight);
 
@@ -1841,16 +1857,16 @@ void window_load_cgm(Window *window_cgm)
 	cgmtime_layer = text_layer_create(GRect(  7,  84,  58,  35));
 	text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentRight);
 	// time watch layer dimenssions
-	time_watch_layer = text_layer_create(GRect( 26, 118 - 121, 206,  64));
+	time_watch_layer = text_layer_create(GRect( 26, 118 - 129, 206,  64));
 	text_layer_set_text_alignment(time_watch_layer, GTextAlignmentCenter);
 	// date layer dimenstions
-	date_app_layer = text_layer_create(GRect( 26, 178 - 121, 206,  38));
+	date_app_layer = text_layer_create(GRect( 26, 178 - 129, 206,  38));
 	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
-	// phone/bridge batter level layer diemnsions
-	bottom_left_text_layer = text_layer_create(GRect( 69, 236 - 121,  130,  26));
+	// left metric layer dimensions
+	bottom_left_text_layer = text_layer_create(GRect( 69, 226 - 121,  130,  34));
 	text_layer_set_text_alignment(bottom_left_text_layer, GTextAlignmentLeft);
-	// watch battery level layer dimensions
-	bottom_right_text_layer = text_layer_create(GRect( 65, 210 - 121,  130,  26));
+	// right metric level layer dimensions
+	bottom_right_text_layer = text_layer_create(GRect( 65, 208 - 121,  130,  34));
 	text_layer_set_text_alignment(bottom_right_text_layer, GTextAlignmentCenter);
 
 #endif
@@ -2188,6 +2204,7 @@ void ui_og_init(AppState *value)
 
 void ui_og_deinit(void)
 {
+    trend_deinit();
 	app_timer_cancel(message_tick_timer);
 
 	// destroy the window if it exists
@@ -2201,8 +2218,6 @@ void ui_og_deinit(void)
 	//unload the custom time font.
 	fonts_unload_custom_font(time_font_normal);
 	fonts_unload_custom_font(time_font_small);
-
-
 }
 
 GRect ui_og_trend_bounds(void) 

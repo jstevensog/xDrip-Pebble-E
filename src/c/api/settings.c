@@ -7,11 +7,28 @@ static AppState *state;
 
 #define LOG_SETTING(s)      LOG("state: " #s " = %d", state-> s) 
 #define LOG_SETTING_HEX(s)  LOG("state: " #s " = 0x%X", state-> s) 
+#define LOG_SETTING_INT(s)  LOG("state: " #s " = %d", (int32_t) state-> s) 
 
 void settings_init(AppState *values) {
     DEBUG("Initializing state");
     // set local pointer
     state = values;
+
+    // fetch previous data (if available)
+    if (persist_exists(STORED_DATA)) {
+        uint8_t *tmp = malloc(sizeof(state->state_blob)); 
+        if (tmp != NULL) {
+            uint32_t *tmp_time = (uint32_t *) &tmp[sizeof(state->state_blob) - sizeof(uint32_t)]; 
+            persist_read_data(STORED_DATA, tmp, sizeof(state->state_blob));
+            if ((uint32_t)time(NULL) - *tmp_time > 30 * SECONDS_PER_MINUTE) {
+                persist_delete(STORED_DATA);
+                // do nothing, values will remain zero
+            } else {
+                memcpy(state->state_blob, tmp, sizeof(state->state_blob));
+            }
+            free(tmp);
+        }
+    }
 
     // fetch all values from storage
     
@@ -55,8 +72,15 @@ void settings_init(AppState *values) {
 #endif
     LOG_SETTING_HEX(left_text_field);
     LOG_SETTING_HEX(right_text_field);
+    LOG_SETTING_INT(message_timeout);
+    LOG_SETTING_INT(stale_data_timeout);
     
     // set all callback to null
+}
+
+void settings_deinit(void) {
+    state->stored_time = time(NULL);
+    persist_write_data(STORED_DATA, state->state_blob, sizeof(state->state_blob));
 }
 
 #define SETTING_BOOL(name, value, field) \

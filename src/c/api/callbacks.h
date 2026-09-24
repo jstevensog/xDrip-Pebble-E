@@ -30,6 +30,8 @@ typedef struct {
 typedef struct {
     void (*alert_handler)(uint8_t alertvalue);
     void (*update_stale_timeout)(void);
+    void (*health_poll)(void);
+    void (*health_schedule_send)(void);
 } GlobalCallbacks;
 
 /*

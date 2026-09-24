@@ -60,7 +60,12 @@ void comm_handle(Tuple *data)
             comm_bgl_data *value = (comm_bgl_data *) data->value->data;
             if (cb->bgl_data != NULL) cb->bgl_data(value);
             if (cb->bgl_timestamp != NULL) cb->bgl_timestamp(value->timestamp);
-            if (cb->bgl_value != NULL) cb->bgl_value(value->bgl);
+            if (cb->bgl_value != NULL) {
+                cb->bgl_value(value->bgl);
+#ifdef PBL_HEALTH
+                CALLBACK(state.gl_cb.health_schedule_send);
+#endif
+            }
             break;
         case FRAMEWORK_BGL_SERIES:
             TRACE(CM "BGL Data stream");
@@ -68,7 +73,12 @@ void comm_handle(Tuple *data)
             TRACE(CM "Since %d", series->timestamp);
             if (cb->bgl_series != NULL) cb->bgl_series(series);
             if (cb->bgl_timestamp != NULL) cb->bgl_timestamp(series->timestamp);
-            if (cb->bgl_value != NULL) cb->bgl_value(series->bgl_values[series->length - 1]);
+            if (cb->bgl_value != NULL) {
+                cb->bgl_value(series->bgl_values[series->length - 1]);
+#ifdef PBL_HEALTH
+                CALLBACK(state.gl_cb.health_schedule_send);
+#endif
+            }
             break;
         case FRAMEWORK_PNG_IMAGE:
             TRACE(CM "PNG image data");
@@ -424,28 +434,27 @@ void comm_send_health(DictionaryIterator *iter, comm_health data)
 // incoming CGM push (health_schedule_send), when xDrip's process is awake and
 // its broadcast receiver will actually get the reply.
 // // TODO fix health
-/* static void health_send_values(void *data) { */
-/* 	health_send_timer = NULL; */
-/* 	if (!state.collect_health || state.bluetooth_alert) return; */
-/*  */
-/* 	health_poll(); */
-/* 	if (state.hbm == 0 && state.step_count == 0) return; */
-/*  */
-/* 	DictionaryIterator *iter = NULL; */
-/* 	if (app_message_outbox_begin(&iter) != APP_MSG_OK) { */
-/* 		LOG("health_send_values: outbox busy"); */
-/* 		return; */
-/* 	} */
-/* 	comm_send_health(iter, (comm_health){ */
-/* 		.heart_rate = (uint16_t) state.hbm, */
-/* 		.steps = (uint32_t) state.step_count, */
-/* 	}); */
-/*  */
-/* 	dict_write_end(iter); */
-/* 	if (app_message_outbox_send() == APP_MSG_OK) { */
-/* 		LOG("health_send_values: sent hr=%ld steps=%ld", state.step_count, state.step_count); */
-/* 	} */
-/* } */
+void health_send_values(void *data) {
+	if (!state.collect_health || state.bluetooth_alert) return;
+
+	CALLBACK(state.gl_cb.health_poll);
+	if (state.hbm == 0 && state.step_count == 0) return;
+
+	DictionaryIterator *iter = NULL;
+	if (app_message_outbox_begin(&iter) != APP_MSG_OK) {
+		LOG("health_send_values: outbox busy");
+		return;
+	}
+	comm_send_health(iter, (comm_health){
+		.heart_rate = (uint16_t) state.hbm,
+		.steps = (uint32_t) state.step_count,
+	});
+
+	dict_write_end(iter);
+	if (app_message_outbox_send() == APP_MSG_OK) {
+		LOG("health_send_values: sent hr=%ld steps=%ld", state.step_count, state.step_count);
+	}
+}
 
 #ifdef ENABLE_TOUCH
 void comm_send_basal_bolus(int32_t basal, int32_t bolus)

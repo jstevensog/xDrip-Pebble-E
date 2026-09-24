@@ -33,10 +33,10 @@ bool bluetooth_connected_cgm = true;
 
 void reset_stale_timer_callback(void);
 static void send_cmd_cgm(void);
+
 /**
  * predefines
  */
-
 
 #ifdef PBL_HEALTH
 // health_poll - peek the current heart rate and step total into health_hr /
@@ -98,10 +98,9 @@ void health_handler(HealthEventType event, void *context) {
 // receive path so the reply goes out while the phone is awake.
 void health_schedule_send(void) {
 	if (!state.collect_health) return;
-    // TODO fix health
-	/* if (health_send_timer == NULL || !app_timer_reschedule(health_send_timer, 2000)) { */
-	/* 	health_send_timer = app_timer_register(2000, health_send_values, NULL); */
-	/* } */
+	if (health_send_timer == NULL || !app_timer_reschedule(health_send_timer, 2000)) {
+		health_send_timer = app_timer_register(2000, health_send_values, NULL);
+	}
 }
 #endif
 
@@ -500,6 +499,10 @@ static void init_cgm(void)
     }
     state.gl_cb.alert_handler = alert_handler_cgm;
     state.gl_cb.update_stale_timeout = reset_stale_timer_callback;
+#ifdef PBL_HEALTH
+    state.gl_cb.health_poll = health_poll;
+    state.gl_cb.health_schedule_send = health_schedule_send;
+#endif
 
 	TRACE("INIT CODE IN");
 
@@ -548,8 +551,8 @@ static void deinit_cgm(void)
 	// Make sure we are not handling a second tick.
 	while (handling_second) {};
 
+    settings_deinit();
     ui_og_deinit();
-    //settings_deinit();
 
 	TRACE("window_unload_cgm: deinitialise app_sync");
 	app_sync_deinit(&sync_cgm);

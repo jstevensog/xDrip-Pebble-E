@@ -90,6 +90,7 @@ typedef struct {
 #else
     trend_bgl_value values[20*4]; // Values, maximum is the display width
 #endif
+    uint32_t stored_time;                   // time at which data was stored for recovery
 } bgl_array;
 
 
