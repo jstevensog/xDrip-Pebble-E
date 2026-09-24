@@ -2003,10 +2003,11 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 				comm_handle(data);
 #endif
 				//assume dictionary from xDrip.  So reset the stale_data_timer
-				INFO("Recieved comms from xDrip.  Resetting stale_data_timer to %i minutes", stale_data_timeout);
-				if(stale_data_timer == NULL || !app_timer_reschedule(stale_data_timer, stale_data_timeout))
+				if(data->key == FRAMEWORK_BGL_VALUE) 
 				{
-					app_timer_register(stale_data_timeout, handle_stale_data_tick, NULL);
+					INFO("Recieved comms from xDrip.  Resetting stale_data_timer to %i minutes", stale_data_timeout);
+					if(stale_data_timer == NULL || !app_timer_reschedule(stale_data_timer, stale_data_timeout))
+						app_timer_register(stale_data_timeout, handle_stale_data_tick, NULL);
 				}
 				/* LOG("inbox_received_handler_cgm: Dictionary Key not recognised: %ld", data->key); */
 			break;
