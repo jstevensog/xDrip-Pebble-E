@@ -6,7 +6,7 @@
 #include "../api/trend.h"
 #include "ui_og.h"
 #ifdef ENABLE_TOUCH
-#include "ux_insulin.h"
+#include "ui_insulin.h"
 #endif
 
 

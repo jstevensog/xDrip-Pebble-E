@@ -2,7 +2,7 @@
 #include <pebble.h>
 #include <stdarg.h>
 #include "../debug.h"
-#include "ux_insulin.h"
+#include "ui_insulin.h"
 
 static AppState *state = NULL;
 
