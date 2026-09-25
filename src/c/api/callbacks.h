@@ -12,6 +12,7 @@ typedef struct {
     void (*seconds_tick)(struct tm* tick_time_cgm, TimeUnits units_changed);
     void (*minutes_tick)(struct tm *tick_time_cgm, TimeUnits units_changed);
     void (*update_battery_state)(void);
+    void (*update_phone_battery_state)(void);
     void (*update_colours)(void);
     void (*update_seconds_timer)(bool swap);
     void (*update_message_timeout)(uint32_t timeout);

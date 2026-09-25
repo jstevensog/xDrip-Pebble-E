@@ -30,8 +30,8 @@ char time_watch_format[12] = TIME_24H_FORMAT;
 char time_watch_text[9] = "00:00:00";
 char date_app_text[11] = "Wed 13 Jan";
 char message_layer_text[12] = "message_lay";
-char left_text[12];
-char right_text[12];
+char left_text[STATUS_TEXT_SIZE];
+char right_text[STATUS_TEXT_SIZE];
 
 GFont time_font;
 GFont time_font_small;
@@ -229,14 +229,15 @@ void draw_date_from_app()
 #if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_DEORITE)
 static void hr_draw_callback(void *context) {
 	INFO("Drawing HRM");
-    char *buffer = state.left_text_field == METRIC_HEARTRATE ? left_text : right_text;
-    if (state.hbm == 0) snprintf(buffer, sizeof(left_text), "Wait.. \U0001F493");
-	// defer HR update untill measurement stabelizes
 	if (state.left_text_field == METRIC_HEARTRATE && state.dirty.hbm) {
-		text_layer_set_text(bottom_left_text_layer, buffer);
+        if (state.hbm == 0) snprintf(left_text, STATUS_TEXT_SIZE, "Wait.. " HRM_ICON);
+        else snprintf(left_text, STATUS_TEXT_SIZE, "%lu " HRM_ICON, (uint32_t) state.hbm);
+		text_layer_set_text(bottom_left_text_layer, left_text);
 	}
 	if (state.right_text_field == METRIC_HEARTRATE && state.dirty.hbm) {
-		text_layer_set_text(bottom_right_text_layer, buffer);
+        if (state.hbm == 0) snprintf(right_text, STATUS_TEXT_SIZE, "Wait.. " HRM_ICON);
+        else snprintf(right_text, STATUS_TEXT_SIZE, "%lu " HRM_ICON, (uint32_t) state.hbm);
+		text_layer_set_text(bottom_right_text_layer, right_text);
 	}
 	hr_draw_timer = NULL;
     state.dirty.hbm = 0;
@@ -247,7 +248,12 @@ void update_health_metric_displays() {
 	int step_count = 0;
 
 	// If there are no health metrics to display, do nothing and return.
-	if(state.left_text_field != METRIC_STEPS && state.right_text_field != METRIC_STEPS && state.left_text_field != METRIC_HEARTRATE && state.right_text_field != METRIC_HEARTRATE) return;
+	if(state.left_text_field != METRIC_STEPS && 
+            state.right_text_field != METRIC_STEPS &&
+            state.left_text_field != METRIC_HEARTRATE &&
+            state.right_text_field != METRIC_HEARTRATE) {
+        return;
+    }
 
     if(state.left_text_field == METRIC_STEPS || state.right_text_field == METRIC_STEPS) {
         HealthMetric metric = HealthMetricStepCount;
@@ -270,36 +276,31 @@ void update_health_metric_displays() {
             LOG("Data unavailable!");
         }
         if(state.left_text_field == METRIC_STEPS && state.dirty.step_count) {
-            snprintf(left_text, 8, "%i \U0001F9B6", step_count);
+            snprintf(left_text, STATUS_TEXT_SIZE, "%i " STEPS_ICON, step_count);
             text_layer_set_text(bottom_left_text_layer, left_text);
-            state.dirty.step_count = 0;
         }
         if(state.right_text_field == METRIC_STEPS && state.dirty.step_count) {
-            snprintf(right_text, 8, "%i \U0001F9B6", step_count);
+            snprintf(right_text, STATUS_TEXT_SIZE, "%i " STEPS_ICON, step_count);
             text_layer_set_text(bottom_right_text_layer, right_text);
-            state.dirty.step_count = 0;
         }
+        state.dirty.step_count = 0;
     }	
-#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_FLINT)
+#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_DEORITE)
     if(state.left_text_field == METRIC_HEARTRATE || state.right_text_field == METRIC_HEARTRATE) {
         HealthServiceAccessibilityMask hr = health_service_metric_accessible(HealthMetricHeartRateBPM, time(NULL), time(NULL));
         HealthValue val = health_service_peek_current_value(HealthMetricHeartRateBPM);
         LOG("Heart Rate data is \"%lu\"", (uint32_t)val);
-        if (hr & HealthServiceAccessibilityMaskAvailable || (val != 0 && val != state.hbm)) {
+        if (hr & HealthServiceAccessibilityMaskAvailable) {
             // value can either be changed or new available, check if changed then update (e.g. initial condition) 
-            if(val > 0 && val != state.hbm) {
-                // Display HRM value
+            // Display HRM value
+            if (val != state.hbm) {
                 state.hbm = val;
                 state.dirty.hbm = 1;
-                /* snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "%lu \U0001F493", (uint32_t)val); */
             }
-        } else if (state.hbm == 0) {
-            state.dirty.hbm = 1;
-            /* snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "Wait.. \U0001F493"); */
         }
 
         if (state.dirty.hbm && (hr_draw_timer == NULL || !app_timer_reschedule(hr_draw_timer, 1000))) {
-            hr_draw_timer = app_timer_register(2000, hr_draw_callback, NULL);
+            hr_draw_timer = app_timer_register(1000, hr_draw_callback, NULL);
         }
     }
 #endif
@@ -311,7 +312,8 @@ void update_health_metric_displays() {
  * Sensor info drawing into the two state fields
  */
 void update_sensor_info_displays(void) {
-    if ((state.left_text_field == METRIC_SENSOR_EXPIRY || state.right_text_field == METRIC_SENSOR_EXPIRY) && state.dirty.sensor_info) {
+    // should only get triggered on redraw is requested
+    if ((state.left_text_field == METRIC_SENSOR_EXPIRY || state.right_text_field == METRIC_SENSOR_EXPIRY)) {
         char *sensor_info_text = state.left_text_field == METRIC_SENSOR_EXPIRY ? left_text : right_text;
         const uint8_t moon[4] = { 0xF0, 0x9F, 0x8C, 0x99 };
         memcpy(sensor_info_text, moon, 4); // crecent moon unicode U+1F319
@@ -321,14 +323,14 @@ void update_sensor_info_displays(void) {
         // change sensor text length once sensors can last > 99 days
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-truncation"
-        if (remaining > 86400) snprintf(sensor_info_text + 4, sizeof(left_text) - 4, "%2ld d", remaining / 86400); 
-        else if ((remaining % 86400) > 3600) snprintf(sensor_info_text + 4, sizeof(left_text) - 4, "%2ld h", (remaining % 86400) / 3600); 
-        else if ((remaining % 60) > 0) snprintf(sensor_info_text + 4, sizeof(left_text) - 4, "%2ld m", (remaining % 3600) / 60);
-        else snprintf(sensor_info_text, sizeof(left_text), "exp");
+        if (remaining > 86400) snprintf(sensor_info_text + 4, STATUS_TEXT_SIZE - 4, "%2ld d", remaining / 86400); 
+        else if ((remaining % 86400) > 3600) snprintf(sensor_info_text + 4, STATUS_TEXT_SIZE - 4, "%2ld h", (remaining % 86400) / 3600); 
+        else if ((remaining % 60) > 0) snprintf(sensor_info_text + 4, STATUS_TEXT_SIZE - 4, "%2ld m", (remaining % 3600) / 60);
+        else snprintf(sensor_info_text, STATUS_TEXT_SIZE, "exp");
 #pragma GCC diagnostic pop
         text_layer_set_text(
                 state.left_text_field == METRIC_SENSOR_EXPIRY ? bottom_left_text_layer : bottom_right_text_layer, 
-                state.left_text_field == METRIC_SENSOR_EXPIRY ? left_text : right_text);
+                sensor_info_text);
     }
 }
 
@@ -485,7 +487,7 @@ inline void set_battery_data(char *watch_battlevel_percent, size_t length, int v
 	snprintf(watch_battlevel_percent, length, "%i%% ", state.battery_level);
 	#else
 #if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_GABBRO)
-	snprintf(watch_battlevel_percent, length, "\U0000231A %i%% ", state.battery_level);
+	snprintf(watch_battlevel_percent, length, WATCH_BATTERY_ICON " %i%% ", state.battery_level);
 #else
 	snprintf(watch_battlevel_percent, length, "W:%i%% ", state.battery_level);
 #endif
@@ -495,8 +497,8 @@ inline void set_battery_data(char *watch_battlevel_percent, size_t length, int v
 #endif
 }
 
-void update_battery_state(void) {
-	LOG(" update_battery_state: BackLightOnCharge: %u", state.backlight_on_charge);
+void load_battery_watch(void) {
+	LOG(" load_battery_watch: BackLightOnCharge: %u", state.backlight_on_charge);
 	if(state.backlight_on_charge)
 	{
 		if(state.battery_is_charging)
@@ -541,55 +543,55 @@ void update_battery_state(void) {
 	}
 	else if(state.left_text_field == METRIC_WATCHBATT || state.right_text_field == METRIC_WATCHBATT)
 	{
-		LOG("update_battery_state: Not Charging.  BacklightOnCharge:%u", state.backlight_on_charge);
+		LOG("load_battery_watch: Not Charging.  BacklightOnCharge:%u", state.backlight_on_charge);
 #ifdef PBL_COLOR
-		TRACE("update_battery_state: COLOR DETECTED");
+		TRACE("load_battery_watch: COLOR DETECTED");
 		if(state.battery_level > 40)
 		{
-			TRACE("update_battery_state: BATTERY > 40");
+			TRACE("load_battery_watch: BATTERY > 40");
 			if(state.left_text_field == METRIC_WATCHBATT) {
-				LOG("update_battery_state: >40%% bottom_left_text_layer: GColorGreen");
+				LOG("load_battery_watch: >40%% bottom_left_text_layer: GColorGreen");
 				text_layer_set_text_color(bottom_left_text_layer, state.foreground_colour);
 			}
 			if(state.right_text_field == METRIC_WATCHBATT) {
-				LOG("update_battery_state: >40%% bottom_right_text_layer: GColorGreen");
+				LOG("load_battery_watch: >40%% bottom_right_text_layer: GColorGreen");
 				text_layer_set_text_color(bottom_right_text_layer, state.foreground_colour);
 			}
 		}
 		else if (state.battery_level > 20)
 		{
-			TRACE("update_battery_state: BATTERY > 20");
+			TRACE("load_battery_watch: BATTERY > 20");
 			if(state.left_text_field == METRIC_WATCHBATT) {
-				LOG("update_battery_state: >20%% bottom_left_text_layer: GColorYellow");
+				LOG("load_battery_watch: >20%% bottom_left_text_layer: GColorYellow");
 				text_layer_set_text_color(bottom_left_text_layer, GColorYellow);
 			}
 			if(state.right_text_field == METRIC_WATCHBATT) {
-				LOG("update_battery_state: >20%% bottom_right_text_layer: GColorYellow");
+				LOG("load_battery_watch: >20%% bottom_right_text_layer: GColorYellow");
 				text_layer_set_text_color(bottom_right_text_layer, GColorYellow);
 			}
 		}
 		else
 		{
-			TRACE("update_battery_state: BATTERY <= 20");
+			TRACE("load_battery_watch: BATTERY <= 20");
 			if(state.left_text_field == METRIC_WATCHBATT) {
-				LOG("update_battery_state: <=20%% bottom_left_text_layer: GColorRed");
+				LOG("load_battery_watch: <=20%% bottom_left_text_layer: GColorRed");
 				text_layer_set_text_color(bottom_left_text_layer, GColorRed);
 			}
 			if(state.right_text_field == METRIC_WATCHBATT) {
-				LOG("update_battery_state: <=20%% bottom_right_text_layer: GColorRed");
+				LOG("load_battery_watch: <=20%% bottom_right_text_layer: GColorRed");
 				text_layer_set_text_color(bottom_right_text_layer, GColorRed);
 			}
 		}
 		if(state.left_text_field == METRIC_WATCHBATT) {
-			LOG("update_battery_state: Normal, bottom_left_text_layer: GColorClear");
+			LOG("load_battery_watch: Normal, bottom_left_text_layer: GColorClear");
 			text_layer_set_background_color(bottom_left_text_layer, GColorClear);
 		}
 		if(state.right_text_field == METRIC_WATCHBATT) {
-			LOG("update_battery_state: Normal, bottom_right_text_layer: GColorClear");
+			LOG("load_battery_watch: Normal, bottom_right_text_layer: GColorClear");
 			text_layer_set_background_color(bottom_right_text_layer, GColorClear);
 		}
 #else
-		TRACE("update_battery_state: BW DETECTED");
+		TRACE("load_battery_watch: BW DETECTED");
 		if(state.left_text_field == METRIC_WATCHBATT) {
 			text_layer_set_text_color(bottom_left_text_layer, GColorWhite);
 			text_layer_set_background_color(bottom_left_text_layer, GColorBlack);
@@ -601,11 +603,11 @@ void update_battery_state(void) {
 #endif
 	}
 	if(state.left_text_field == METRIC_WATCHBATT) {
-        set_battery_data(left_text, sizeof(left_text), state.battery_level);
+        set_battery_data(left_text, STATUS_TEXT_SIZE, state.battery_level);
 		text_layer_set_text(bottom_left_text_layer, left_text);
 	}
 	if(state.right_text_field == METRIC_WATCHBATT) {
-        set_battery_data(right_text, sizeof(right_text), state.battery_level);
+        set_battery_data(right_text, STATUS_TEXT_SIZE, state.battery_level);
 		text_layer_set_text(bottom_right_text_layer, right_text);
 	}
 }
@@ -640,7 +642,7 @@ void update_colours(void)
 	text_layer_set_background_color(bottom_right_text_layer, GColorClear);
 	text_layer_set_background_color(bottom_left_text_layer, GColorClear);
 	// update the right metric colours etc.
-	update_battery_state();
+	load_battery_watch();
 #else
     if(state.fields_same_colour) {
         bitmap_layer_set_background_color(upper_face_layer, state.background_colour);
@@ -654,19 +656,41 @@ void update_colours(void)
 }
 // end update_colours 
 
+void update_text_fields(TextLayer *txt, uint8_t field) {
+    update_colours(); // in case it's not visible
+    switch (field) {
+        case METRIC_NONE: // fall through
+        default:
+            text_layer_set_text(txt, "");
+            break;
+        case METRIC_PHONEBATT:
+            load_battlevel_phone();
+            break;
+        case METRIC_WATCHBATT:
+            load_battery_watch();
+            break;
+        case METRIC_HEARTRATE: // fall through
+        case METRIC_STEPS:
+            state.dirty.hbm = 1;
+            state.dirty.step_count = 1;
+#ifdef PBL_HEALTH
+            update_health_metric_displays();
+#endif
+            break;
+        case METRIC_SENSOR_EXPIRY:
+            update_sensor_info_displays();
+            break;
+    }
+}
+
 void update_left_field(void) {
     LOG("Left field");
-    update_colours(); // in case it's not visible
-    if (state.left_text_field == METRIC_NONE) {
-        text_layer_set_text(bottom_left_text_layer, "");
-    } else if (state.left_text_field == METRIC_PHONEBATT) {
-        text_layer_set_text(bottom_left_text_layer, "Wait..");
-    } else {
-#ifdef PBL_HEALTH
-        update_health_metric_displays();
-#endif
-        update_battery_state();
-    }
+    update_text_fields(bottom_left_text_layer, state.left_text_field);
+}
+
+void update_right_field(void) {
+    LOG("Right field");
+    update_text_fields(bottom_right_text_layer, state.right_text_field);
 }
 
 void update_trend(void) {
@@ -682,21 +706,6 @@ void update_trend(void) {
     state.dirty.need_cgm = 1;
     state.cgm_time = 0; // force update all
     reset_timer_callback_cgm(2);
-}
-
-void update_right_field(void) {
-    LOG("Right field");
-    update_colours(); // in case it's not visible
-    if (state.right_text_field == METRIC_NONE) {
-        text_layer_set_text(bottom_right_text_layer, "");
-    } else if (state.right_text_field == METRIC_PHONEBATT) {
-        text_layer_set_text(bottom_right_text_layer, "Wait..");
-    } else {
-#ifdef PBL_HEALTH
-        update_health_metric_displays();
-#endif
-        update_battery_state();
-    }
 }
 
 void update_timeago(void) {
@@ -1405,19 +1414,11 @@ void load_battlevel_phone()
 	TRACE("load_battlevel: START");
 
 	// CONSTANTS
-#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_GABBRO)
-#define PHONE_EMOJI "\U0001F4F1"
-#else
-    // phone emoji is not available on older versions
-#define PHONE_EMOJI " B:"
-#endif
 
 
 	// VARIABLES
 	// NOTE: buffers have to be and hardcoded
 	uint32_t current_battlevel = 0;
-	char battlevel_percent[BATTLEVEL_FORMATTED_SIZE];
-
 	// CODE START
 	//Deterime if a metric text layer is configured for phone battery
 	if(state.left_text_field != METRIC_PHONEBATT && state.right_text_field == METRIC_PHONEBATT) {
@@ -1429,8 +1430,8 @@ void load_battlevel_phone()
 	{
 		// Init code or no battery, can't do battery; set text layer & icon to empty value
 		INFO("load_battlevel: NO BATTERY");
-		if(state.left_text_field == METRIC_PHONEBATT) text_layer_set_text(bottom_left_text_layer, "");
-		if(state.right_text_field == METRIC_PHONEBATT) text_layer_set_text(bottom_right_text_layer, "");
+		if(state.left_text_field == METRIC_PHONEBATT) text_layer_set_text(bottom_left_text_layer, PHONE_ICON "?");
+		if(state.right_text_field == METRIC_PHONEBATT) text_layer_set_text(bottom_right_text_layer, PHONE_ICON "?");
 		state.battery_low_alert = false;
 		return;
 	}
@@ -1439,8 +1440,8 @@ void load_battlevel_phone()
 	{
 		// Zero battery level; set here, so if we get zero later we know we have an error instead
 		INFO("load_battlevel: 0 value");
-		if(state.left_text_field == METRIC_PHONEBATT) text_layer_set_text(bottom_left_text_layer, PHONE_EMOJI "0%");
-		if(state.right_text_field == METRIC_PHONEBATT) text_layer_set_text(bottom_right_text_layer, PHONE_EMOJI "0%");
+		if(state.left_text_field == METRIC_PHONEBATT) text_layer_set_text(bottom_left_text_layer, PHONE_ICON "0%");
+		if(state.right_text_field == METRIC_PHONEBATT) text_layer_set_text(bottom_right_text_layer, PHONE_ICON "0%");
 		if (!state.battery_low_alert)
 		{
 			INFO("load_battlevel: 0 value, vibe");
@@ -1463,23 +1464,24 @@ void load_battlevel_phone()
 	{
 		// got a negative or out of bounds or error battery level
 		INFO("load_battlevel: error");
-		if(state.left_text_field == METRIC_PHONEBATT) text_layer_set_text(bottom_left_text_layer, PHONE_EMOJI "ERR");
-		if(state.right_text_field == METRIC_PHONEBATT) text_layer_set_text(bottom_right_text_layer, PHONE_EMOJI "ERR");
+		if(state.left_text_field == METRIC_PHONEBATT) text_layer_set_text(bottom_left_text_layer, PHONE_ICON "ERR");
+		if(state.right_text_field == METRIC_PHONEBATT) text_layer_set_text(bottom_right_text_layer, PHONE_ICON "ERR");
 		return;
 	}
 
+    char *battlevel_percent = state.left_text_field == METRIC_PHONEBATT ? left_text : right_text;
 	// get current battery level and set battery level text with percent
 #ifdef PBL_ROUND
 	snprintf(battlevel_percent, BATTLEVEL_FORMATTED_SIZE, " %lu%%", current_battlevel);
 #elif PBL_COLOR
-	snprintf(battlevel_percent, BATTLEVEL_FORMATTED_SIZE, PHONE_EMOJI " %lu%%", current_battlevel);
+	snprintf(battlevel_percent, BATTLEVEL_FORMATTED_SIZE, PHONE_ICON " %lu%%", current_battlevel);
 #else
 	snprintf(battlevel_percent, BATTLEVEL_FORMATTED_SIZE, "B:%lu%%", current_battlevel);
 #endif
 	LOG("load_battlevel: %s\%", battlevel_percent);
 #ifndef PBL_ROUND
-	if(state.left_text_field == METRIC_PHONEBATT) text_layer_set_text(bottom_left_text_layer, battlevel_percent);
-	if(state.right_text_field == METRIC_PHONEBATT) text_layer_set_text(bottom_right_text_layer, battlevel_percent);
+	if(state.left_text_field == METRIC_PHONEBATT) text_layer_set_text(bottom_left_text_layer, left_text);
+	if(state.right_text_field == METRIC_PHONEBATT) text_layer_set_text(bottom_right_text_layer, right_text);
 #endif
 #ifdef PBL_COLOR
 	// if neither bottom metric is battery indication, then return immediately and don't process the colours.
@@ -1998,7 +2000,7 @@ void window_load_cgm(Window *window_cgm)
     comm_set_bgl_value(state.bgl_value);
     comm_set_bgl_delta(state.delta);
     update_colours();
-    update_battery_state();
+    load_battery_watch();
     update_timeago();
     update_left_field();
     update_right_field();
@@ -2078,7 +2080,8 @@ void ui_og_init(AppState *value)
     state.wf_cb.set_delta = set_delta;
     state.wf_cb.set_delta_colour = set_delta_colour;
     state.wf_cb.set_cgmtime = set_cgmtime;
-    state.wf_cb.update_battery_state = update_battery_state;
+    state.wf_cb.update_battery_state = load_battery_watch;
+    state.wf_cb.update_phone_battery_state = load_battlevel_phone;
     state.wf_cb.update_seconds_timer = update_seconds_timer;
     state.wf_cb.update_timeago = update_timeago;
     state.wf_cb.update_message_timeout = update_message_timeout;
