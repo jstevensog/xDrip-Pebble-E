@@ -382,7 +382,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 #endif
 
         //assume dictionary from xDrip.  So reset the stale_data_timer
-        if(data->key == FRAMEWORK_BGL_VALUE) 
+        if(data->key == FRAMEWORK_BGL_VALUE || data->key == FRAMEWORK_BGL_SERIES) 
         {
             INFO("Recieved comms from xDrip.  Resetting stale_data_timer to %i minutes", state.stale_data_timeout);
             reset_stale_timer_callback();
@@ -403,8 +403,9 @@ void reset_timer_callback_cgm(int32_t seconds) {
 }
 
 void reset_stale_timer_callback(void) {
+    ERROR("STALE TIMER RESET");
     if (NULL == stale_data_timer || !app_timer_reschedule(stale_data_timer, state.stale_data_timeout)) {
-        app_timer_register(state.stale_data_timeout, handle_stale_data_tick, NULL);
+        stale_data_timer = app_timer_register(state.stale_data_timeout, handle_stale_data_tick, NULL);
     }
 }
 
@@ -437,13 +438,13 @@ void timer_callback_cgm(void *data)
 // stale data tick handler
 void handle_stale_data_tick(void *data)
 {
-	INFO("handle_stale_data_tick: entered");
+	ERROR("handle_stale_data_tick: entered");
     CALLBACK(state.wf_cb.set_delta, "Stale Data!", sizeof("Stale Data!")); 
     CALLBACK(state.gl_cb.alert_handler, APPSYNC_ERR_VIBE);
 
 	if(stale_data_timer == NULL || !app_timer_reschedule(stale_data_timer,state.stale_data_timeout)) 
 	{
-		INFO("handle_stale_data_tick: reset stale_data_timer to %l", state.stale_data_timeout);
+		ERROR("handle_stale_data_tick: reset stale_data_timer to %l", state.stale_data_timeout);
 		app_timer_register(state.stale_data_timeout, handle_stale_data_tick, NULL);
 	}
 }
