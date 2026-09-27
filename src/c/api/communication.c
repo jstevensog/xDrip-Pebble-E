@@ -83,6 +83,9 @@ void comm_handle(Tuple *data)
         case FRAMEWORK_PNG_IMAGE:
             TRACE(CM "PNG image data");
             if (cb->png != NULL) cb->png((comm_png_data *) data->value->data);
+#ifdef PBL_HEALTH
+            CALLBACK(state.gl_cb.health_schedule_send);
+#endif
             break;
         case FRAMEWORK_SENSOR_INFO:
             TRACE(CM "Sensor info");
@@ -433,13 +436,13 @@ void comm_send_health(DictionaryIterator *iter, comm_health data)
 // a standalone AppMessage via the comm framework. Scheduled ~2s after an
 // incoming CGM push (health_schedule_send), when xDrip's process is awake and
 // its broadcast receiver will actually get the reply.
-// // TODO fix health
 void health_send_values(void *data) {
+    INFO("Health send values");
+
 	if (!state.collect_health || state.bluetooth_alert) return;
 
 	CALLBACK(state.gl_cb.health_poll);
 	if (state.hbm == 0 && state.step_count == 0) return;
-
 	DictionaryIterator *iter = NULL;
 	if (app_message_outbox_begin(&iter) != APP_MSG_OK) {
 		LOG("health_send_values: outbox busy");

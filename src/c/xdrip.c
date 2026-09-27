@@ -94,12 +94,17 @@ void health_handler(HealthEventType event, void *context) {
 	update_health_metric_displays();
 } //end health_handler
 
+void health_send(void *data) {
+    health_send_timer = NULL;
+    health_send_values(NULL);
+}
 // health_schedule_send - arm the one-shot send timer. Called from the CGM
 // receive path so the reply goes out while the phone is awake.
 void health_schedule_send(void) {
+    INFO("HEALTH SEND SCHEDULE: %d", state.collect_health);
 	if (!state.collect_health) return;
 	if (health_send_timer == NULL || !app_timer_reschedule(health_send_timer, 2000)) {
-		health_send_timer = app_timer_register(2000, health_send_values, NULL);
+		health_send_timer = app_timer_register(2000, health_send, NULL);
 	}
 }
 #endif
@@ -403,7 +408,7 @@ void reset_timer_callback_cgm(int32_t seconds) {
 }
 
 void reset_stale_timer_callback(void) {
-    ERROR("STALE TIMER RESET");
+    INFO("STALE TIMER RESET");
     if (NULL == stale_data_timer || !app_timer_reschedule(stale_data_timer, state.stale_data_timeout)) {
         stale_data_timer = app_timer_register(state.stale_data_timeout, handle_stale_data_tick, NULL);
     }

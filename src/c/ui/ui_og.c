@@ -786,6 +786,7 @@ void update_collect_health(void) {
     // have fresh values; ~10 min trades data rate for battery
 #endif
     if (state.collect_health) {
+        WARNING("HELATH ENABLED");
 #if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_DIORITE)
         // sample HR on a fixed cadence while collecting so we
         // have fresh values; ~10 min trades data rate for battery
@@ -793,6 +794,7 @@ void update_collect_health(void) {
 #endif
 		CALLBACK(state.gl_cb.health_poll);
     } else {
+        WARNING("HELATH DISABLED");
         health_hr = 0;
         health_steps = 0;
         if (health_send_timer != NULL) {
@@ -905,10 +907,6 @@ void comm_set_bgl_data(comm_bgl_data *value) {
 			reset_timer_callback_cgm((value->timestamp - time(NULL)) + (60));
 		} else if (!state.use_png && !state.dirty.need_cgm) trend_set_value(value);
 		comm_set_bgl_timestamp(value->timestamp); // can be marked dirty, so might not update
-#ifdef PBL_HEALTH
-		/* health_schedule_send(); // xDrip is awake now - report HR/steps shortly */
-        // TODO FIX with send scheduler
-#endif
 	} else {
 		WARNING("Received same bgl value twice!");
 	}
@@ -945,9 +943,6 @@ void comm_set_png(comm_png_data *data) {
 			WARNING("bg_trend_bitmap creation FAILED!");
 		}
 	}
-#ifdef PBL_HEALTH
-// TODO Fix	health_schedule_send(); // xDrip is awake now - report HR/steps shortly
-#endif
 	state.dirty.need_cgm = 0;
 }
 
@@ -960,9 +955,6 @@ void comm_set_bgl_series(comm_bgl_series *series) {
         trend_set_hidden(!state.show_trend && !state.use_png);
         persist_write_bool(SET_SHOW_TREND, state.show_trend);
     }
-#ifdef PBL_HEALTH
-	// TODO fix health_schedule_send(); // xDrip is awake now - report HR/steps shortly
-#endif
 }
 
 void comm_set_message(comm_message message) {

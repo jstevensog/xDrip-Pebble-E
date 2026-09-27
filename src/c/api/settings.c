@@ -61,6 +61,7 @@ void settings_init(AppState *values) {
 	state->background_colour = persist_exists(SET_BG_COLOUR)? GColorFromHEX(persist_read_int(SET_BG_COLOUR)) : COLOR_FALLBACK(GColorDukeBlue,GColorBlack);
 #endif
     state->stale_data_timeout = persist_exists(STALE_DATA_ALERT_TIMEOUT) ? persist_read_int(STALE_DATA_ALERT_TIMEOUT) : 6 * 60000;
+    state->collect_health = persist_exists(SET_COLLECT_HEALTH) ? persist_read_bool(SET_COLLECT_HEALTH) : false;
 
     LOG_SETTING(use_png);
     LOG_SETTING(show_slope);
@@ -72,6 +73,7 @@ void settings_init(AppState *values) {
     LOG_SETTING(backlight_on_charge);
     LOG_SETTING(bold_timeago);
     LOG_SETTING(fields_same_colour);
+    LOG_SETTING(collect_health);
 #ifdef PBL_COLOR
     LOG_SETTING_HEX(foreground_colour);
     LOG_SETTING_HEX(background_colour);
@@ -87,7 +89,7 @@ void settings_init(AppState *values) {
 void settings_deinit(void) {
     state->stored_time = time(NULL);
     state->storage_marker = STORAGE_MARKER;
-    status_t st = persist_write_data(STORED_DATA, state->state_blob, sizeof(state->state_blob));
+    persist_write_data(STORED_DATA, state->state_blob, sizeof(state->state_blob));
 }
 
 #define SETTING_BOOL(name, value, field) \

@@ -311,6 +311,13 @@
 		]
   },
   {
+      "type": "toggle",
+      "messageKey": "collecthealth",
+      "defaultValue": false,
+      "label": "Send health data to xDrip",
+      "capabilities": ["HEALTH"]
+  },
+  {
 	  "type": "section",
 	  "items": [
 		  {
