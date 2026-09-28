@@ -92,6 +92,7 @@ static AppTimer *message_tick_timer = NULL;
 * Stale data timer.  User definable from 6 minutes to 15 minutes.
 * Indicates to the user by vibration that there has not been an update to readings data for a while.
 */
+static bool stale_data_popped = false;
 static uint32_t stale_data_timeout = 360000; // default 6 minutes
 static AppTimer *stale_data_timer = NULL;
 /**
@@ -2008,6 +2009,11 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 					INFO("Recieved comms from xDrip.  Resetting stale_data_timer to %i minutes", stale_data_timeout);
 					if(stale_data_timer == NULL || !app_timer_reschedule(stale_data_timer, stale_data_timeout))
 						app_timer_register(stale_data_timeout, handle_stale_data_tick, NULL);
+					if(stale_data_popped)
+					{
+						stale_data_popped = false;
+						text_layer_set_text(delta_layer,"");
+					}
 				}
 				/* LOG("inbox_received_handler_cgm: Dictionary Key not recognised: %ld", data->key); */
 			break;
@@ -2082,6 +2088,7 @@ void handle_message_tick(void *data)
 void handle_stale_data_tick(void *data)
 {
 	INFO("handle_stale_data_tick: entered");
+	stale_data_popped = true; 
 	text_layer_set_text(delta_layer, "Stale Data!");
 	alert_handler_cgm(APPSYNC_ERR_VIBE);
 	if(stale_data_timer == NULL || !app_timer_reschedule(stale_data_timer,stale_data_timeout)) 
