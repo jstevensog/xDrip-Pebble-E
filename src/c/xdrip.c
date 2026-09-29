@@ -381,7 +381,7 @@ void health_handler(HealthEventType event, void *context) {
 } //end health_handler
 
 
-#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_FLINT)
+#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_FLINT) 
 static char s_hrm_buffer[16] = "Wait.. \U0001F493";
 static void hr_draw_callback(void *context) {
 	INFO("Drawing HRM");
@@ -420,7 +420,11 @@ void update_health_metric_displays() {
 				dirty.step_count = 1;
 				current_step_count = step_count;
 				LOG("Steps today: %d", step_count);
+#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_FLINT) || defined(PBL_PLATFORM_GABBRO)
 				snprintf(step_count_text,10, "%i \U0001F9B6", step_count);
+#else
+				snprintf(step_count_text,10, "%i s", step_count);
+#endif
 			}
 		} else {
 			// No data recorded yet today
@@ -531,11 +535,11 @@ static void battery_handler(BatteryChargeState charge_state)
 #ifdef PBL_COLOR 
 	#ifdef PBL_ROUND
 	snprintf(watch_battlevel_percent, BATTLEVEL_FORMATTED_SIZE, "%i%% ", charge_state.charge_percent);
-	#else
+	#elif defined(PBL_PLATFORM_EMERY) 
 	snprintf(watch_battlevel_percent, BATTLEVEL_FORMATTED_SIZE, "%i%% \U0000231A ", charge_state.charge_percent);
 	#endif
 #else
-	snprintf(watch_battlevel_percent, BATTLEVEL_FORMATTED_SIZE, "%i%% \U0000231A", charge_state.charge_percent);
+	snprintf(watch_battlevel_percent, BATTLEVEL_FORMATTED_SIZE, "%i%% W", charge_state.charge_percent);
 #endif
 	LOG(" battery_handler: watch_battlevel_percent: %s", watch_battlevel_percent);
 	LOG(" battery_handler: BackLightOnCharge: %u", BacklightOnCharge);
@@ -1527,8 +1531,13 @@ static void load_battlevel()
 	{
 		// Zero battery level; set here, so if we get zero later we know we have an error instead
 		INFO("load_battlevel: 0 value");
+#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_FLINT) || defined(PBL_PLATFORM_GABBRO)
 		if(bottom_left_metric == METRIC_PHONEBATT) text_layer_set_text(bottom_left_text_layer, "0% \U0001F4F1");
 		if(bottom_right_metric == METRIC_PHONEBATT) text_layer_set_text(bottom_right_text_layer, "0% \U0001F4F1");
+#else
+		if(bottom_left_metric == METRIC_PHONEBATT) text_layer_set_text(bottom_left_text_layer, "0% P");
+		if(bottom_right_metric == METRIC_PHONEBATT) text_layer_set_text(bottom_right_text_layer, "0% P");
+#endif
 		if (!LowBatteryAlert)
 		{
 			INFO("load_battlevel: 0 value, vibe");
@@ -1557,12 +1566,10 @@ static void load_battlevel()
 	}
 
 	// get current battery level and set battery level text with percent
-#ifdef PBL_ROUND
-	snprintf(battlevel_percent, BATTLEVEL_FORMATTED_SIZE, "%lu%% \U0001F4F1", current_battlevel);
-#elif PBL_COLOR
+#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_FLINT) || defined(PBL_PLATFORM_GABBRO)
 	snprintf(battlevel_percent, BATTLEVEL_FORMATTED_SIZE, "%lu%% \U0001F4F1", current_battlevel);
 #else
-	snprintf(battlevel_percent, BATTLEVEL_FORMATTED_SIZE, "%lu%% \U0001F4F1", current_battlevel);
+	snprintf(battlevel_percent, BATTLEVEL_FORMATTED_SIZE, "%lu%% P", current_battlevel);
 #endif
 	LOG("load_battlevel: %s\%", battlevel_percent);
 #ifndef PBL_ROUND
