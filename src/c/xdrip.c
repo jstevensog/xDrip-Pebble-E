@@ -538,6 +538,8 @@ static void battery_handler(BatteryChargeState charge_state)
 	#elif defined(PBL_PLATFORM_EMERY) 
 	snprintf(watch_battlevel_percent, BATTLEVEL_FORMATTED_SIZE, "%i%% \U0000231A ", charge_state.charge_percent);
 	#endif
+#elif defined(PBL_PLATFORM_FLINT)
+	snprintf(watch_battlevel_percent, BATTLEVEL_FORMATTED_SIZE, "%i%% \U0000231A ", charge_state.charge_percent);
 #else
 	snprintf(watch_battlevel_percent, BATTLEVEL_FORMATTED_SIZE, "%i%% W", charge_state.charge_percent);
 #endif
@@ -1532,9 +1534,11 @@ static void load_battlevel()
 		// Zero battery level; set here, so if we get zero later we know we have an error instead
 		INFO("load_battlevel: 0 value");
 #if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_FLINT) || defined(PBL_PLATFORM_GABBRO)
+		LOG("load_battlevel: Platform is unicodw capable");
 		if(bottom_left_metric == METRIC_PHONEBATT) text_layer_set_text(bottom_left_text_layer, "0% \U0001F4F1");
 		if(bottom_right_metric == METRIC_PHONEBATT) text_layer_set_text(bottom_right_text_layer, "0% \U0001F4F1");
 #else
+		LOG("load_battlevel: Platform is NOT unicodw capable");
 		if(bottom_left_metric == METRIC_PHONEBATT) text_layer_set_text(bottom_left_text_layer, "0% P");
 		if(bottom_right_metric == METRIC_PHONEBATT) text_layer_set_text(bottom_right_text_layer, "0% P");
 #endif
@@ -1567,8 +1571,10 @@ static void load_battlevel()
 
 	// get current battery level and set battery level text with percent
 #if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_FLINT) || defined(PBL_PLATFORM_GABBRO)
+	LOG("load_battlevel: Platform is unicodw capable");
 	snprintf(battlevel_percent, BATTLEVEL_FORMATTED_SIZE, "%lu%% \U0001F4F1", current_battlevel);
 #else
+	LOG("load_battlevel: Platform is NOT unicodw capable");
 	snprintf(battlevel_percent, BATTLEVEL_FORMATTED_SIZE, "%lu%% P", current_battlevel);
 #endif
 	LOG("load_battlevel: %s\%", battlevel_percent);
@@ -2424,7 +2430,7 @@ void window_load_cgm(Window *window_cgm)
 	bg_trend_layer_draw = bitmap_layer_create(GRect(0,24,144,64));
 	bitmap_layer_set_compositing_mode(bg_trend_layer_draw, GCompOpSet);
 	// delta layer dimensions
-	delta_layer = text_layer_create(GRect(0, 58, 143, 50))
+	delta_layer = text_layer_create(GRect(0, 58, 143, 50));
 	text_layer_set_text_alignment(delta_layer, GTextAlignmentLeft);
 	// message layer dimensions
 	message_layer = text_layer_create(GRect(0, 36, 143, 50));
