@@ -2021,7 +2021,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
 				{
 					INFO("Recieved comms from xDrip.  Resetting stale_data_timer to %i minutes", stale_data_timeout);
 					if(stale_data_timer == NULL || !app_timer_reschedule(stale_data_timer, stale_data_timeout))
-						app_timer_register(stale_data_timeout, handle_stale_data_tick, NULL);
+						stale_data_timer = app_timer_register(stale_data_timeout, handle_stale_data_tick, NULL);
 					if(stale_data_popped)
 					{
 						stale_data_popped = false;
@@ -2107,7 +2107,7 @@ void handle_stale_data_tick(void *data)
 	if(stale_data_timer == NULL || !app_timer_reschedule(stale_data_timer,stale_data_timeout)) 
 	{
 		INFO("handle_stale_data_tick: reset stale_data_timer to %l", stale_data_timeout);
-		app_timer_register(stale_data_timeout, handle_stale_data_tick, NULL);
+		stale_data_timer = app_timer_register(stale_data_timeout, handle_stale_data_tick, NULL);
 	}
 }
 

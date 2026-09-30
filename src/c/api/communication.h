@@ -8,14 +8,14 @@
  * Message codes for framework communication
  */
 #define FRAMEWORK_HEARTBEAT         2000
-#define FRAMEWORK_BGL_DELTA         2001
-#define FRAMEWORK_BGL_VALUE         2002
-#define FRAMEWORK_PHONEBAT          2003
-#define FRAMEWORK_MESSAGE           2004
-#define FRAMEWORK_HIGHLIMIT         2005
-#define FRAMEWORK_LOWLIMIT          2006
-#define FRAMEWORK_VIBE              2007
-#define FRAMEWORK_SLOPEVAL          2008 
+#define FRAMEWORK_BGL_DELTA         2001	//uint16 value 
+#define FRAMEWORK_BGL_VALUE         2002	//BGL value and Timestamp
+#define FRAMEWORK_PHONEBAT          2003	//uint8 indicating 0-100%
+#define FRAMEWORK_MESSAGE           2004	//char array
+#define FRAMEWORK_HIGHLIMIT         2005	//uint32 value
+#define FRAMEWORK_LOWLIMIT          2006	//uint32 value
+#define FRAMEWORK_VIBE              2007	//uint8 value 0-3.
+#define FRAMEWORK_SLOPEVAL          2008 	//uint8 value 0-15.  0=No Arrow, 1-7=Double up to Double Down, 8-15 various icons.
 #define FRAMEWORK_BGL_SERIES        2009
 #define FRAMEWORK_PNG_IMAGE         2010
 #define FRAMEWORK_BWP_VALUE         2011
