@@ -26,6 +26,7 @@
 #define FRAMEWORK_HEALTH_HR         2013
 #define FRAMEWORK_HEALTH_STEPS      2014
 #define FRAMEWORK_BASAL_BOLUS       2015
+#define FRAMEWORK_CARBS             2016
 
 #define SENSOR_STATE_ACTIVE         0
 #define SENSOR_STATE_WARMUP         1
@@ -137,8 +138,11 @@ typedef union {
     };
     uint32_t raw;               // Convenience blob
 } comm_low_limit;
+
 typedef uint8_t comm_vibe;      // Vibate type 
+
 typedef uint8_t comm_slopeval;  // Slope icon value
+
 typedef struct {
     uint16_t length : 15;       // PNG data blob length
     uint16_t hidden : 1;        // PNG trend is hidden
@@ -147,8 +151,9 @@ typedef struct {
 
 typedef struct {
     uint32_t start;             // Start time of the sensor
-    uint32_t end;         // Remaining sensor time 
+    uint32_t end;               // Remaining sensor time 
     uint8_t  state;             // Sensor state
+    uint16_t interval;          // Sensor interval in s
 } comm_sensor_info;
 
 typedef uint32_t comm_bwp_value;        // Not implemented
@@ -160,9 +165,13 @@ typedef struct comm_health_t {
 
 
 typedef struct comm_basal_bolus_t {
-    uint8_t basal;
-    uint8_t bolus;
+    uint8_t basal;          // Basal value
+    uint8_t bolus;          // Bolus value
 } comm_basal_bolus;
+
+typedef struct comm_carbs_t {
+    uint16_t value;
+} comm_carbs;
 
 #pragma pack()
 
@@ -182,24 +191,17 @@ bool comm_receiver(Tuple *data);
 /**
  * Request a png of a specific size
  */
-void comm_request_png(DictionaryIterator *iter, GRect bounds);
+void comm_request_add_png(DictionaryIterator *iter, GRect bounds);
 // Write the current heart rate / step total into an already-open outbox
 // dictionary. Fields that are 0 are skipped. Kept here so any face can report
 // health data without duplicating the key layout. Independent of send_cmd_cgm,
 // which is not guaranteed to run under the framework.
-void comm_send_health(DictionaryIterator *iter, comm_health data);
+void comm_send_health(comm_health data);
 
 /**
  * Send a heartbeat to xdrip
  */
-void comm_request_heartbeat(
-        DictionaryIterator *iter,
-        bool use_png, GRect png_bounds,
-        bool update_lines,
-        bool update_cgm, uint32_t current_cgm_time, 
-        bool update_battery,
-        bool update_sensor
-);
+void comm_request_heartbeat(void);
 
 void comm_send_basal_bolus(int32_t basal, int32_t bolus);
 
