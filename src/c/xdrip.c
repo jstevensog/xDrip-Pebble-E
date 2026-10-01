@@ -362,16 +362,19 @@ void reset_stale_timer_callback(void) {
      */
 
     if (state.dirty.need_cgm == 0 && interval < state.sensor_interval) {
+        TRACE("Normal reset");
         timeout = (now - state.cgm_time + 5) * MS_IN_A_SECOND;
     } else if (state.dirty.need_cgm == 0 && interval > state.sensor_interval && interval < state.sensor_interval + 60) {
+        TRACE("Normal interval");
         timeout = (state.sensor_interval + 5) * MS_IN_A_SECOND;
     } else if (interval > (int32_t) state.stale_data_timeout / 1000) {
-        // stale message
+        TRACE("Stale data");
         CALLBACK(state.wf_cb.set_delta, "Stale Data!", sizeof("Stale Data!")); 
         CALLBACK(state.gl_cb.alert_handler, APPSYNC_ERR_VIBE);
         timeout = 1 * SECONDS_PER_MINUTE * MS_IN_A_SECOND;
         send_cmd_cgm();
     } else {
+        TRACE("Invalid data");
         // likely invalid data, request reset
         state.dirty.need_cgm = 1;
         state.cgm_time = 0;
@@ -379,6 +382,7 @@ void reset_stale_timer_callback(void) {
         send_cmd_cgm();
         timeout = 1 * SECONDS_PER_MINUTE * MS_IN_A_SECOND;
     }
+    DEBUG("STALE timeout: %d", timeout);
     if (NULL == stale_data_timer || !app_timer_reschedule(stale_data_timer, timeout)) {
         stale_data_timer = app_timer_register(timeout, handle_stale_data_tick, NULL);
     }

@@ -1242,7 +1242,7 @@ void load_cgmtime()
 	if (state.cgm_time == 0)
 	{
 		// Init code or error code; set text layer & icon to empty value
-		TRACE("load_cgmtime, CGM TIME AGO INIT OR ERROR CODE: %s", cgm_label_buffer);
+		TRACE("load_cgmtime, CGM TIME AGO INIT OR ERROR CODE");
 		text_layer_set_text(cgmtime_layer, "");
 	}
 	else
@@ -1277,7 +1277,7 @@ void load_cgmtime()
 		//state.cgm_timeago = abs(time_now - state.cgm_time);
 		cgm_timeago = (time_now - state.cgm_time);
 
-		TRACE("load_cgmtime: state.cgm_timeago\"%lu\"", state.cgm_timeago);
+		TRACE("load_cgmtime: state.cgm_time \"%lu\"", state.cgm_time);
 
 		if (cgm_timeago < MINUTEAGO)
 		{
@@ -1308,7 +1308,7 @@ void load_cgmtime()
 	} // else init code
 
 	LOG("load_cgmtime: cgmtime_layer is \"%s\"", text_layer_get_text(cgmtime_layer));
-	TRACE("load_cgmtime: cgm_label_buffer: %s", cgm_label_buffer);
+	TRACE("load_cgmtime: cgm_label_buffer: %s", formatted_cgm_timeago);
 } // end load_cgmtime
 
 void load_bg_delta()
@@ -1989,6 +1989,8 @@ void window_load_cgm(Window *window_cgm)
 	text_layer_set_text(delta_layer,"0.5mmol");
 #endif
 	LOG("Setting display values to correct state");
+    CALLBACK(state.wf_cb.set_delta, LOADING_MESSAGE, sizeof(LOADING_MESSAGE));
+    CALLBACK(state.gl_cb.update_stale_timeout);
     state.dirty.delta = 1;
     state.dirty.hbm = 1;
     state.dirty.sensor_info = 1;
@@ -2024,8 +2026,6 @@ void window_load_cgm(Window *window_cgm)
 	TRACE("window_load_cgm: build done, init timer");
 	// mark dirty and request data
 	state.dirty.need_cgm = 1;
-    CALLBACK(state.wf_cb.set_delta, LOADING_MESSAGE, sizeof(LOADING_MESSAGE));
-    CALLBACK(state.gl_cb.update_stale_timeout);
 	TRACE("window_load_cgm: timer registered");
 
 } // end window_load_cgm
