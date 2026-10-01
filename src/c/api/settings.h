@@ -19,6 +19,7 @@ typedef struct {
 typedef struct {
 
     // boolean settings
+    uint32_t global_lock : 1;
 
     // enable seconds
     uint32_t enable_seconds : 1;
@@ -99,8 +100,8 @@ typedef struct {
 #pragma pack(pop, a)
 
 void settings_init(AppState *state);
-void settings_handle(Tuple *data);
+bool settings_receiver(Tuple *data);
 void settings_deinit(void);
 
-#define STORAGE_MARKER 0x02
+#define STORAGE_MARKER 0x03
 #endif // __SETTINGS_H__

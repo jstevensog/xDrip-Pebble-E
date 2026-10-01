@@ -878,8 +878,16 @@ void comm_set_vibrate(comm_vibe value) {
 
 void comm_set_bgl_timestamp(uint32_t timestamp) {
 	TRACE("Set BGL Timestamp");
-	if (!state.dirty.need_cgm || state.use_png) state.cgm_time = timestamp;
-	reset_timer_callback_cgm((timestamp - time(NULL)) + (60 * 6));
+	if (state.use_png) {
+        state.cgm_time = timestamp;
+        reset_timer_callback_cgm((timestamp - time(NULL)) + (60 * 6));
+    } else if (time(NULL) - timestamp > 310) {
+        state.dirty.need_cgm = 1;
+        reset_timer_callback_cgm((timestamp - time(NULL)) + (60));
+    } else {
+        state.cgm_time = timestamp;
+        reset_timer_callback_cgm((timestamp - time(NULL)) + (60 * 6));
+    }
 	load_cgmtime();
 }
 
@@ -902,11 +910,8 @@ void comm_set_bgl_data(comm_bgl_data *value) {
 	if (value->timestamp != state.cgm_time) {
 		DEBUG("%d vs %d %d", value->timestamp, state.cgm_time, value->timestamp - state.cgm_time);
 		comm_set_bgl_value(value->bgl); // always show bgl value
-		if (value->timestamp - state.cgm_time > 360) {
-			// we likely missed a value, set minutes timer to zero and wait for global udpate
-			reset_timer_callback_cgm((value->timestamp - time(NULL)) + (60));
-		} else if (!state.use_png && !state.dirty.need_cgm) trend_set_value(value);
-		comm_set_bgl_timestamp(value->timestamp); // can be marked dirty, so might not update
+		comm_set_bgl_timestamp(value->timestamp); // can be marked dirty
+        if (!state.use_png && !state.dirty.need_cgm) trend_set_value(value);
 	} else {
 		WARNING("Received same bgl value twice!");
 	}
@@ -2167,8 +2172,6 @@ void ui_og_init(AppState *value)
 
 	const bool animated_cgm = true;
 	window_stack_push(window_cgm, animated_cgm);
-
-	comm_init(&state.comm_callbacks);
 
 	if (!state.show_trend) {
 		layer_set_hidden(bitmap_layer_get_layer(bg_trend_layer_draw), true);

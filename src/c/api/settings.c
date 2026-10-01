@@ -120,11 +120,14 @@ void settings_deinit(void) {
     CALLBACK(state->gl_cb.callback, __VA_ARGS__);\
 }
 
-void settings_handle(Tuple *data) {
+bool settings_receiver(Tuple *data) {
+    bool rv = false;
+
     switch (data->key)
     {
         case SET_SAMECOLOUR:
             SETTING_BOOL_CB(fields_same_colour, data->value->uint8, SET_SAMECOLOUR, update_colours);
+            rv = true;
             break;
 
         case SET_FG_COLOUR:
@@ -134,7 +137,8 @@ void settings_handle(Tuple *data) {
             LOG_SETTING(foreground_colour);
             CALLBACK(state->wf_cb.update_colours);
 #endif
-        break;
+        rv = true;
+            break;
 
         case SET_BG_COLOUR:
 #ifdef PBL_COLOR
@@ -143,32 +147,39 @@ void settings_handle(Tuple *data) {
             LOG_SETTING(background_colour);
             CALLBACK(state->wf_cb.update_colours);
 #endif
-        break;
+        rv = true;
+            break;
 
         case SET_DISP_SECS:
             bool sw = state->enable_seconds;
             SETTING_BOOL_CB(enable_seconds, data->value->uint8, SET_DISP_SECS, update_seconds_timer, sw);
+            rv = true;
             break;
 
 
         case SET_VIBE_REPEAT:
             SETTING_BOOL(vibrate_repeat, data->value->uint8, SET_VIBE_REPEAT);
-        break;
+        rv = true;
+            break;
 
         case SET_NO_VIBE:
             SETTING_BOOL(vibrate_off, data->value->uint8, SET_NO_VIBE);
-        break;
+        rv = true;
+            break;
 
         case SET_LIGHT_ON_CHG:
             SETTING_BOOL(backlight_on_charge, data->value->uint8, SET_LIGHT_ON_CHG);
-        break;
+        rv = true;
+            break;
 
         case SET_MESSAGE_TIMEOUT:
             SETTING_INT_CB(message_timeout, data->value->uint8, SET_MESSAGE_TIMEOUT, update_message_timeout, state->message_timeout);
+            rv = true;
             break;
 
         case SET_BOLD_TIMEAGO:
             SETTING_BOOL_CB(bold_timeago, data->value->uint8, SET_BOLD_TIMEAGO, update_timeago);
+            rv = true;
             break;
 
 #pragma GCC diagnostic push
@@ -176,29 +187,35 @@ void settings_handle(Tuple *data) {
         //Bottom left metric to display
         case SET_BOTTOM_LEFT_TEXT:
             SETTING_INT_CB(left_text_field, data->value->data[0] - 0x30, SET_BOTTOM_LEFT_TEXT, update_left_field);
+            rv = true;
             break;
 
         //Bottom right metric to display
         case SET_BOTTOM_RIGHT_TEXT:
             SETTING_INT_CB(right_text_field, data->value->data[0] - 0x30, SET_BOTTOM_RIGHT_TEXT, update_right_field);
+            rv = true;
             break;
 #pragma GCC diagnostic pop
 
         case SET_USE_PNG:
             SETTING_BOOL_CB(use_png, data->value->uint8, SET_USE_PNG, update_trend);
+            rv = true;
             break;
 
         case SET_COLLECT_HEALTH:
 #ifdef PBL_HEALTH
             SETTING_BOOL_CB(collect_health, data->value->uint8, SET_COLLECT_HEALTH, update_collect_health);
 #endif
+            rv = true;
             break;
         case STALE_DATA_ALERT_TIMEOUT:
             if (data->value->uint32 >= 6) {
                 SETTING_INT_CB_GL(stale_data_timeout, data->value->int32 * 60000, STALE_DATA_ALERT_TIMEOUT, update_stale_timeout);
             }
+            rv = true;
             break;
         default:
             break;
     }
+    return rv;
 }

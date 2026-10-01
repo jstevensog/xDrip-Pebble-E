@@ -363,41 +363,16 @@ static void send_cmd_cgm(void)
 } // end send_cmd_cgm
 
 
-void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
-{
-	Tuple *data = dict_read_first(iterator);
-//	TRACE("SYNC TUPLE");
-	LOG("inbox_received_callback_cgm: got dictionary");
-
-	if (global_lock)
-	{
-		LOG("inbox_received_handler_cgm: GLOBALLY LOCKED");
-		return;
-	}
-
-
-	// CODE START
-
-	while ((data != NULL) && (!global_lock))
-	{
-		LOG("inbox_received_handler_cgm: key is %lu", data->key);
-        if (data->key >= 100 && data->key < 200) settings_handle(data);
-#ifdef ENABLE_TREND_RENDERER
-        if (data->key >= 300 && data->key < 400) trend_process_config(data);
-#endif
-
-        //assume dictionary from xDrip.  So reset the stale_data_timer
-        if(data->key == FRAMEWORK_BGL_VALUE || data->key == FRAMEWORK_BGL_SERIES) 
-        {
-            INFO("Recieved comms from xDrip.  Resetting stale_data_timer to %i minutes", state.stale_data_timeout);
-            reset_stale_timer_callback();
-        }
-#ifdef ENABLE_COMM_FRAMEWORK
-        if (data->key >= 2000 && data->key < 3000) comm_handle(data);
-#endif
-		data = dict_read_next(iterator);
-	}
-} // end sync_tuple_changed_callback_cgm()
+bool stale_receiver(Tuple *data) {
+    //assume dictionary from xDrip.  So reset the stale_data_timer
+    if(data->key == FRAMEWORK_BGL_VALUE || data->key == FRAMEWORK_BGL_SERIES) 
+    {
+        INFO("Recieved comms from xDrip.  Resetting stale_data_timer to %i minutes", state.stale_data_timeout);
+        reset_stale_timer_callback();
+        return true;
+    }
+    return false;
+}
 
 void reset_timer_callback_cgm(int32_t seconds) {
 	int32_t retimer = (seconds) * 1000;
@@ -443,13 +418,13 @@ void timer_callback_cgm(void *data)
 // stale data tick handler
 void handle_stale_data_tick(void *data)
 {
-	ERROR("handle_stale_data_tick: entered");
+	INFO("handle_stale_data_tick: entered");
     CALLBACK(state.wf_cb.set_delta, "Stale Data!", sizeof("Stale Data!")); 
     CALLBACK(state.gl_cb.alert_handler, APPSYNC_ERR_VIBE);
 
 	if(stale_data_timer == NULL || !app_timer_reschedule(stale_data_timer,state.stale_data_timeout)) 
 	{
-		ERROR("handle_stale_data_tick: reset stale_data_timer to %l", state.stale_data_timeout);
+		INFO("handle_stale_data_tick: reset stale_data_timer to %l", state.stale_data_timeout);
 		app_timer_register(state.stale_data_timeout, handle_stale_data_tick, NULL);
 	}
 }
@@ -494,8 +469,15 @@ void handle_minute_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
 static void init_cgm(void)
 {
 	LOG("init_cgm");
+    comm_init();
     settings_init(&state); // register appmg updates and callbacks
-    
+
+    // register app message receivers, comm_receiver is always registered 
+    comm_add_receiver(settings_receiver);
+#ifdef ENABLE_TREND_RENDERER
+    comm_add_receiver(trend_receiver);
+#endif
+
     if (state.use_analogue_wf) {
 #ifdef PBL_PLATFORM_GABBRO
         // not yet implemented
@@ -547,13 +529,6 @@ static void init_cgm(void)
 		health_poll();
 	}
 #endif
-	TRACE("INIT CODE, ABOUT TO CALL APP MSG OPEN");
-#ifdef PBL_PLATFORM_APLITE
-	app_message_open(512, 256);
-#else
-	app_message_open(app_message_inbox_size_maximum(), app_message_outbox_size_maximum());
-#endif
-	TRACE("INIT CODE, APP MSG OPEN DONE");
 
 	LOG("init_cgm done.");
 }	// end init_cgm

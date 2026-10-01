@@ -9,27 +9,44 @@
 extern AppState state;
 CommunicationCallbacks *cb = NULL;
 
-void comm_init(void *value)
+comm_iterator *comm_handlers;
+int comm_handlers_count = 0;
+
+void comm_inbox_received_handler(DictionaryIterator *iterator, void *context);
+
+void comm_init(void)
 {
     /* state = value; */
     cb = &state.comm_callbacks;
 
+	TRACE("INIT CODE, ABOUT TO CALL APP MSG OPEN");
+#ifdef PBL_PLATFORM_APLITE
+	app_message_open(512, 256);
+#else
+	app_message_open(app_message_inbox_size_maximum(), app_message_outbox_size_maximum());
+#endif
+
+	TRACE("INIT CODE, APP MSG OPEN DONE");
+    // add self
+    comm_add_receiver(comm_receiver);
+
 	TRACE("INIT CODE, REGISTER APP MESSAGE ERROR HANDLERS");
 	app_message_register_inbox_dropped(inbox_dropped_handler_cgm);
 	app_message_register_outbox_failed(outbox_failed_handler_cgm);
-	app_message_register_inbox_received(inbox_received_handler_cgm);
+	app_message_register_inbox_received(comm_inbox_received_handler);
 }
 
-void comm_handle(Tuple *data)
+bool comm_receiver(Tuple *data)
 {
     uint32_t key = data->key;
     INFO(CM "Key: %d", key);
 
     if (cb == NULL) {
         WARNING(CM "Cannot perform anu actions, no callback registered");
-        return;
+        return false;
     }
-
+    bool rv = true;
+    
     switch (key) {
         case FRAMEWORK_HIGHLIMIT:
             TRACE(CM "High limit");
@@ -112,8 +129,11 @@ void comm_handle(Tuple *data)
 #endif
         default:
             DEBUG(CM "id %ld not handled by communications framework", key);
+            rv = false;
             break;
     }
+
+    return rv;
 }
 
 
@@ -346,6 +366,17 @@ void comm_request_end(void)
 {
 }
 
+void comm_add_receiver(comm_iterator function) {
+    if (comm_handlers == NULL) {
+        comm_handlers = malloc(sizeof(comm_iterator));
+        comm_handlers[0] = function;
+        comm_handlers_count++;
+    } else {
+        comm_handlers = realloc(comm_handlers, (comm_handlers_count+1) * sizeof(comm_iterator));
+        comm_handlers[comm_handlers_count++] = function;
+    }
+}
+
 void comm_request_png(DictionaryIterator *iter, GRect bounds)
 {
     TRACE(CM "Sending PNG Request");
@@ -476,5 +507,36 @@ void comm_send_basal_bolus(int32_t basal, int32_t bolus)
 	if (app_message_outbox_send() == APP_MSG_OK) {
         LOG("Send basal and bolus values: %d %d", basal, bolus);
 	}
+} // end comm_send_basal_bolus
+
+void comm_send_carbs(int32_t carbs) {
 }
 #endif
+
+void comm_inbox_received_handler(DictionaryIterator *iterator, void *context)
+{
+	Tuple *data = dict_read_first(iterator);
+//	TRACE("SYNC TUPLE");
+	LOG("inbox_received_callback_cgm: got dictionary");
+
+	if (state.global_lock)
+	{
+		LOG("inbox_received_handler_cgm: GLOBALLY LOCKED");
+		return;
+	}
+
+
+	// CODE START
+	while ((data != NULL) && (!state.global_lock))
+	{
+        for (int i = 0; i < comm_handlers_count; i++) {
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic push 
+            bool processed = comm_handlers[i](data);
+            TRACE("Iterator handler %d, processed: %d", i, processed);
+#pragma GCC diagnostic pop
+        }
+		data = dict_read_next(iterator);
+	}
+} // end comm_inbox_received_handler 
+

@@ -448,111 +448,96 @@ void trend_set_value(comm_bgl_data *value) {
 
 }
 
-void trend_process_config(Tuple *data) {
+bool trend_receiver(Tuple *data) {
+    bool rv = true;
     DEBUG("Trend key: %d", data->key);
     switch (data->key) {
         case SET_BGL_CRITICAL_COLOUR:
             persist_write_int(SET_BGL_CRITICAL_COLOUR, data->value->int32);
             config.critical_color = GColorFromHEX(data->value->int32);
-            trend_draw();
             break;
         case SET_BGL_HIGH_COLOUR:
             persist_write_int(SET_BGL_HIGH_COLOUR, data->value->int32);
             config.high_color = GColorFromHEX(data->value->int32);
-            trend_draw();
             break;
         case SET_BGL_AVERAGE_COLOUR:
             persist_write_int(SET_BGL_AVERAGE_COLOUR, data->value->int32);
             config.average_color = GColorFromHEX(data->value->int32);
-            trend_draw();
             break;
         case SET_BGL_GOOD_COLOUR:
             persist_write_int(SET_BGL_GOOD_COLOUR, data->value->int32);
             config.good_color = GColorFromHEX(data->value->int32);
-            trend_draw();
             break;
         case SET_BGL_LOW_COLOUR:
             persist_write_int(SET_BGL_LOW_COLOUR, data->value->int32);
             config.low_color = GColorFromHEX(data->value->int32);
-            trend_draw();
             break;
         case SET_LOW_LINE_COLOUR:
             persist_write_int(SET_LOW_LINE_COLOUR, data->value->int32);
             config.low_line_color = GColorFromHEX(data->value->int32);
-            trend_draw();
             break;
         case SET_HIGH_LINE_COLOUR:
             persist_write_int(SET_HIGH_LINE_COLOUR, data->value->int32);
             config.high_line_color = GColorFromHEX(data->value->int32);
-            trend_draw();
             break;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wzero-length-bounds"
         case SET_LINE_STYLE:
             persist_write_int(SET_LINE_STYLE, data->value->data[0] - 0x30);
             config.hl_line_style = data->value->data[0] - 0x30;
-            trend_draw();
             break;
         case SET_TREND_STYLE:
             persist_write_int(SET_TREND_STYLE, data->value->data[0] - 0x30);
             config.style = data->value->data[0] - 0x30;
-            trend_draw();
             break;
         case SET_HOUR_STYLE:
             persist_write_int(SET_HOUR_STYLE, data->value->data[0] - 0x30);
             config.hour_line_style = data->value->data[0] - 0x30;
-            trend_draw();
             break;
 #pragma GCC diagnostic pop
         case SET_LINE_WIDTH:
             persist_write_int(SET_LINE_WIDTH, data->value->int32);
             config.line_width = data->value->int32;
-            trend_draw();
             break;
         case SET_TREND_WIDTH:
             persist_write_int(SET_TREND_WIDTH, data->value->int32);
             config.trend_width = data->value->int32;
-            trend_draw();
             break;
         case SET_BGL_LOW:
             persist_write_int(SET_BGL_LOW, data->value->int32);
             config.bgl_low = data->value->int32;
-            trend_draw();
             break;
         case SET_BGL_AVERAGE:
             persist_write_int(SET_BGL_AVERAGE, data->value->int32);
             config.bgl_average = data->value->int32;
-            trend_draw();
             break;
         case SET_BGL_HIGH:
             persist_write_int(SET_BGL_HIGH, data->value->int32);
             config.bgl_high = data->value->int32;
-            trend_draw();
             break;
         case SET_BGL_CRITICAL:
             persist_write_int(SET_BGL_CRITICAL, data->value->int32);
             config.bgl_critical = data->value->int32;
-            trend_draw();
             break;
         case SET_HOUR_ENABLED:
             persist_write_int(SET_HOUR_ENABLED, data->value->int8);
             config.hour_line_enabled = data->value->int8;
-            trend_draw();
             break;
         case SET_HOUR_WIDTH:
             persist_write_int(SET_HOUR_WIDTH, data->value->int8);
             config.hour_line_width = data->value->int8;
-            trend_draw();
             break;
         case SET_AUTO_ADJUST_MAX:
             persist_write_int(SET_AUTO_ADJUST_MAX, data->value->int8);
             config.auto_adjust_max = data->value->int8;
-            trend_draw();
             break;
         default:
             DEBUG("Not a trend key: %d", data->key);
+            rv = false;
             break;
     }
+    if (rv) trend_draw();
+    return rv;
 }
 
 

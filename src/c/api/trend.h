@@ -159,7 +159,7 @@ void trend_draw(void);
  *
  * @param data  The tuple to process
  */
-void trend_process_config(Tuple *data);
+bool trend_receiver(Tuple *data);
 
 /**
  * Callback function to set the bgl series to use for drawing the trend line

@@ -166,15 +166,18 @@ typedef struct comm_basal_bolus_t {
 
 #pragma pack()
 
+// iterator prototype
+typedef bool (*comm_iterator)(Tuple *data);
 /**
  * Initialize the comms with a callback function blob
  */
-void comm_init(void *value);
+void comm_init(void);
 
+void comm_add_receiver(comm_iterator function);
 /**
  * Handle a tuple of data, place this in the app mesage processing thread or function
  */
-void comm_handle(Tuple *data);
+bool comm_receiver(Tuple *data);
 
 /**
  * Request a png of a specific size
