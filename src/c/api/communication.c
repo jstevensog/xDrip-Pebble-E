@@ -110,7 +110,10 @@ bool comm_receiver(Tuple *data)
             if (cb->sensor_info != NULL) {
                 comm_sensor_info *info = (comm_sensor_info *) data->value->data;
                 cb->sensor_info(info);
-                if(info->interval > 0) state.sensor_interval = info->interval;
+                if(info->interval > 0) {
+                    DEBUG("Sensor interval: %d", info->interval);
+                    state.sensor_interval = info->interval;
+                }
             }
             break;
         case FRAMEWORK_BWP_VALUE:
@@ -374,7 +377,11 @@ DictionaryIterator *comm_request_start(void)
 		sendcmd_openerr = app_message_outbox_begin(&iter);
 		// proceed to send since it's the only way to recover
 		// goto send_appmsg;
-		psleep(500);
+		if (sendcmd_openerr == APP_MSG_BUSY) {
+            psleep(1000); // likely stalled
+        } else {
+            psleep(500);
+        }
         escape_counter++;
 	}
     return iter;

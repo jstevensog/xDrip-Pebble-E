@@ -346,6 +346,7 @@ bool stale_receiver(Tuple *data) {
     return false;
 }
 
+#define SENSOR_DELAY_TIME 15 // average is about 5-7s for DxOne+
 void reset_stale_timer_callback(void) {
     INFO("STALE TIMER RESET");
 
@@ -362,19 +363,20 @@ void reset_stale_timer_callback(void) {
      */
 
     if (state.dirty.need_cgm == 0 && interval < state.sensor_interval) {
-        TRACE("Normal reset");
-        timeout = (now - state.cgm_time + 5) * MS_IN_A_SECOND;
+        DEBUG("Normal reset");
+        timeout = (state.sensor_interval - (now - state.cgm_time) + SENSOR_DELAY_TIME) * MS_IN_A_SECOND;
     } else if (state.dirty.need_cgm == 0 && interval > state.sensor_interval && interval < state.sensor_interval + 60) {
-        TRACE("Normal interval");
-        timeout = (state.sensor_interval + 5) * MS_IN_A_SECOND;
+        DEBUG("Normal interval");
+        timeout = (state.sensor_interval + SENSOR_DELAY_TIME) * MS_IN_A_SECOND;
     } else if (interval > (int32_t) state.stale_data_timeout / 1000) {
-        TRACE("Stale data");
+        DEBUG("Stale data");
         CALLBACK(state.wf_cb.set_delta, "Stale Data!", sizeof("Stale Data!")); 
         CALLBACK(state.gl_cb.alert_handler, APPSYNC_ERR_VIBE);
         timeout = 1 * SECONDS_PER_MINUTE * MS_IN_A_SECOND;
         send_cmd_cgm();
     } else {
-        TRACE("Invalid data");
+        DEBUG("Invalid data");
+        DEBUG("%d %d %d", state.dirty.need_cgm, interval, state.stale_data_timeout);
         // likely invalid data, request reset
         state.dirty.need_cgm = 1;
         state.cgm_time = 0;
@@ -392,6 +394,7 @@ void reset_stale_timer_callback(void) {
 void handle_stale_data_tick(void *data)
 {
 	INFO("handle_stale_data_tick: entered");
+    stale_data_timer = NULL;
     reset_stale_timer_callback();
     INFO("handle_stale_data_tick: reset stale_data_timer");
 }
@@ -491,6 +494,9 @@ static void init_cgm(void)
 		health_poll();
 	}
 #endif
+
+    // request data is need be
+    CALLBACK(state.gl_cb.update_stale_timeout);
 
 	LOG("init_cgm done.");
 }	// end init_cgm

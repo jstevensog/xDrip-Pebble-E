@@ -18,6 +18,9 @@ void settings_init(AppState *values) {
 	state->icon = NOT_CALIBRATED; // no icon set and ignore
 	state->cgm_time = 0;
 	state->app_time = 0;
+    state->dirty.need_cgm = 1;
+    state->dirty.delta = 1;
+    state->dirty.sensor_info = 1;
 	state->phone_battery_level = 255;
 	state->battery_level = 255;
 

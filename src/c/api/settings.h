@@ -104,5 +104,5 @@ void settings_init(AppState *state);
 bool settings_receiver(Tuple *data);
 void settings_deinit(void);
 
-#define STORAGE_MARKER 0x04
+#define STORAGE_MARKER 0x07
 #endif // __SETTINGS_H__

@@ -1990,7 +1990,6 @@ void window_load_cgm(Window *window_cgm)
 #endif
 	LOG("Setting display values to correct state");
     CALLBACK(state.wf_cb.set_delta, LOADING_MESSAGE, sizeof(LOADING_MESSAGE));
-    CALLBACK(state.gl_cb.update_stale_timeout);
     state.dirty.delta = 1;
     state.dirty.hbm = 1;
     state.dirty.sensor_info = 1;
@@ -2024,10 +2023,7 @@ void window_load_cgm(Window *window_cgm)
 	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
 #endif
 	TRACE("window_load_cgm: build done, init timer");
-	// mark dirty and request data
-	state.dirty.need_cgm = 1;
 	TRACE("window_load_cgm: timer registered");
-
 } // end window_load_cgm
 
 
