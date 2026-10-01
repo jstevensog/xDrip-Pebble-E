@@ -2759,7 +2759,7 @@ static void init_cgm(void)
 	LOG("display_seconds: %i", display_seconds);
 	//initialise the Time Fonts
 	if (HIGH_RES()) {
-#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_FLINT)
+#if defined(PBL_PLATFORM_EMERY) 
 		// 60px clips against the date row in the 60px time box on Emery - use 54
 		time_font_normal = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_GOTHAM_BOLD_54));
 #else
