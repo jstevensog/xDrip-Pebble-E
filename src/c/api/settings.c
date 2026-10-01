@@ -65,6 +65,7 @@ void settings_init(AppState *values) {
 #endif
     state->stale_data_timeout = persist_exists(STALE_DATA_ALERT_TIMEOUT) ? persist_read_int(STALE_DATA_ALERT_TIMEOUT) : 6 * 60000;
     state->collect_health = persist_exists(SET_COLLECT_HEALTH) ? persist_read_bool(SET_COLLECT_HEALTH) : false;
+    state->touch_support = persist_exists(SET_TOUCH_SUPPORT) ? persist_read_bool(SET_TOUCH_SUPPORT) : false;
 
     if (state->sensor_interval == 0) state->sensor_interval = 5 * SECONDS_PER_MINUTE; // default to 5 mins unless xdrip tells otherwise
 
@@ -218,6 +219,9 @@ bool settings_receiver(Tuple *data) {
                 SETTING_INT_CB_GL(stale_data_timeout, data->value->int32 * 60000, STALE_DATA_ALERT_TIMEOUT, update_stale_timeout);
             }
             rv = true;
+            break;
+        case SET_TOUCH_SUPPORT:
+            SETTING_BOOL_CB(touch_support, data->value->int8, SET_TOUCH_SUPPORT, update_touch);
             break;
         default:
             break;

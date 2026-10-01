@@ -22,6 +22,7 @@ typedef struct {
     void (*update_trend)(void);
     void (*update_collect_health)(void);
     void (*update_message)(void);
+    void (*update_touch)(void);
     /* Note: this nasty undef is needed due to how pebble compiles everything icw GRect being both a typedef and macro (bad practice) */
 #undef GRect
     GRect (*trend_bounds)(void);

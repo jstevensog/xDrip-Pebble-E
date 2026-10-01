@@ -657,6 +657,15 @@ void update_colours(void)
 }
 // end update_colours 
 
+#ifdef ENABLE_TOUCH
+void update_touch(void) {
+    if (state.touch_support) {
+        app_touch_navigation_enable(true);
+    } else {
+        app_touch_navigation_enable(false);
+    }
+}
+#endif
 void update_text_fields(TextLayer *txt, uint8_t field) {
     update_colours(); // in case it's not visible
     switch (field) {
@@ -2071,6 +2080,9 @@ void ui_og_init(AppState *value)
     state.wf_cb.update_trend = update_trend;
     state.wf_cb.update_collect_health = update_collect_health;
     state.wf_cb.update_message = update_message;
+#ifdef ENABLE_TOUCH
+    state.wf_cb.update_touch = update_touch;
+#endif
 #ifdef PBL_COLOR
     state.wf_cb.update_colours = update_colours;
 #endif
@@ -2162,9 +2174,10 @@ void ui_og_init(AppState *value)
 	}
 
 #ifdef ENABLE_TOUCH
-
-    touch_service_subscribe(touch_handler, NULL);
-    app_touch_navigation_enable(true);
+    if (state.touch_support) {
+        touch_service_subscribe(touch_handler, NULL);
+    }
+    update_touch();
 #endif
 
 	if (state.show_message) update_message_timeout(state.message_timeout);

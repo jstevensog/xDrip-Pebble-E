@@ -504,6 +504,23 @@
       ]
   },
   {
+	  "type": "section",
+      "capabilities": [ "NOT_PLATFORM_APLITE", "NOT_PLATFORM_CHALK", "NOT_PLATFORM_BASALT", "NOT_PLATFORM_DIORITE"],
+      "items": [
+		  {
+			  "type": "heading",
+			  "defaultValue": "Experimental"
+		  },
+          {
+              "type": "toggle",
+              "messageKey": "touch",
+              "defaultValue": false,
+              "label": "Enable touch support",
+              "description": "Here be dragons .. you have been warned ... requires custom firmware until coredevices enables it."
+          }
+      ]
+  },
+  {
     "type": "submit",
     "defaultValue": "Save Settings"
   }

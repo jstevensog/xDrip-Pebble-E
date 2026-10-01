@@ -45,6 +45,7 @@ typedef struct {
     uint32_t bold_timeago : 1;
     uint32_t battery_is_charging : 1;
     uint32_t use_analogue_wf : 1;
+    uint32_t touch_support : 1;
 
     // Values
     GColor foreground_colour;
