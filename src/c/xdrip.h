@@ -30,7 +30,7 @@
 #define CHUNK_SIZE 1024
 #endif
 
-#define HIGH_RES() (PBL_PLATFORM_TYPE_CURRENT >= PlatformTypeEmery)
+#define HIGH_RES() (PBL_PLATFORM_TYPE_CURRENT == PlatformTypeEmery || PBL_PLATFORM_TYPE_CURRENT == PlatformTypeGabbro)
 
 
 #define CGM_ICON_KEY			0	// TUPLE_CSTRING, MAX 2 BYTES (10)
