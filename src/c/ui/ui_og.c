@@ -356,7 +356,7 @@ void touch_timer_handler(void *context) {
     touch_timer = NULL;
 }
 
-#define TOUCH_TIMEOUT 1500
+#define TOUCH_TIMEOUT 1000
 #define TOUCH_TICKS_REQUIRED 5
 
 void touch_handler(const TouchEvent *event, void *context) {

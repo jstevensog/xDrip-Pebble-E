@@ -17,6 +17,11 @@
  */
 #define ENABLE_TOUCH
 
+// guard for non touch devices
+#if !defined(PBL_TOUCH) && defined(ENABLE_TOUCH)
+#undef ENABLE_TOUCH
+#endif
+
 /** 
  * Face name
  */

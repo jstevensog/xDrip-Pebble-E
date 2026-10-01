@@ -4,6 +4,8 @@
 #include "../debug.h"
 #include "ui_insulin.h"
 
+void reset_stale_timer(void);
+
 extern AppState state;
 
 Layer *root = NULL;
@@ -28,58 +30,50 @@ int bolus_value = 16;
 int basal_value = 16;
 int carbs_value = 16;
 
-#define BUTTON_HEIGHT 26
+#define BUTTON_WIDTH 34
 #define TEXT_HEIGHT 48
 
-#define BOLUS_UP_X 10
-#define BOLUS_UP_Y 10
-#define BOLUS_UP_WIDTH (PBL_DISPLAY_WIDTH / 2) - 20
-#define BOLUS_UP_HEIGHT BUTTON_HEIGHT 
-#define BOLUS_TEXT_X BOLUS_UP_X
-#define BOLUS_TEXT_Y BOLUS_UP_Y + BOLUS_UP_HEIGHT 
-#define BOLUS_TEXT_WIDTH BOLUS_UP_WIDTH
-#define BOLUS_TEXT_HEIGHT TEXT_HEIGHT 
-#define BOLUS_DOWN_X BOLUS_UP_X
-#define BOLUS_DOWN_Y BOLUS_UP_Y + BOLUS_TEXT_HEIGHT + BOLUS_UP_HEIGHT
-#define BOLUS_DOWN_WIDTH BOLUS_UP_WIDTH
-#define BOLUS_DOWN_HEIGHT BOLUS_UP_HEIGHT
+/**
+ * [-][bolus][+]
+ * [-][basal][+]
+ * [-][carbs][+]
+ */
 
-#define BASAL_UP_X (PBL_DISPLAY_WIDTH / 2) + 10
-#define BASAL_UP_Y 10
-#define BASAL_UP_WIDTH (PBL_DISPLAY_WIDTH / 2) - 20
-#define BASAL_UP_HEIGHT BUTTON_HEIGHT 
-#define BASAL_TEXT_X BASAL_UP_X
-#define BASAL_TEXT_Y BASAL_UP_Y + BUTTON_HEIGHT 
-#define BASAL_TEXT_WIDTH BASAL_UP_WIDTH
-#define BASAL_TEXT_HEIGHT TEXT_HEIGHT 
-#define BASAL_DOWN_X BASAL_UP_X
-#define BASAL_DOWN_Y BASAL_UP_Y + BASAL_TEXT_HEIGHT + BASAL_UP_HEIGHT
-#define BASAL_DOWN_WIDTH BASAL_UP_WIDTH
-#define BASAL_DOWN_HEIGHT BASAL_UP_HEIGHT
+#define FRAME(down, textfield, up, X, Y, BUTTON_WIDTH, HEIGHT) \
+{\
+    down = text_layer_create((GRect) { \
+            { X,  Y}, \
+            { BUTTON_WIDTH, HEIGHT }\
+    });\
+    textfield = text_layer_create((GRect) {\
+            { X + BUTTON_WIDTH,  Y}, \
+            { PBL_DISPLAY_WIDTH - ((X + BUTTON_WIDTH)*2), HEIGHT }\
+    });\
+    up = text_layer_create((GRect) { \
+            { PBL_DISPLAY_WIDTH - X - BUTTON_WIDTH ,  Y}, \
+            { BUTTON_WIDTH, HEIGHT }\
+    });\
+}
 
-#define CARBS_DOWN_X 10
-#define CARBS_DOWN_Y BOLUS_UP_Y + BOLUS_UP_HEIGHT + TEXT_HEIGHT + BOLUS_DOWN_HEIGHT + 10
-#define CARBS_DOWN_WIDTH BUTTON_HEIGHT
-#define CARBS_DOWN_HEIGHT TEXT_HEIGHT
-#define CARBS_TEXT_X 10 + CARBS_DOWN_WIDTH
-#define CARBS_TEXT_Y CARBS_DOWN_Y
-#define CARBS_TEXT_WIDTH PBL_DISPLAY_WIDTH - 20 - (2 * CARBS_DOWN_WIDTH)
-#define CARBS_TEXT_HEIGHT CARBS_DOWN_HEIGHT
-#define CARBS_UP_X CARBS_TEXT_X + CARBS_TEXT_WIDTH
-#define CARBS_UP_Y CARBS_DOWN_Y
-#define CARBS_UP_WIDTH CARBS_DOWN_WIDTH
-#define CARBS_UP_HEIGHT CARBS_DOWN_HEIGHT
+#define BOLUS_X 10
+#define BOLUS_Y 5 
+
+#define BASAL_X 10 
+#define BASAL_Y TEXT_HEIGHT + BOLUS_Y + 5 
+
+#define CARBS_X 10
+#define CARBS_Y TEXT_HEIGHT + BASAL_Y + 5
 
 /* #define BACK_X BOLUS_UP_X */
-#define BACK_X BASAL_UP_X
-#define BACK_Y 10 + CARBS_UP_Y + CARBS_UP_HEIGHT
-#define BACK_WIDTH BOLUS_UP_WIDTH
+#define BACK_X BASAL_X
+#define BACK_Y CARBS_Y + TEXT_HEIGHT + 10
+#define BACK_WIDTH ((PBL_DISPLAY_WIDTH / 2) - 20) 
 #define BACK_HEIGHT ((PBL_DISPLAY_HEIGHT / 3) - 30)
 
 /* #define ENTER_X BASAL_UP_X  */
-#define ENTER_X BOLUS_UP_X 
-#define ENTER_Y 10 + CARBS_UP_Y + CARBS_UP_HEIGHT
-#define ENTER_WIDTH BOLUS_UP_WIDTH
+#define ENTER_X (PBL_DISPLAY_WIDTH / 2) + 10
+#define ENTER_Y CARBS_Y + TEXT_HEIGHT + 10
+#define ENTER_WIDTH BACK_WIDTH 
 #define ENTER_HEIGHT ((PBL_DISPLAY_HEIGHT / 3) - 30)
 
 #define BOLUS_UP 1
@@ -93,6 +87,11 @@ int carbs_value = 16;
 #define CARBS_UP 9
 #define CARBS_TEXT 10
 #define CARBS_DOWN 11
+
+
+#define CARBS_PREFIX "\U0001F34C"
+#define BOLUS_PREFIX ""
+#define BASAL_PREFIX
 
 static char bolus_tx[12];
 static char basal_tx[12];
@@ -152,7 +151,7 @@ void insulin_touch_handler(const TouchEvent *event, void *context) {
             }
             break;
         case TouchEvent_Liftoff:
-            ERROR("%d %d", event->x, event->y);
+            DEBUG("%d %d", event->x, event->y);
             if IN(bolus_up) {
                 bolus_value++;
             } else if IN(bolus_down) {
@@ -170,10 +169,12 @@ void insulin_touch_handler(const TouchEvent *event, void *context) {
                 if (carbs_value < 1) carbs_value = 1;
             } else if IN(back) {
                 insulin_display_deinit();
+                return; // do not trigger stale reset
             } else if IN(enter) {
                 insulin_display_deinit();
                 // NOTE values are 4 bit decimals, so you can enter 0.0675 values (e.g. 0.5 is 8)
                 comm_send_treatment(basal_enabled ? basal_value * 16 : 0, bolus_enabled ? bolus_value * 16 : 0, carbs_enabled ? carbs_value : 0);
+                return; // do not trigger stale reset
             } else if IN(basal_text) {
                 basal_enabled = !basal_enabled;
             } else if IN(bolus_text) {
@@ -187,8 +188,26 @@ void insulin_touch_handler(const TouchEvent *event, void *context) {
         default:
             break;
     }
+    reset_stale_timer();
 }
 
+#define IN_IDLE_TIME 10000
+
+AppTimer *ui_in_stale_timer = NULL;
+
+void ui_in_handle_stale(void *data) {
+    INFO("Timer TRIGGERED");
+    // if triggered we are idle for too long
+    ui_in_stale_timer = NULL;
+    insulin_display_deinit();
+}
+
+void reset_stale_timer(void) {
+    DEBUG("RESET TIMEOUT");
+    if (NULL == ui_in_stale_timer || !app_timer_reschedule(ui_in_stale_timer, IN_IDLE_TIME)) {
+        ui_in_stale_timer = app_timer_register(IN_IDLE_TIME, ui_in_handle_stale, NULL);
+    }
+}
 char *bolus_up_text = "+";
 char *bolus_down_text = "-";
 char *back_text = "<";
@@ -200,18 +219,19 @@ void insulin_display_init(Layer *root, TouchServiceHandler handoff) {
     bg = layer_create((GRect) { {0, 0}, {PBL_DISPLAY_WIDTH, PBL_DISPLAY_HEIGHT }});
     layer_add_child(root, bg);
 
-    bolus_up = text_layer_create((GRect) { 
-            { BOLUS_UP_X,  BOLUS_UP_Y}, 
-            { BOLUS_UP_WIDTH, BOLUS_UP_HEIGHT }
-    });
-    bolus_text = text_layer_create((GRect) { 
-            { BOLUS_TEXT_X,  BOLUS_TEXT_Y}, 
-            { BOLUS_TEXT_WIDTH, BOLUS_TEXT_HEIGHT }
-    });
-    bolus_down = text_layer_create((GRect) { 
-            { BOLUS_DOWN_X,  BOLUS_DOWN_Y}, 
-            { BOLUS_DOWN_WIDTH, BOLUS_DOWN_HEIGHT }
-    });
+    FRAME(bolus_down, bolus_text, bolus_up, BOLUS_X, BOLUS_Y, BUTTON_WIDTH, TEXT_HEIGHT);
+    /* bolus_up = text_layer_create((GRect) {  */
+    /*         { BOLUS_UP_X,  BOLUS_UP_Y},  */
+    /*         { BOLUS_UP_WIDTH, BOLUS_UP_HEIGHT } */
+    /* }); */
+    /* bolus_text = text_layer_create((GRect) {  */
+    /*         { BOLUS_TEXT_X,  BOLUS_TEXT_Y},  */
+    /*         { BOLUS_TEXT_WIDTH, BOLUS_TEXT_HEIGHT } */
+    /* }); */
+    /* bolus_down = text_layer_create((GRect) {  */
+    /*         { BOLUS_DOWN_X,  BOLUS_DOWN_Y},  */
+    /*         { BOLUS_DOWN_WIDTH, BOLUS_DOWN_HEIGHT } */
+    /* }); */
 
     text_layer_set_background_color(bolus_up, GColorLightGray);
     text_layer_set_background_color(bolus_down, GColorLightGray);
@@ -233,18 +253,19 @@ void insulin_display_init(Layer *root, TouchServiceHandler handoff) {
     layer_add_child(bg, text_layer_get_layer(bolus_text));
     layer_add_child(bg, text_layer_get_layer(bolus_down));
 
-    basal_up = text_layer_create((GRect) { 
-            { BASAL_UP_X,  BASAL_UP_Y}, 
-            { BASAL_UP_WIDTH, BASAL_UP_HEIGHT }
-    });
-    basal_text = text_layer_create((GRect) { 
-            { BASAL_TEXT_X,  BASAL_TEXT_Y}, 
-            { BASAL_TEXT_WIDTH, BASAL_TEXT_HEIGHT }
-    });
-    basal_down = text_layer_create((GRect) { 
-            { BASAL_DOWN_X,  BASAL_DOWN_Y}, 
-            { BASAL_DOWN_WIDTH, BASAL_DOWN_HEIGHT }
-    });
+    FRAME(basal_down, basal_text, basal_up, BASAL_X, BASAL_Y, BUTTON_WIDTH, TEXT_HEIGHT);
+    /* basal_up = text_layer_create((GRect) {  */
+    /*         { BASAL_UP_X,  BASAL_UP_Y},  */
+    /*         { BASAL_UP_WIDTH, BASAL_UP_HEIGHT } */
+    /* }); */
+    /* basal_text = text_layer_create((GRect) {  */
+    /*         { BASAL_TEXT_X,  BASAL_TEXT_Y},  */
+    /*         { BASAL_TEXT_WIDTH, BASAL_TEXT_HEIGHT } */
+    /* }); */
+    /* basal_down = text_layer_create((GRect) {  */
+    /*         { BASAL_DOWN_X,  BASAL_DOWN_Y},  */
+    /*         { BASAL_DOWN_WIDTH, BASAL_DOWN_HEIGHT } */
+    /* }); */
 
     text_layer_set_background_color(basal_up, GColorLightGray);
     text_layer_set_background_color(basal_down, GColorLightGray);
@@ -265,18 +286,19 @@ void insulin_display_init(Layer *root, TouchServiceHandler handoff) {
     layer_add_child(bg, text_layer_get_layer(basal_text));
     layer_add_child(bg, text_layer_get_layer(basal_down));
 
-    carbs_up = text_layer_create((GRect) { 
-            { CARBS_UP_X,  CARBS_UP_Y}, 
-            { CARBS_UP_WIDTH, CARBS_UP_HEIGHT }
-    });
-    carbs_text = text_layer_create((GRect) { 
-            { CARBS_TEXT_X,  CARBS_TEXT_Y}, 
-            { CARBS_TEXT_WIDTH, CARBS_TEXT_HEIGHT }
-    });
-    carbs_down = text_layer_create((GRect) { 
-            { CARBS_DOWN_X,  CARBS_DOWN_Y}, 
-            { CARBS_DOWN_WIDTH, CARBS_DOWN_HEIGHT }
-    });
+    FRAME(carbs_down, carbs_text, carbs_up, CARBS_X, CARBS_Y, BUTTON_WIDTH, TEXT_HEIGHT);
+    /* carbs_up = text_layer_create((GRect) {  */
+    /*         { CARBS_UP_X,  CARBS_UP_Y},  */
+    /*         { CARBS_UP_WIDTH, CARBS_UP_HEIGHT } */
+    /* }); */
+    /* carbs_text = text_layer_create((GRect) {  */
+    /*         { CARBS_TEXT_X,  CARBS_TEXT_Y},  */
+    /*         { CARBS_TEXT_WIDTH, CARBS_TEXT_HEIGHT } */
+    /* }); */
+    /* carbs_down = text_layer_create((GRect) {  */
+    /*         { CARBS_DOWN_X,  CARBS_DOWN_Y},  */
+    /*         { CARBS_DOWN_WIDTH, CARBS_DOWN_HEIGHT } */
+    /* }); */
 
     text_layer_set_background_color(carbs_up, GColorLightGray);
     text_layer_set_background_color(carbs_down, GColorLightGray);
@@ -320,12 +342,19 @@ void insulin_display_init(Layer *root, TouchServiceHandler handoff) {
     layer_add_child(bg, text_layer_get_layer(enter));
 
     update_text();
+    update_bb();
 
     // fetch touch events
     touch_service_subscribe(insulin_touch_handler, NULL);
+
+    reset_stale_timer();
 }
 
 void insulin_display_deinit(void) {
+
+    INFO("EXIT ui_insulin");
+    app_timer_cancel(ui_in_stale_timer);
+    ui_in_stale_timer = NULL;
 
     text_layer_destroy(bolus_up);
     text_layer_destroy(bolus_text);
