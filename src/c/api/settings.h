@@ -55,6 +55,10 @@ typedef struct {
     uint8_t left_text_field;
     uint8_t right_text_field;
 
+    uint16_t default_basal;
+    uint16_t default_bolus;
+    uint16_t default_carbs;
+
     // state
     union {
         struct {

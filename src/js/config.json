@@ -517,6 +517,30 @@
               "defaultValue": false,
               "label": "Enable touch support",
               "description": "Here be dragons .. you have been warned ... requires custom firmware until coredevices enables it."
+          },
+          { 
+              "type": "slider",
+              "label": "Default bolus insulin value",
+              "messageKey": "default_bolus",
+              "defaultValue": 10,
+              "min": 1,
+              "max": 100
+          },
+          { 
+              "type": "slider",
+              "messageKey": "default_basal",
+              "defaultValue": 16,
+              "min": 1,
+              "max": 100,
+              "label": "Default basal insulin value"
+          },
+          { 
+              "type": "slider",
+              "messageKey": "default_carbs",
+              "defaultValue": 60,
+              "min": 1,
+              "max": 200,
+              "label": "Default carbohydrate value"
           }
       ]
   },

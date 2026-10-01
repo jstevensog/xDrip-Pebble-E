@@ -408,7 +408,7 @@ void touch_handler(const TouchEvent *event, void *context) {
             break;
     }
     LOG("Val: %d", touch_value);
-    if (touch_value >= TOUCH_TICKS_REQUIRED) {
+    if (touch_value >= TOUCH_TICKS_REQUIRED && state.touch_support) {
         LOG("Success! %d", touch_region);
         touch_value = 0;
         // launch insuling thing
@@ -2174,9 +2174,7 @@ void ui_og_init(AppState *value)
 	}
 
 #ifdef ENABLE_TOUCH
-    if (state.touch_support) {
-        touch_service_subscribe(touch_handler, NULL);
-    }
+    touch_service_subscribe(touch_handler, NULL);
     update_touch();
 #endif
 

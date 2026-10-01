@@ -67,6 +67,10 @@ void settings_init(AppState *values) {
     state->collect_health = persist_exists(SET_COLLECT_HEALTH) ? persist_read_bool(SET_COLLECT_HEALTH) : false;
     state->touch_support = persist_exists(SET_TOUCH_SUPPORT) ? persist_read_bool(SET_TOUCH_SUPPORT) : false;
 
+    state->default_basal = persist_exists(SET_DEFAULT_BASAL) ? persist_read_int(SET_DEFAULT_BASAL) : 16;
+    state->default_bolus = persist_exists(SET_DEFAULT_BOLUS) ? persist_read_int(SET_DEFAULT_BOLUS) : 10;
+    state->default_carbs = persist_exists(SET_DEFAULT_CARBS) ? persist_read_int(SET_DEFAULT_CARBS) : 60;
+
     if (state->sensor_interval == 0) state->sensor_interval = 5 * SECONDS_PER_MINUTE; // default to 5 mins unless xdrip tells otherwise
 
     LOG_SETTING(use_png);
@@ -222,6 +226,15 @@ bool settings_receiver(Tuple *data) {
             break;
         case SET_TOUCH_SUPPORT:
             SETTING_BOOL_CB(touch_support, data->value->int8, SET_TOUCH_SUPPORT, update_touch);
+            break;
+        case SET_DEFAULT_BASAL:
+            SETTING_INT(default_basal, data->value->uint16, SET_DEFAULT_BASAL);
+            break;
+        case SET_DEFAULT_BOLUS:
+            SETTING_INT(default_bolus, data->value->uint16, SET_DEFAULT_BOLUS);
+            break;
+        case SET_DEFAULT_CARBS:
+            SETTING_INT(default_carbs, data->value->uint16, SET_DEFAULT_CARBS);
             break;
         default:
             break;

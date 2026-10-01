@@ -368,20 +368,15 @@ void outbox_failed_handler_cgm(DictionaryIterator *failed, AppMessageResult appm
 
 DictionaryIterator *comm_request_start(void)
 {
-	AppMessageResult sendcmd_openerr = APP_MSG_NOT_CONNECTED;
 	DictionaryIterator *iter = NULL;
     int escape_counter = 0;
-	while (sendcmd_openerr != APP_MSG_OK && escape_counter < 10)
+	AppMessageResult sendcmd_openerr = app_message_outbox_begin(&iter);
+	while (sendcmd_openerr != APP_MSG_OK && escape_counter < 4)
 	{
-		ERROR("send_cmd_cgm: ERR CODE: %i RES: %s", sendcmd_openerr, translate_app_error(sendcmd_openerr));
 		sendcmd_openerr = app_message_outbox_begin(&iter);
+		ERROR("send_cmd_cgm: ERR CODE: %i RES: %s", sendcmd_openerr, translate_app_error(sendcmd_openerr));
 		// proceed to send since it's the only way to recover
-		// goto send_appmsg;
-		if (sendcmd_openerr == APP_MSG_BUSY) {
-            psleep(1000); // likely stalled
-        } else {
-            psleep(500);
-        }
+        psleep(125);
         escape_counter++;
 	}
     return iter;

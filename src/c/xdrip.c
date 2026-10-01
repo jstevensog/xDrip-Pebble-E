@@ -346,6 +346,12 @@ bool stale_receiver(Tuple *data) {
     return false;
 }
 
+AppTimer *deffered_send_cmd_cgm_timer = NULL;
+void deferred_send_cmd_cgm(void *data) {
+    deffered_send_cmd_cgm_timer = NULL;
+    send_cmd_cgm();
+}
+
 #define SENSOR_DELAY_TIME 15 // average is about 5-7s for DxOne+
 void reset_stale_timer_callback(void) {
     INFO("STALE TIMER RESET");
@@ -369,11 +375,16 @@ void reset_stale_timer_callback(void) {
         DEBUG("Normal interval");
         timeout = (state.sensor_interval + SENSOR_DELAY_TIME) * MS_IN_A_SECOND;
     } else if (interval > (int32_t) state.stale_data_timeout / 1000) {
-        DEBUG("Stale data");
+        DEBUG("Stale data: %d %d", state.stale_data_timeout / 1000, interval);
         CALLBACK(state.wf_cb.set_delta, "Stale Data!", sizeof("Stale Data!")); 
         CALLBACK(state.gl_cb.alert_handler, APPSYNC_ERR_VIBE);
         timeout = 1 * SECONDS_PER_MINUTE * MS_IN_A_SECOND;
-        send_cmd_cgm();
+        // defer update a bit, we might have a settings update, if debug wait longer 
+#if DEBUG_LEVEL >= DEBUG_LEVEL_INFO
+        if (NULL == deffered_send_cmd_cgm_timer) deffered_send_cmd_cgm_timer = app_timer_register(2000, deferred_send_cmd_cgm, NULL);
+#else
+        if (NULL == deffered_send_cmd_cgm_timer) deffered_send_cmd_cgm_timer = app_timer_register(500, deferred_send_cmd_cgm, NULL);
+#endif
     } else {
         DEBUG("Invalid data");
         DEBUG("%d %d %d", state.dirty.need_cgm, interval, state.stale_data_timeout);
@@ -381,7 +392,11 @@ void reset_stale_timer_callback(void) {
         state.dirty.need_cgm = 1;
         state.cgm_time = 0;
         if (trend_isinitialized()) trend_reset();
-        send_cmd_cgm();
+ #if DEBUG_LEVEL >= DEBUG_LEVEL_INFO
+        if (NULL == deffered_send_cmd_cgm_timer) deffered_send_cmd_cgm_timer = app_timer_register(2000, deferred_send_cmd_cgm, NULL);
+#else
+        if (NULL == deffered_send_cmd_cgm_timer) deffered_send_cmd_cgm_timer = app_timer_register(500, deferred_send_cmd_cgm, NULL);
+#endif
         timeout = 1 * SECONDS_PER_MINUTE * MS_IN_A_SECOND;
     }
     DEBUG("STALE timeout: %d", timeout);

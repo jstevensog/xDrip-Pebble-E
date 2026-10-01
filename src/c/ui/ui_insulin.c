@@ -26,9 +26,9 @@ TextLayer *carbs_down = NULL;
 TextLayer *back = NULL;
 TextLayer *enter = NULL;
 
-int bolus_value = 16;
-int basal_value = 16;
-int carbs_value = 16;
+int bolus_value = 0;
+int basal_value = 0;
+int carbs_value = 0;
 
 #define BUTTON_WIDTH 34
 #define TEXT_HEIGHT 48
@@ -340,6 +340,10 @@ void insulin_display_init(Layer *root, TouchServiceHandler handoff) {
 
     layer_add_child(bg, text_layer_get_layer(back));
     layer_add_child(bg, text_layer_get_layer(enter));
+
+    if (bolus_value == 0) bolus_value = state.default_bolus;
+    if (basal_value == 0) basal_value = state.default_basal;
+    if (carbs_value == 0) carbs_value = state.default_carbs;
 
     update_text();
     update_bb();
