@@ -267,7 +267,7 @@ void handle_bluetooth_cgm(bool bt_connected)
 			// make sure we get the data we need
 			//dirty.need_cgm = 1;
 			state.cgm_time = 0;
-			reset_timer_callback_cgm(2);
+            state.gl_cb.update_stale_timeout();
 		}
 
 		// erase cgm and app ago times
@@ -346,59 +346,50 @@ bool stale_receiver(Tuple *data) {
     return false;
 }
 
-void reset_timer_callback_cgm(int32_t seconds) {
-	int32_t retimer = (seconds) * 1000;
-	if (retimer < 0) retimer = 1000; // schedule for 1s
-	if (timer_cgm == NULL || !app_timer_reschedule(timer_cgm, retimer)) {
-		timer_cgm = app_timer_register(retimer, timer_callback_cgm, NULL);
-	}
-}
-
 void reset_stale_timer_callback(void) {
     INFO("STALE TIMER RESET");
-    if (NULL == stale_data_timer || !app_timer_reschedule(stale_data_timer, state.stale_data_timeout)) {
-        stale_data_timer = app_timer_register(state.stale_data_timeout, handle_stale_data_tick, NULL);
+
+    int32_t timeout = MS_IN_A_SECOND; // 1s
+    int32_t now = time(NULL);
+    int32_t interval = now - state.cgm_time;
+    /**
+     * stale data timer logic:
+     * data is valid, we have data and data present is smaller than sensor update interval -> wait till sensor interval + 5s
+     * data is valid, time is greater than last known + sensor interval -> request update
+     * data is likely valid, time since last update > stale timer -> report stale message
+     * data is invalid, we have some data and data present is smaller than sensor update interval -> request reset
+     * data is invalid, we have no data -> request reset
+     */
+
+    if (state.dirty.need_cgm == 0 && interval < state.sensor_interval) {
+        timeout = (now - state.cgm_time + 5) * MS_IN_A_SECOND;
+    } else if (state.dirty.need_cgm == 0 && interval > state.sensor_interval && interval < state.sensor_interval + 60) {
+        timeout = (state.sensor_interval + 5) * MS_IN_A_SECOND;
+    } else if (interval > (int32_t) state.stale_data_timeout / 1000) {
+        // stale message
+        CALLBACK(state.wf_cb.set_delta, "Stale Data!", sizeof("Stale Data!")); 
+        CALLBACK(state.gl_cb.alert_handler, APPSYNC_ERR_VIBE);
+        timeout = 1 * SECONDS_PER_MINUTE * MS_IN_A_SECOND;
+        send_cmd_cgm();
+    } else {
+        // likely invalid data, request reset
+        state.dirty.need_cgm = 1;
+        state.cgm_time = 0;
+        if (trend_isinitialized()) trend_reset();
+        send_cmd_cgm();
+        timeout = 1 * SECONDS_PER_MINUTE * MS_IN_A_SECOND;
+    }
+    if (NULL == stale_data_timer || !app_timer_reschedule(stale_data_timer, timeout)) {
+        stale_data_timer = app_timer_register(timeout, handle_stale_data_tick, NULL);
     }
 }
-
-void timer_callback_cgm(void *data)
-{
-	// set timer to null, as it has beenh called and does not need rescheduling
-	timer_cgm = NULL;
-	TRACE("timer_callback_cgm: register timer");
-	DEBUG("timer %d %d", state.cgm_time, time(NULL));
-	// if we have not received anything for over 6 minutes, keep checking
-	if ((long) (state.cgm_time + 360) < time(NULL)) {
-		// mark cgm data as dirty, send heartbeat
-		state.dirty.need_cgm = 1;
-		// we do not reset time as likely we only missed a few messages
-		send_cmd_cgm();
-		// try again in 60 seconds until we get something
-		reset_timer_callback_cgm(60);
-	} else {
-		// schedule normal checkup for 6 minutes from now
-		reset_timer_callback_cgm(360);
-	}
-
-	TRACE("timer_callback_cgm: done");
-
-} // end timer_callback_cgm
-
-// format current time from watch
-
 
 // stale data tick handler
 void handle_stale_data_tick(void *data)
 {
 	INFO("handle_stale_data_tick: entered");
-    CALLBACK(state.wf_cb.set_delta, "Stale Data!", sizeof("Stale Data!")); 
-    CALLBACK(state.gl_cb.alert_handler, APPSYNC_ERR_VIBE);
-
-	if(stale_data_timer == NULL || !app_timer_reschedule(stale_data_timer,state.stale_data_timeout)) 
-	{
-		INFO("handle_stale_data_tick: reset stale_data_timer to %l", state.stale_data_timeout);
-		app_timer_register(state.stale_data_timeout, handle_stale_data_tick, NULL);
-	}
+    reset_stale_timer_callback();
+    INFO("handle_stale_data_tick: reset stale_data_timer");
 }
 
 // second tick handler, used for seconds display
@@ -429,11 +420,6 @@ void handle_minute_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
 		health_poll();
 #endif
         CALLBACK(state.wf_cb.minutes_tick, tick_time_cgm, units_changed_cgm);
-	}
-
-	// detect some error in rescheduling
-	if (time(NULL) - state.cgm_time > (10 * 60)) {
-		reset_timer_callback_cgm(2);
 	}
 
 } // end handle_minute_tick_cgm

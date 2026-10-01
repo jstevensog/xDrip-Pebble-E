@@ -23,6 +23,8 @@
 #define WATCH_BATTERY_ICON " W:"
 #endif
 
+#define LOADING_MESSAGE "Loading ..."
+
 #define STATUS_TEXT_SIZE 12
 void ui_og_init(AppState *value);
 void ui_og_deinit(void);

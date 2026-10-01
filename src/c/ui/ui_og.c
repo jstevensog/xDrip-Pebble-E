@@ -8,6 +8,7 @@
 #ifdef ENABLE_TOUCH
 #include "ui_insulin.h"
 #endif
+#include "../api/callbacks.h"
 
 
 #ifdef ENABLE_COMM_FRAMEWORK
@@ -705,7 +706,7 @@ void update_trend(void) {
     // reset
     state.dirty.need_cgm = 1;
     state.cgm_time = 0; // force update all
-    reset_timer_callback_cgm(2);
+    CALLBACK(state.gl_cb.update_stale_timeout);
 }
 
 void update_timeago(void) {
@@ -880,14 +881,12 @@ void comm_set_bgl_timestamp(uint32_t timestamp) {
 	TRACE("Set BGL Timestamp");
 	if (state.use_png) {
         state.cgm_time = timestamp;
-        reset_timer_callback_cgm((timestamp - time(NULL)) + (60 * 6));
     } else if (time(NULL) - timestamp > 310) {
         state.dirty.need_cgm = 1;
-        reset_timer_callback_cgm((timestamp - time(NULL)) + (60));
     } else {
         state.cgm_time = timestamp;
-        reset_timer_callback_cgm((timestamp - time(NULL)) + (60 * 6));
     }
+    CALLBACK(state.gl_cb.update_stale_timeout);
 	load_cgmtime();
 }
 
@@ -1188,7 +1187,7 @@ void load_bg()
 				// make sure we get the data we need
 				state.dirty.need_cgm = 1;
 				state.cgm_time = 0;
-				reset_timer_callback_cgm(2);
+                CALLBACK(state.gl_cb.update_stale_timeout);
 			} // if turnoff nobluetooth msg
 		}
 	} 
@@ -1356,7 +1355,7 @@ void load_bg_delta()
 		LOG("load_bg_delta: Found \"LOAD\"");
 
 		layer_set_hidden(text_layer_get_layer(delta_layer), false);
-		strncpy(formatted_bg_delta, "LOADING...", MSGLAYER_BUFFER_SIZE);
+		strncpy(formatted_bg_delta, LOADING_MESSAGE, MSGLAYER_BUFFER_SIZE);
 		text_layer_set_text(delta_layer, formatted_bg_delta);
 		text_layer_set_text(bg_layer, " ");
 		create_update_bitmap(&icon_bitmap,icon_layer, LOGO_SPECVALUE_ICON);
@@ -2025,7 +2024,8 @@ void window_load_cgm(Window *window_cgm)
 	TRACE("window_load_cgm: build done, init timer");
 	// mark dirty and request data
 	state.dirty.need_cgm = 1;
-	reset_timer_callback_cgm(LOADING_MSGSEND_SECS);
+    CALLBACK(state.wf_cb.set_delta, LOADING_MESSAGE, sizeof(LOADING_MESSAGE));
+    CALLBACK(state.gl_cb.update_stale_timeout);
 	TRACE("window_load_cgm: timer registered");
 
 } // end window_load_cgm

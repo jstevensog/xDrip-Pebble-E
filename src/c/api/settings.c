@@ -63,6 +63,8 @@ void settings_init(AppState *values) {
     state->stale_data_timeout = persist_exists(STALE_DATA_ALERT_TIMEOUT) ? persist_read_int(STALE_DATA_ALERT_TIMEOUT) : 6 * 60000;
     state->collect_health = persist_exists(SET_COLLECT_HEALTH) ? persist_read_bool(SET_COLLECT_HEALTH) : false;
 
+    if (state->sensor_interval == 0) state->sensor_interval = 5 * SECONDS_PER_MINUTE; // default to 5 mins unless xdrip tells otherwise
+
     LOG_SETTING(use_png);
     LOG_SETTING(show_slope);
     LOG_SETTING(show_delta);

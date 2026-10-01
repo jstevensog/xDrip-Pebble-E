@@ -561,6 +561,7 @@ void trend_set_low_line(comm_low_limit value) {
 
 int trend_isinitialized(void) { return config.bgl.initialized; }
 int16_t trend_last_value(void) {  return config.bgl.values[config.bgl.index]; }
+void trend_reset(void) { config.bgl.initialized = 0; }
 
 void trend_set_hidden(bool value) {
     if (config.layer != NULL) layer_set_hidden(config.layer, value);

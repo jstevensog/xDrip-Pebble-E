@@ -107,7 +107,11 @@ bool comm_receiver(Tuple *data)
             break;
         case FRAMEWORK_SENSOR_INFO:
             TRACE(CM "Sensor info");
-            if (cb->sensor_info != NULL) cb->sensor_info((comm_sensor_info *) data->value->data);
+            if (cb->sensor_info != NULL) {
+                comm_sensor_info *info = (comm_sensor_info *) data->value->data;
+                cb->sensor_info(info);
+                if(info->interval > 0) state.sensor_interval = info->interval;
+            }
             break;
         case FRAMEWORK_BWP_VALUE:
             TRACE(CM "Bolus wizard previes value");
