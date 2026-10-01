@@ -318,9 +318,6 @@ void BT_timer_callback(void *data)
 // Needs to include configuration values that xDrip can read and respond to.
 static void send_cmd_cgm(void)
 {
-	AppMessageResult sendcmd_openerr = APP_MSG_NOT_CONNECTED;
-	AppMessageResult sendcmd_senderr = APP_MSG_OK;
-	DictionaryIterator *iter = NULL;
 
 	if(state.bluetooth_alert)
 	{
@@ -332,33 +329,8 @@ static void send_cmd_cgm(void)
 	// if bt escapes early (above) outbox_begin MAY NOT be triggered as it will leave the outbox in
 	// an unrecoverable state, the entire function must be performed if app_message_outbox_begin succeeds.
 
-	while (sendcmd_openerr != APP_MSG_OK)
-	{
-		ERROR("send_cmd_cgm: ERR CODE: %i RES: %s", sendcmd_openerr, translate_app_error(sendcmd_openerr));
-		sendcmd_openerr = app_message_outbox_begin(&iter);
-		// proceed to send since it's the only way to recover
-		// goto send_appmsg;
-		psleep(500);
-	}
+    comm_request_heartbeat();
 
-    comm_request_heartbeat(
-            iter,
-            state.use_png, state.wf_cb.trend_bounds(),
-            !trend_isinitialized() && !state.use_png,
-            state.dirty.need_cgm, state.cgm_time,
-            state.right_text_field == METRIC_PHONEBATT || state.left_text_field == METRIC_PHONEBATT,
-            state.right_text_field == METRIC_SENSOR_EXPIRY || state.left_text_field == METRIC_SENSOR_EXPIRY
-    );
-
-	dict_write_end(iter);
-
-//send_appmsg:
-	TRACE("send_cmd_cgm: Opening outbox");
-	sendcmd_senderr = app_message_outbox_send();
-	if (sendcmd_senderr != APP_MSG_OK && sendcmd_senderr != APP_MSG_BUSY && sendcmd_senderr != APP_MSG_SEND_REJECTED)
-	{
-		ERROR("send_cmd_cgm: ERR CODE: %i RES: %s", sendcmd_senderr, translate_app_error(sendcmd_senderr));
-	}
 	TRACE("send_cmd_cgm: done");
 } // end send_cmd_cgm
 

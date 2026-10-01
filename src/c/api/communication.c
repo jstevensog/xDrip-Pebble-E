@@ -2,6 +2,7 @@
 #include "../xdrip.h"
 #include "../debug.h"
 #include "../api/settings.h"
+#include "../api/trend.h"
 #include <pebble.h>
 
 #define CM "COMM FW: "
@@ -358,12 +359,36 @@ void outbox_failed_handler_cgm(DictionaryIterator *failed, AppMessageResult appm
 
 } // end outbox_failed_handler_cgm
 
-void comm_request_init(void)
+DictionaryIterator *comm_request_start(void)
 {
+	AppMessageResult sendcmd_openerr = APP_MSG_NOT_CONNECTED;
+	DictionaryIterator *iter = NULL;
+    int escape_counter = 0;
+	while (sendcmd_openerr != APP_MSG_OK && escape_counter < 10)
+	{
+		ERROR("send_cmd_cgm: ERR CODE: %i RES: %s", sendcmd_openerr, translate_app_error(sendcmd_openerr));
+		sendcmd_openerr = app_message_outbox_begin(&iter);
+		// proceed to send since it's the only way to recover
+		// goto send_appmsg;
+		psleep(500);
+        escape_counter++;
+	}
+    return iter;
 }
 
-void comm_request_end(void)
+void comm_request_send(DictionaryIterator *iter)
 {
+	AppMessageResult sendcmd_senderr = APP_MSG_OK;
+
+	dict_write_end(iter);
+
+//send_appmsg:
+	TRACE("send_cmd_cgm: Opening outbox");
+	sendcmd_senderr = app_message_outbox_send();
+	if (sendcmd_senderr != APP_MSG_OK && sendcmd_senderr != APP_MSG_BUSY && sendcmd_senderr != APP_MSG_SEND_REJECTED)
+	{
+		ERROR("send_cmd_cgm: ERR CODE: %i RES: %s", sendcmd_senderr, translate_app_error(sendcmd_senderr));
+	}
 }
 
 void comm_add_receiver(comm_iterator function) {
@@ -377,7 +402,7 @@ void comm_add_receiver(comm_iterator function) {
     }
 }
 
-void comm_request_png(DictionaryIterator *iter, GRect bounds)
+void comm_request_add_png(DictionaryIterator *iter, GRect bounds)
 {
     TRACE(CM "Sending PNG Request");
     comm_trend_size ts;
@@ -391,17 +416,11 @@ void comm_request_png(DictionaryIterator *iter, GRect bounds)
     dict_write_uint32(iter, FRAMEWORK_PNG_IMAGE, ts.raw);
 }
 
-void comm_request_heartbeat(
-        DictionaryIterator *iter,
-        bool use_png, GRect png_bounds,
-        bool update_lines,
-        bool update_cgm, uint32_t current_cgm_time, 
-        bool update_battery,
-        bool update_sensor
-)
+void comm_request_heartbeat(void)
 {
 	comm_heartbeat hb = {0}; // force zero init
-
+    DictionaryIterator *iter = comm_request_start();
+    if (iter == NULL) return;
     // send if we are a colour pebble or not 
 #ifdef PBL_COLOR
 	hb.colour = 1;
@@ -409,7 +428,7 @@ void comm_request_heartbeat(
 	hb.colour = 0;
 #endif
 
-	hb.time_series = use_png ? 0 : 1;
+	hb.time_series = state.use_png ? 0 : 1;
 
     // currently not used
 #ifdef PBL_PLATFORM_GABBRO
@@ -417,12 +436,13 @@ void comm_request_heartbeat(
 #else
 	hb.time_period = 3;
 #endif
-
+#ifdef ENABLE_TREND_RENDERER
 	// trend line and limit values
-	if (update_lines) { 
+	if (!trend_isinitialized() && !state.use_png) { 
 		hb.high_limit = 1;
 		hb.low_limit = 1;
 	}
+#endif
 
 	// pump values
     // these are currently not implemented in xdrip
@@ -435,31 +455,35 @@ void comm_request_heartbeat(
     // xdrip decides what to send with respect to the CGM_TIME and if use_png is set or not
     // Due to xdrip possibly not knowing what the state of the screen is the png size is also
     // send to xdrip
-	if (update_cgm) {
+	if (state.dirty.need_cgm) {
 		hb.send_slope_arrow = 1;
 		hb.send_delta_value = 1;
-		dict_write_uint32(iter, FRAMEWORK_BGL_VALUE, current_cgm_time); // request update
-		if (use_png) {
-			comm_request_png(iter, png_bounds);
+		dict_write_uint32(iter, FRAMEWORK_BGL_VALUE, state.cgm_time); // request update
+		if (state.use_png) {
+			comm_request_add_png(iter, state.wf_cb.trend_bounds());
 		}
 	}
 
-    if (update_sensor) {
+    if (state.right_text_field == METRIC_SENSOR_EXPIRY || state.left_text_field == METRIC_SENSOR_EXPIRY) {
         hb.send_sensor_info = 1;
     }
 
-	if (update_battery) hb.send_phone_battery = 1;
+	if (state.right_text_field == METRIC_PHONEBATT || state.left_text_field == METRIC_PHONEBATT) hb.send_phone_battery = 1;
 
 	dict_write_uint32(iter, FRAMEWORK_HEARTBEAT, hb.raw);
+
+    comm_request_send(iter);
 }
 
 #ifdef PBL_HEALTH
-void comm_send_health(DictionaryIterator *iter, comm_health data)
+void comm_send_health(comm_health data)
 {
+    DictionaryIterator *iter = comm_request_start();
     TRACE(CM "Sending health hr=%d steps=%d", data.heart_rate, (int) data.steps);
     if (iter == NULL) return;
     if (data.heart_rate > 0) dict_write_uint32(iter, FRAMEWORK_HEALTH_HR, data.heart_rate);
     if (data.steps > 0)      dict_write_uint32(iter, FRAMEWORK_HEALTH_STEPS, data.steps);
+    comm_request_send(iter);
 }
 #endif
 
@@ -474,42 +498,37 @@ void health_send_values(void *data) {
 
 	CALLBACK(state.gl_cb.health_poll);
 	if (state.hbm == 0 && state.step_count == 0) return;
-	DictionaryIterator *iter = NULL;
-	if (app_message_outbox_begin(&iter) != APP_MSG_OK) {
-		LOG("health_send_values: outbox busy");
-		return;
-	}
-	comm_send_health(iter, (comm_health){
+	comm_send_health((comm_health){
 		.heart_rate = (uint16_t) state.hbm,
 		.steps = (uint32_t) state.step_count,
 	});
 
-	dict_write_end(iter);
-	if (app_message_outbox_send() == APP_MSG_OK) {
-		LOG("health_send_values: sent hr=%ld steps=%ld", state.step_count, state.step_count);
-	}
 }
 
 #ifdef ENABLE_TOUCH
 void comm_send_basal_bolus(int32_t basal, int32_t bolus)
 {
-    DictionaryIterator *iter = NULL;
-	if (app_message_outbox_begin(&iter) != APP_MSG_OK) {
-		LOG("health_send_values: outbox busy");
-		return;
-	}
+    DictionaryIterator *iter = comm_request_start();
+
     comm_basal_bolus values = {
         .basal = basal,
         .bolus = bolus
     };
     dict_write_data(iter, FRAMEWORK_BASAL_BOLUS, (uint8_t *) &values, sizeof(values));
-	dict_write_end(iter);
-	if (app_message_outbox_send() == APP_MSG_OK) {
-        LOG("Send basal and bolus values: %d %d", basal, bolus);
-	}
+
+    comm_request_send(iter);
 } // end comm_send_basal_bolus
 
 void comm_send_carbs(int32_t carbs) {
+    DictionaryIterator *iter = comm_request_start();
+
+    comm_carbs values = {
+        .value = carbs
+    };
+
+    dict_write_data(iter, FRAMEWORK_CARBS, (uint8_t *) &values, sizeof(values));
+
+    comm_request_send(iter);
 }
 #endif
 
