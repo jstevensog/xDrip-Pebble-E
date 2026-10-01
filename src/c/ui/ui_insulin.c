@@ -17,45 +17,68 @@ TextLayer *basal_up = NULL;
 TextLayer *basal_text = NULL;
 TextLayer *basal_down = NULL;
 
+TextLayer *carbs_up = NULL;
+TextLayer *carbs_text = NULL;
+TextLayer *carbs_down = NULL;
+
 TextLayer *back = NULL;
 TextLayer *enter = NULL;
 
 int bolus_value = 16;
 int basal_value = 16;
+int carbs_value = 16;
+
+#define BUTTON_HEIGHT 26
+#define TEXT_HEIGHT 48
 
 #define BOLUS_UP_X 10
 #define BOLUS_UP_Y 10
 #define BOLUS_UP_WIDTH (PBL_DISPLAY_WIDTH / 2) - 20
-#define BOLUS_UP_HEIGHT ((PBL_DISPLAY_HEIGHT / 3) * 2) / 4
+#define BOLUS_UP_HEIGHT BUTTON_HEIGHT 
 #define BOLUS_TEXT_X BOLUS_UP_X
-#define BOLUS_TEXT_Y BOLUS_UP_Y + ((PBL_DISPLAY_HEIGHT / 3) * 2) / 4
+#define BOLUS_TEXT_Y BOLUS_UP_Y + BOLUS_UP_HEIGHT 
 #define BOLUS_TEXT_WIDTH BOLUS_UP_WIDTH
-#define BOLUS_TEXT_HEIGHT ((PBL_DISPLAY_HEIGHT / 3) * 2) / 2
+#define BOLUS_TEXT_HEIGHT TEXT_HEIGHT 
 #define BOLUS_DOWN_X BOLUS_UP_X
-#define BOLUS_DOWN_Y BOLUS_UP_Y + ((PBL_DISPLAY_HEIGHT / 3) * 2) -  BOLUS_UP_HEIGHT
+#define BOLUS_DOWN_Y BOLUS_UP_Y + BOLUS_TEXT_HEIGHT + BOLUS_UP_HEIGHT
 #define BOLUS_DOWN_WIDTH BOLUS_UP_WIDTH
 #define BOLUS_DOWN_HEIGHT BOLUS_UP_HEIGHT
 
 #define BASAL_UP_X (PBL_DISPLAY_WIDTH / 2) + 10
 #define BASAL_UP_Y 10
 #define BASAL_UP_WIDTH (PBL_DISPLAY_WIDTH / 2) - 20
-#define BASAL_UP_HEIGHT ((PBL_DISPLAY_HEIGHT / 3) * 2) / 4
+#define BASAL_UP_HEIGHT BUTTON_HEIGHT 
 #define BASAL_TEXT_X BASAL_UP_X
-#define BASAL_TEXT_Y BASAL_UP_Y + ((PBL_DISPLAY_HEIGHT / 3) * 2) / 4
+#define BASAL_TEXT_Y BASAL_UP_Y + BUTTON_HEIGHT 
 #define BASAL_TEXT_WIDTH BASAL_UP_WIDTH
-#define BASAL_TEXT_HEIGHT ((PBL_DISPLAY_HEIGHT / 3) * 2) / 2
+#define BASAL_TEXT_HEIGHT TEXT_HEIGHT 
 #define BASAL_DOWN_X BASAL_UP_X
-#define BASAL_DOWN_Y BASAL_UP_Y + ((PBL_DISPLAY_HEIGHT / 3) * 2) -  BASAL_UP_HEIGHT
+#define BASAL_DOWN_Y BASAL_UP_Y + BASAL_TEXT_HEIGHT + BASAL_UP_HEIGHT
 #define BASAL_DOWN_WIDTH BASAL_UP_WIDTH
 #define BASAL_DOWN_HEIGHT BASAL_UP_HEIGHT
 
-#define BACK_X BOLUS_UP_X
-#define BACK_Y 10 + BOLUS_DOWN_Y + BOLUS_DOWN_HEIGHT
+#define CARBS_DOWN_X 10
+#define CARBS_DOWN_Y BOLUS_UP_Y + BOLUS_UP_HEIGHT + TEXT_HEIGHT + BOLUS_DOWN_HEIGHT + 10
+#define CARBS_DOWN_WIDTH BUTTON_HEIGHT
+#define CARBS_DOWN_HEIGHT TEXT_HEIGHT
+#define CARBS_TEXT_X 10 + CARBS_DOWN_WIDTH
+#define CARBS_TEXT_Y CARBS_DOWN_Y
+#define CARBS_TEXT_WIDTH PBL_DISPLAY_WIDTH - 20 - (2 * CARBS_DOWN_WIDTH)
+#define CARBS_TEXT_HEIGHT CARBS_DOWN_HEIGHT
+#define CARBS_UP_X CARBS_TEXT_X + CARBS_TEXT_WIDTH
+#define CARBS_UP_Y CARBS_DOWN_Y
+#define CARBS_UP_WIDTH CARBS_DOWN_WIDTH
+#define CARBS_UP_HEIGHT CARBS_DOWN_HEIGHT
+
+/* #define BACK_X BOLUS_UP_X */
+#define BACK_X BASAL_UP_X
+#define BACK_Y 10 + CARBS_UP_Y + CARBS_UP_HEIGHT
 #define BACK_WIDTH BOLUS_UP_WIDTH
 #define BACK_HEIGHT ((PBL_DISPLAY_HEIGHT / 3) - 30)
 
-#define ENTER_X BASAL_UP_X 
-#define ENTER_Y 10 + BOLUS_DOWN_Y + BOLUS_DOWN_HEIGHT
+/* #define ENTER_X BASAL_UP_X  */
+#define ENTER_X BOLUS_UP_X 
+#define ENTER_Y 10 + CARBS_UP_Y + CARBS_UP_HEIGHT
 #define ENTER_WIDTH BOLUS_UP_WIDTH
 #define ENTER_HEIGHT ((PBL_DISPLAY_HEIGHT / 3) - 30)
 
@@ -67,20 +90,27 @@ int basal_value = 16;
 #define ENTER 6
 #define BASAL_TEXT 7
 #define BOLUS_TEXT 8
+#define CARBS_UP 9
+#define CARBS_TEXT 10
+#define CARBS_DOWN 11
 
 static char bolus_tx[12];
 static char basal_tx[12];
+static char carbs_tx[12];
 static int touch_region = 0;
 static TouchServiceHandler cb;
 
 static bool bolus_enabled = false;
 static bool basal_enabled = false;
+static bool carbs_enabled = false;
 
 void update_text(void) {
     snprintf(basal_tx, sizeof(basal_tx), "%d", basal_value);
     text_layer_set_text(basal_text, basal_tx);
     snprintf(bolus_tx, sizeof(bolus_tx), "%d", bolus_value);
     text_layer_set_text(bolus_text, bolus_tx);
+    snprintf(carbs_tx, sizeof(carbs_tx), "%d", carbs_value);
+    text_layer_set_text(carbs_text, carbs_tx);
 }
 
 void update_bb(void) {
@@ -89,6 +119,9 @@ void update_bb(void) {
 
     if (bolus_enabled) text_layer_set_background_color(bolus_text, GColorGreen);
     else text_layer_set_background_color(bolus_text, GColorWhite);
+
+    if (carbs_enabled) text_layer_set_background_color(carbs_text, GColorGreen);
+    else text_layer_set_background_color(carbs_text, GColorWhite);
 }
 
 bool inbounds(GRect bounds, int x, int y) {
@@ -130,15 +163,23 @@ void insulin_touch_handler(const TouchEvent *event, void *context) {
             } else if IN(basal_down) {
                 basal_value--;
                 if (basal_value < 1) basal_value = 1;
+            } else if IN(carbs_up) {
+                carbs_value++;
+            } else if IN(carbs_down) {
+                carbs_value--;
+                if (carbs_value < 1) carbs_value = 1;
             } else if IN(back) {
                 insulin_display_deinit();
             } else if IN(enter) {
                 insulin_display_deinit();
-                comm_send_basal_bolus(basal_enabled ? basal_value : 0, bolus_enabled ? bolus_value : 0);
+                // NOTE values are 4 bit decimals, so you can enter 0.0675 values (e.g. 0.5 is 8)
+                comm_send_treatment(basal_enabled ? basal_value * 16 : 0, bolus_enabled ? bolus_value * 16 : 0, carbs_enabled ? carbs_value : 0);
             } else if IN(basal_text) {
                 basal_enabled = !basal_enabled;
             } else if IN(bolus_text) {
                 bolus_enabled = !bolus_enabled;
+            } else if IN(carbs_text) {
+                carbs_enabled = !carbs_enabled;
             }
             update_text();
             update_bb();
@@ -223,6 +264,38 @@ void insulin_display_init(Layer *root, TouchServiceHandler handoff) {
     layer_add_child(bg, text_layer_get_layer(basal_up));
     layer_add_child(bg, text_layer_get_layer(basal_text));
     layer_add_child(bg, text_layer_get_layer(basal_down));
+
+    carbs_up = text_layer_create((GRect) { 
+            { CARBS_UP_X,  CARBS_UP_Y}, 
+            { CARBS_UP_WIDTH, CARBS_UP_HEIGHT }
+    });
+    carbs_text = text_layer_create((GRect) { 
+            { CARBS_TEXT_X,  CARBS_TEXT_Y}, 
+            { CARBS_TEXT_WIDTH, CARBS_TEXT_HEIGHT }
+    });
+    carbs_down = text_layer_create((GRect) { 
+            { CARBS_DOWN_X,  CARBS_DOWN_Y}, 
+            { CARBS_DOWN_WIDTH, CARBS_DOWN_HEIGHT }
+    });
+
+    text_layer_set_background_color(carbs_up, GColorLightGray);
+    text_layer_set_background_color(carbs_down, GColorLightGray);
+    text_layer_set_background_color(carbs_text, GColorWhite);
+    
+    text_layer_set_font(carbs_up, font);
+    text_layer_set_font(carbs_down, font);
+    text_layer_set_font(carbs_text, font);
+    
+    text_layer_set_text(carbs_up, bolus_up_text);
+    text_layer_set_text(carbs_down, bolus_down_text);
+    
+    text_layer_set_text_alignment(carbs_up, GTextAlignmentCenter);
+    text_layer_set_text_alignment(carbs_text, GTextAlignmentCenter);
+    text_layer_set_text_alignment(carbs_down, GTextAlignmentCenter);
+
+    layer_add_child(bg, text_layer_get_layer(carbs_up));
+    layer_add_child(bg, text_layer_get_layer(carbs_text));
+    layer_add_child(bg, text_layer_get_layer(carbs_down));
 
     back = text_layer_create((GRect) {
             { BACK_X, BACK_Y },

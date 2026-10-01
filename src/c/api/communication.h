@@ -25,8 +25,7 @@
 // value means "not available" and is not written. See comm_send_health().
 #define FRAMEWORK_HEALTH_HR         2013
 #define FRAMEWORK_HEALTH_STEPS      2014
-#define FRAMEWORK_BASAL_BOLUS       2015
-#define FRAMEWORK_CARBS             2016
+#define FRAMEWORK_TREATMENT         2015
 
 #define SENSOR_STATE_ACTIVE         0
 #define SENSOR_STATE_WARMUP         1
@@ -164,14 +163,11 @@ typedef struct comm_health_t {
 } comm_health;
 
 
-typedef struct comm_basal_bolus_t {
-    uint8_t basal;          // Basal value
-    uint8_t bolus;          // Bolus value
-} comm_basal_bolus;
-
-typedef struct comm_carbs_t {
-    uint16_t value;
-} comm_carbs;
+typedef struct comm_treatment_t {
+    uint16_t basal;          // Basal value
+    uint16_t bolus;          // Bolus value
+    uint16_t carbs;         // carbs value
+} comm_treatment;
 
 #pragma pack()
 
@@ -203,7 +199,7 @@ void comm_send_health(comm_health data);
  */
 void comm_request_heartbeat(void);
 
-void comm_send_basal_bolus(int32_t basal, int32_t bolus);
+void comm_send_treatment(int32_t basal, int32_t bolus, int32_t carbs);
 
 void sync_error_callback_cgm(DictionaryResult appsync_dict_error, AppMessageResult appsync_error, void *context);
 void inbox_dropped_handler_cgm(AppMessageResult appmsg_indrop_error, void *context);

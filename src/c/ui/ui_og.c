@@ -1118,6 +1118,7 @@ void load_icon()
 			}
 			case SPECIAL_VALUE:
 			{
+				create_update_bitmap(&icon_bitmap, icon_layer, LOGO_SPECVALUE_ICON);
 				break;
 			}
 			default:
@@ -1347,21 +1348,6 @@ void load_bg_delta()
 		return;
 	}
 
-
-	// check if LOADING.., if true set message
-	// put " " (space) in bg field so logo continues to show
-	if (strcmp(current_bg_delta, "LOAD") == 0)
-	{
-		LOG("load_bg_delta: Found \"LOAD\"");
-
-		layer_set_hidden(text_layer_get_layer(delta_layer), false);
-		strncpy(formatted_bg_delta, LOADING_MESSAGE, MSGLAYER_BUFFER_SIZE);
-		text_layer_set_text(delta_layer, formatted_bg_delta);
-		text_layer_set_text(bg_layer, " ");
-		create_update_bitmap(&icon_bitmap,icon_layer, LOGO_SPECVALUE_ICON);
-		state.special_value_alert = FALSE;
-		return;
-	}
 
 	//check for "--" indicating an indeterminate delta.  Display it.
 	if (strcmp(current_bg_delta, "???") == 0)
@@ -1990,6 +1976,7 @@ void window_load_cgm(Window *window_cgm)
 #endif
 	LOG("Setting display values to correct state");
     CALLBACK(state.wf_cb.set_delta, LOADING_MESSAGE, sizeof(LOADING_MESSAGE));
+    CALLBACK(state.wf_cb.set_icon, SPECIAL_VALUE);
     state.dirty.delta = 1;
     state.dirty.hbm = 1;
     state.dirty.sensor_info = 1;

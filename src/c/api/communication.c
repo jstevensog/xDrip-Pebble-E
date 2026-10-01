@@ -517,30 +517,20 @@ void health_send_values(void *data) {
 }
 
 #ifdef ENABLE_TOUCH
-void comm_send_basal_bolus(int32_t basal, int32_t bolus)
+void comm_send_treatment(int32_t basal, int32_t bolus, int32_t carbs)
 {
     DictionaryIterator *iter = comm_request_start();
 
-    comm_basal_bolus values = {
+    comm_treatment values = {
         .basal = basal,
-        .bolus = bolus
+        .bolus = bolus,
+        .carbs = carbs
     };
-    dict_write_data(iter, FRAMEWORK_BASAL_BOLUS, (uint8_t *) &values, sizeof(values));
+    dict_write_data(iter, FRAMEWORK_TREATMENT, (uint8_t *) &values, sizeof(values));
 
     comm_request_send(iter);
-} // end comm_send_basal_bolus
+} // end comm_send_treatment
 
-void comm_send_carbs(int32_t carbs) {
-    DictionaryIterator *iter = comm_request_start();
-
-    comm_carbs values = {
-        .value = carbs
-    };
-
-    dict_write_data(iter, FRAMEWORK_CARBS, (uint8_t *) &values, sizeof(values));
-
-    comm_request_send(iter);
-}
 #endif
 
 void comm_inbox_received_handler(DictionaryIterator *iterator, void *context)
