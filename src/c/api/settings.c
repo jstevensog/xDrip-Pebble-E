@@ -93,7 +93,11 @@ void settings_init(AppState *values) {
     LOG_SETTING_INT(message_timeout);
     LOG_SETTING_INT(stale_data_timeout);
     
-    // set all callback to null
+    // check if we actually need a refresh
+    if (time(NULL) - state->cgm_time > (uint32_t) state->sensor_interval) {
+        state->dirty.need_cgm = 0;
+        state->dirty.delta = 0;
+    }
 }
 
 void settings_deinit(void) {
