@@ -6,7 +6,7 @@
 #include "../api/trend.h"
 #include "ui_og.h"
 #ifdef ENABLE_TOUCH
-#include "ui_insulin.h"
+#include "ui_treatment.h"
 #endif
 #include "../api/callbacks.h"
 
@@ -412,7 +412,7 @@ void touch_handler(const TouchEvent *event, void *context) {
         LOG("Success! %d", touch_region);
         touch_value = 0;
         // launch insuling thing
-        insulin_display_init(window_get_root_layer(window_cgm), touch_handler);
+        treatment_display_init(window_get_root_layer(window_cgm), touch_handler);
     }
 }
 #endif

@@ -2,7 +2,7 @@
 #ifdef PBL_TOUCH
 #include <stdarg.h>
 #include "../debug.h"
-#include "ui_insulin.h"
+#include "ui_treatment.h"
 
 void reset_stale_timer(void);
 
@@ -166,7 +166,7 @@ bool inbounds(GRect bounds, int x, int y) {
     TRACE("%3d %3d %3d -- %3d %3d %3d", bounds.origin.x, x, bounds.origin.x+bounds.size.w, bounds.origin.y, y, bounds.origin.y + bounds.size.h);
     return (x > bounds.origin.x && x < bounds.origin.x + bounds.size.w && y > bounds.origin.y && y < bounds.origin.y + bounds.size.h);
 }
-void insulin_touch_handler(const TouchEvent *event, void *context) {
+void treatment_touch_handler(const TouchEvent *event, void *context) {
 
     switch(event->type) {
         case TouchEvent_Touchdown:
@@ -207,10 +207,10 @@ void insulin_touch_handler(const TouchEvent *event, void *context) {
                 carbs_value--;
                 if (carbs_value < 1) carbs_value = 1;
             } else if IN(back) {
-                insulin_display_deinit();
+                treatment_display_deinit();
                 return; // do not trigger stale reset
             } else if IN(enter) {
-                insulin_display_deinit();
+                treatment_display_deinit();
                 // NOTE values are 4 bit decimals, so you can enter 0.0675 values (e.g. 0.5 is 8)
                 comm_send_treatment(basal_enabled ? basal_value * 16 : 0, bolus_enabled ? bolus_value * 16 : 0, carbs_enabled ? carbs_value : 0);
                 return; // do not trigger stale reset
@@ -238,7 +238,7 @@ void ui_in_handle_stale(void *data) {
     INFO("Timer TRIGGERED");
     // if triggered we are idle for too long
     ui_in_stale_timer = NULL;
-    insulin_display_deinit();
+    treatment_display_deinit();
 }
 
 void reset_stale_timer(void) {
@@ -252,7 +252,7 @@ char *bolus_down_text = "-";
 char *back_text = "\U0000274E";
 char *enter_text = "\U00002705";
 
-void insulin_display_init(Layer *root, TouchServiceHandler handoff) {
+void treatment_display_init(Layer *root, TouchServiceHandler handoff) {
     cb = handoff;
     // bg
     bg = layer_create((GRect) { {0, 0}, {PBL_DISPLAY_WIDTH, PBL_DISPLAY_HEIGHT }});
@@ -394,14 +394,14 @@ void insulin_display_init(Layer *root, TouchServiceHandler handoff) {
     update_bb();
 
     // fetch touch events
-    touch_service_subscribe(insulin_touch_handler, NULL);
+    touch_service_subscribe(treatment_touch_handler, NULL);
 
     reset_stale_timer();
 }
 
-void insulin_display_deinit(void) {
+void treatment_display_deinit(void) {
 
-    INFO("EXIT ui_insulin");
+    INFO("EXIT ui_treatment");
     app_timer_cancel(ui_in_stale_timer);
     ui_in_stale_timer = NULL;
 
