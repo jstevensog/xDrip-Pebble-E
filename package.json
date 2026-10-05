@@ -10,6 +10,21 @@
     "enableMultiJS": "false",
     "resources": {
       "media": [
+          {
+              "type": "raw",
+              "name": "HOURGLASS_ICON",
+              "file": "images/hourglass.pdc"
+          },
+          {
+              "type": "raw",
+              "name": "SYRINGE_ICON",
+              "file": "images/syringe.pdc"
+          },
+          {
+              "type": "raw",
+              "name": "CARBS_ICON",
+              "file": "images/Pebble_36x36_Calories.pdc"
+          },
         {
           "type": "bitmap",
           "name": "IMAGE_UP",
@@ -102,13 +117,13 @@
           "file": "GothamBold.ttf"
         },
         {
-          "characterRegex": "[0-9:APM+-<Ok ]",
+          "characterRegex": "[0-9:APM ]",
           "type": "font",
           "name": "GOTHAM_BOLD_40",
           "file": "GothamBold.ttf"
         },
         {
-          "characterRegex": "[0-9:APM ]",
+          "characterRegex": "[0-9:APM +-]",
           "type": "font",
           "name": "GOTHAM_BOLD_60",
           "file": "GothamBold.ttf"

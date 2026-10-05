@@ -1,5 +1,5 @@
-#ifdef PBL_TOUCH
 #include <pebble.h>
+#ifdef PBL_TOUCH
 #include <stdarg.h>
 #include "../debug.h"
 #include "ui_insulin.h"
@@ -12,14 +12,20 @@ Layer *root = NULL;
 Layer *bg = NULL;
 
 TextLayer *bolus_up = NULL;
+BitmapLayer *bolus_icon = NULL;
+GDrawCommandImage *bolus_icon_image = NULL;
 TextLayer *bolus_text = NULL;
 TextLayer *bolus_down = NULL;
 
 TextLayer *basal_up = NULL;
+BitmapLayer *basal_icon = NULL;
+GDrawCommandImage *basal_icon_image = NULL;
 TextLayer *basal_text = NULL;
 TextLayer *basal_down = NULL;
 
 TextLayer *carbs_up = NULL;
+BitmapLayer *carbs_icon = NULL;
+GDrawCommandImage *carbs_icon_image = NULL;
 TextLayer *carbs_text = NULL;
 TextLayer *carbs_down = NULL;
 
@@ -30,27 +36,52 @@ int bolus_value = 0;
 int basal_value = 0;
 int carbs_value = 0;
 
+#define LEFT_MARGIN 10
 #define BUTTON_WIDTH 34
+#define ICON_WIDTH (((PBL_DISPLAY_WIDTH - (LEFT_MARGIN * 2) - (BUTTON_WIDTH * 2)) * 32) / 100) 
+#define TEXT_WIDTH (PBL_DISPLAY_WIDTH - (LEFT_MARGIN * 2) - (BUTTON_WIDTH * 2))
 #define TEXT_HEIGHT 48
 
 /**
- * [-][bolus][+]
- * [-][basal][+]
- * [-][carbs][+]
+ * [-][icon][bolus][+]
+ * [-][icon][basal][+]
+ * [-][icon][carbs][+]
+ *
+ * [ back ]  [  ok  ]
  */
 
-#define FRAME(down, textfield, up, X, Y, BUTTON_WIDTH, HEIGHT) \
+void bolus_icon_update(Layer *layer, GContext *ctx) {
+    gdraw_command_image_draw(ctx, bolus_icon_image, GPoint((ICON_WIDTH - 36) / 2, (TEXT_HEIGHT - 36) / 2));
+};
+
+void basal_icon_update(Layer *layer, GContext *ctx) {
+    gdraw_command_image_draw(ctx, basal_icon_image, GPoint((ICON_WIDTH - 36) / 2, (TEXT_HEIGHT - 36) / 2));
+};
+
+void carbs_icon_update(Layer *layer, GContext *ctx) {
+    gdraw_command_image_draw(ctx, carbs_icon_image, GPoint((ICON_WIDTH - 36) / 2, (TEXT_HEIGHT - 36) / 2));
+};
+
+#define FRAME(down, textfield, up, icon, ic_value, X, Y, BUTTON_WIDTH, HEIGHT) \
 {\
     down = text_layer_create((GRect) { \
-            { X,  Y}, \
+            { X,  Y }, \
             { BUTTON_WIDTH, HEIGHT }\
     });\
+    icon = bitmap_layer_create((GRect) {\
+            { 0, 0 },\
+            { ICON_WIDTH, HEIGHT }\
+    });\
+    icon ## _image = gdraw_command_image_create_with_resource(ic_value);\
+    bitmap_layer_set_background_color(icon, GColorWhite);\
+    bitmap_layer_set_compositing_mode(icon, GCompOpSet);\
+    layer_set_update_proc(bitmap_layer_get_layer(icon), icon ## _update);\
     textfield = text_layer_create((GRect) {\
-            { X + BUTTON_WIDTH,  Y}, \
-            { PBL_DISPLAY_WIDTH - ((X + BUTTON_WIDTH)*2), HEIGHT }\
+            { X + BUTTON_WIDTH,  Y }, \
+            { TEXT_WIDTH, HEIGHT }\
     });\
     up = text_layer_create((GRect) { \
-            { PBL_DISPLAY_WIDTH - X - BUTTON_WIDTH ,  Y}, \
+            { PBL_DISPLAY_WIDTH - X - BUTTON_WIDTH,  Y },\
             { BUTTON_WIDTH, HEIGHT }\
     });\
 }
@@ -59,10 +90,10 @@ int carbs_value = 0;
 #define BOLUS_Y 5 
 
 #define BASAL_X 10 
-#define BASAL_Y TEXT_HEIGHT + BOLUS_Y + 5 
+#define BASAL_Y TEXT_HEIGHT + BOLUS_Y + LEFT_MARGIN
 
 #define CARBS_X 10
-#define CARBS_Y TEXT_HEIGHT + BASAL_Y + 5
+#define CARBS_Y TEXT_HEIGHT + BASAL_Y + LEFT_MARGIN
 
 /* #define BACK_X BOLUS_UP_X */
 #define BACK_X BASAL_X
@@ -89,9 +120,17 @@ int carbs_value = 0;
 #define CARBS_DOWN 11
 
 
-#define CARBS_PREFIX "\U0001F34C"
+/* #define CARBS_PREFIX "\U0001F34C" */
+/* #define BOLUS_PREFIX "\U0001F489" */
+/* #define BASAL_PREFIX "\U000023F3" */
+
+#define CARBS_PREFIX ""
 #define BOLUS_PREFIX ""
-#define BASAL_PREFIX
+#define BASAL_PREFIX ""
+
+#define CARBS_ICON RESOURCE_ID_CARBS_ICON
+#define BOLUS_ICON RESOURCE_ID_SYRINGE_ICON
+#define BASAL_ICON RESOURCE_ID_HOURGLASS_ICON
 
 static char bolus_tx[12];
 static char basal_tx[12];
@@ -104,11 +143,11 @@ static bool basal_enabled = false;
 static bool carbs_enabled = false;
 
 void update_text(void) {
-    snprintf(basal_tx, sizeof(basal_tx), "%d", basal_value);
+    snprintf(basal_tx, sizeof(basal_tx), BASAL_PREFIX "%3d ", basal_value);
     text_layer_set_text(basal_text, basal_tx);
-    snprintf(bolus_tx, sizeof(bolus_tx), "%d", bolus_value);
+    snprintf(bolus_tx, sizeof(bolus_tx), BOLUS_PREFIX "%3d ", bolus_value);
     text_layer_set_text(bolus_text, bolus_tx);
-    snprintf(carbs_tx, sizeof(carbs_tx), "%d", carbs_value);
+    snprintf(carbs_tx, sizeof(carbs_tx), CARBS_PREFIX "%3d ", carbs_value);
     text_layer_set_text(carbs_text, carbs_tx);
 }
 
@@ -210,8 +249,8 @@ void reset_stale_timer(void) {
 }
 char *bolus_up_text = "+";
 char *bolus_down_text = "-";
-char *back_text = "<";
-char *enter_text = "Ok";
+char *back_text = "\U0000274E";
+char *enter_text = "\U00002705";
 
 void insulin_display_init(Layer *root, TouchServiceHandler handoff) {
     cb = handoff;
@@ -219,7 +258,8 @@ void insulin_display_init(Layer *root, TouchServiceHandler handoff) {
     bg = layer_create((GRect) { {0, 0}, {PBL_DISPLAY_WIDTH, PBL_DISPLAY_HEIGHT }});
     layer_add_child(root, bg);
 
-    FRAME(bolus_down, bolus_text, bolus_up, BOLUS_X, BOLUS_Y, BUTTON_WIDTH, TEXT_HEIGHT);
+    FRAME(bolus_down, bolus_text, bolus_up, bolus_icon, BOLUS_ICON, BOLUS_X, BOLUS_Y, BUTTON_WIDTH, TEXT_HEIGHT);
+
     /* bolus_up = text_layer_create((GRect) {  */
     /*         { BOLUS_UP_X,  BOLUS_UP_Y},  */
     /*         { BOLUS_UP_WIDTH, BOLUS_UP_HEIGHT } */
@@ -245,15 +285,15 @@ void insulin_display_init(Layer *root, TouchServiceHandler handoff) {
     text_layer_set_text(bolus_up, bolus_up_text);
     text_layer_set_text(bolus_down, bolus_down_text);
 
-    text_layer_set_text_alignment(bolus_up, GTextAlignmentCenter);
-    text_layer_set_text_alignment(bolus_text, GTextAlignmentCenter);
-    text_layer_set_text_alignment(bolus_down, GTextAlignmentCenter);
+    text_layer_set_text_alignment(bolus_up, GTextAlignmentRight);
+    text_layer_set_text_alignment(bolus_text, GTextAlignmentRight);
+    text_layer_set_text_alignment(bolus_down, GTextAlignmentRight);
 
     layer_add_child(bg, text_layer_get_layer(bolus_up));
     layer_add_child(bg, text_layer_get_layer(bolus_text));
     layer_add_child(bg, text_layer_get_layer(bolus_down));
 
-    FRAME(basal_down, basal_text, basal_up, BASAL_X, BASAL_Y, BUTTON_WIDTH, TEXT_HEIGHT);
+    FRAME(basal_down, basal_text, basal_up, basal_icon, BASAL_ICON, BASAL_X, BASAL_Y, BUTTON_WIDTH, TEXT_HEIGHT);
     /* basal_up = text_layer_create((GRect) {  */
     /*         { BASAL_UP_X,  BASAL_UP_Y},  */
     /*         { BASAL_UP_WIDTH, BASAL_UP_HEIGHT } */
@@ -278,15 +318,15 @@ void insulin_display_init(Layer *root, TouchServiceHandler handoff) {
     text_layer_set_text(basal_up, bolus_up_text);
     text_layer_set_text(basal_down, bolus_down_text);
     
-    text_layer_set_text_alignment(basal_up, GTextAlignmentCenter);
-    text_layer_set_text_alignment(basal_text, GTextAlignmentCenter);
-    text_layer_set_text_alignment(basal_down, GTextAlignmentCenter);
+    text_layer_set_text_alignment(basal_up, GTextAlignmentRight);
+    text_layer_set_text_alignment(basal_text, GTextAlignmentRight);
+    text_layer_set_text_alignment(basal_down, GTextAlignmentRight);
 
     layer_add_child(bg, text_layer_get_layer(basal_up));
     layer_add_child(bg, text_layer_get_layer(basal_text));
     layer_add_child(bg, text_layer_get_layer(basal_down));
 
-    FRAME(carbs_down, carbs_text, carbs_up, CARBS_X, CARBS_Y, BUTTON_WIDTH, TEXT_HEIGHT);
+    FRAME(carbs_down, carbs_text, carbs_up, carbs_icon, CARBS_ICON, CARBS_X, CARBS_Y, BUTTON_WIDTH, TEXT_HEIGHT);
     /* carbs_up = text_layer_create((GRect) {  */
     /*         { CARBS_UP_X,  CARBS_UP_Y},  */
     /*         { CARBS_UP_WIDTH, CARBS_UP_HEIGHT } */
@@ -311,9 +351,9 @@ void insulin_display_init(Layer *root, TouchServiceHandler handoff) {
     text_layer_set_text(carbs_up, bolus_up_text);
     text_layer_set_text(carbs_down, bolus_down_text);
     
-    text_layer_set_text_alignment(carbs_up, GTextAlignmentCenter);
-    text_layer_set_text_alignment(carbs_text, GTextAlignmentCenter);
-    text_layer_set_text_alignment(carbs_down, GTextAlignmentCenter);
+    text_layer_set_text_alignment(carbs_up, GTextAlignmentRight);
+    text_layer_set_text_alignment(carbs_text, GTextAlignmentRight);
+    text_layer_set_text_alignment(carbs_down, GTextAlignmentRight);
 
     layer_add_child(bg, text_layer_get_layer(carbs_up));
     layer_add_child(bg, text_layer_get_layer(carbs_text));
@@ -344,6 +384,11 @@ void insulin_display_init(Layer *root, TouchServiceHandler handoff) {
     if (bolus_value == 0) bolus_value = state.default_bolus;
     if (basal_value == 0) basal_value = state.default_basal;
     if (carbs_value == 0) carbs_value = state.default_carbs;
+
+
+    layer_add_child(text_layer_get_layer(bolus_text), bitmap_layer_get_layer(bolus_icon));
+    layer_add_child(text_layer_get_layer(basal_text), bitmap_layer_get_layer(basal_icon));
+    layer_add_child(text_layer_get_layer(carbs_text), bitmap_layer_get_layer(carbs_icon));
 
     update_text();
     update_bb();

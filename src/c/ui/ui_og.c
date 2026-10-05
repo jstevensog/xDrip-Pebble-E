@@ -661,8 +661,10 @@ void update_colours(void)
 void update_touch(void) {
     if (state.touch_support) {
         app_touch_navigation_enable(true);
+        touch_service_subscribe(touch_handler, NULL);
     } else {
         app_touch_navigation_enable(false);
+        touch_service_unsubscribe();
     }
 }
 #endif
@@ -2174,11 +2176,11 @@ void ui_og_init(AppState *value)
 	}
 
 #ifdef ENABLE_TOUCH
-    touch_service_subscribe(touch_handler, NULL);
     update_touch();
 #endif
 
 	if (state.show_message) update_message_timeout(state.message_timeout);
+
 }
 
 void ui_og_deinit(void)
@@ -2197,6 +2199,10 @@ void ui_og_deinit(void)
 	//unload the custom time font.
 	fonts_unload_custom_font(time_font_normal);
 	fonts_unload_custom_font(time_font_small);
+
+#ifdef ENABLE_TOUCH
+    touch_service_unsubscribe();
+#endif
 }
 
 GRect ui_og_trend_bounds(void) 
