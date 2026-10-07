@@ -25,6 +25,16 @@
               "name": "CARBS_ICON",
               "file": "images/Pebble_36x36_Calories.pdc"
           },
+          {
+              "type": "raw",
+              "name": "CROSS_ICON",
+              "file": "images/cross-bw.pdc"
+          },
+          {
+              "type": "raw",
+              "name": "CHECKMARK_ICON",
+              "file": "images/checkmark-bw.pdc"
+          },
         {
           "type": "bitmap",
           "name": "IMAGE_UP",

@@ -30,7 +30,11 @@ TextLayer *carbs_text = NULL;
 TextLayer *carbs_down = NULL;
 
 TextLayer *back = NULL;
+Layer *back_icon = NULL;
+GDrawCommandImage *back_image = NULL;
 TextLayer *enter = NULL;
+Layer *enter_icon = NULL;
+GDrawCommandImage *enter_image = NULL;
 
 int bolus_value = 0;
 int basal_value = 0;
@@ -52,15 +56,27 @@ int carbs_value = 0;
 
 void bolus_icon_update(Layer *layer, GContext *ctx) {
     gdraw_command_image_draw(ctx, bolus_icon_image, GPoint((ICON_WIDTH - 36) / 2, (TEXT_HEIGHT - 36) / 2));
-};
+}
 
 void basal_icon_update(Layer *layer, GContext *ctx) {
     gdraw_command_image_draw(ctx, basal_icon_image, GPoint((ICON_WIDTH - 36) / 2, (TEXT_HEIGHT - 36) / 2));
-};
+}
 
 void carbs_icon_update(Layer *layer, GContext *ctx) {
     gdraw_command_image_draw(ctx, carbs_icon_image, GPoint((ICON_WIDTH - 36) / 2, (TEXT_HEIGHT - 36) / 2));
-};
+}
+
+void back_icon_update(Layer *layer, GContext *ctx) {
+    GRect a = layer_get_bounds(layer);
+    gdraw_command_image_draw(ctx, back_image, GPoint((a.size.w - 36) / 2, (a.size.h - 36) / 2));
+}
+
+void enter_icon_update(Layer *layer, GContext *ctx) {
+    GRect a = layer_get_bounds(layer);
+    gdraw_command_image_draw(ctx, enter_image, GPoint((a.size.w - 36) / 2, (a.size.h - 36) / 2));
+}
+
+
 
 #define FRAME(down, textfield, up, icon, ic_value, X, Y, BUTTON_WIDTH, HEIGHT) \
 {\
@@ -128,9 +144,11 @@ void carbs_icon_update(Layer *layer, GContext *ctx) {
 #define BOLUS_PREFIX ""
 #define BASAL_PREFIX ""
 
-#define CARBS_ICON RESOURCE_ID_CARBS_ICON
-#define BOLUS_ICON RESOURCE_ID_SYRINGE_ICON
-#define BASAL_ICON RESOURCE_ID_HOURGLASS_ICON
+#define CARBS_ICON  RESOURCE_ID_CARBS_ICON
+#define BOLUS_ICON  RESOURCE_ID_SYRINGE_ICON
+#define BASAL_ICON  RESOURCE_ID_HOURGLASS_ICON
+#define OK_ICON     RESOURCE_ID_CHECKMARK_ICON
+#define NOK_ICON    RESOURCE_ID_CROSS_ICON
 
 static char bolus_tx[12];
 static char basal_tx[12];
@@ -249,8 +267,8 @@ void reset_stale_timer(void) {
 }
 char *bolus_up_text = "+";
 char *bolus_down_text = "-";
-char *back_text = "\U0000274E";
-char *enter_text = "\U00002705";
+/* char *back_text = "\U0000274E"; */
+/* char *enter_text = "\U00002705"; */
 
 void treatment_display_init(Layer *root, TouchServiceHandler handoff) {
     cb = handoff;
@@ -285,9 +303,9 @@ void treatment_display_init(Layer *root, TouchServiceHandler handoff) {
     text_layer_set_text(bolus_up, bolus_up_text);
     text_layer_set_text(bolus_down, bolus_down_text);
 
-    text_layer_set_text_alignment(bolus_up, GTextAlignmentRight);
+    text_layer_set_text_alignment(bolus_up, GTextAlignmentCenter);
     text_layer_set_text_alignment(bolus_text, GTextAlignmentRight);
-    text_layer_set_text_alignment(bolus_down, GTextAlignmentRight);
+    text_layer_set_text_alignment(bolus_down, GTextAlignmentCenter);
 
     layer_add_child(bg, text_layer_get_layer(bolus_up));
     layer_add_child(bg, text_layer_get_layer(bolus_text));
@@ -318,9 +336,9 @@ void treatment_display_init(Layer *root, TouchServiceHandler handoff) {
     text_layer_set_text(basal_up, bolus_up_text);
     text_layer_set_text(basal_down, bolus_down_text);
     
-    text_layer_set_text_alignment(basal_up, GTextAlignmentRight);
+    text_layer_set_text_alignment(basal_up, GTextAlignmentCenter);
     text_layer_set_text_alignment(basal_text, GTextAlignmentRight);
-    text_layer_set_text_alignment(basal_down, GTextAlignmentRight);
+    text_layer_set_text_alignment(basal_down, GTextAlignmentCenter);
 
     layer_add_child(bg, text_layer_get_layer(basal_up));
     layer_add_child(bg, text_layer_get_layer(basal_text));
@@ -351,9 +369,9 @@ void treatment_display_init(Layer *root, TouchServiceHandler handoff) {
     text_layer_set_text(carbs_up, bolus_up_text);
     text_layer_set_text(carbs_down, bolus_down_text);
     
-    text_layer_set_text_alignment(carbs_up, GTextAlignmentRight);
+    text_layer_set_text_alignment(carbs_up, GTextAlignmentCenter);
     text_layer_set_text_alignment(carbs_text, GTextAlignmentRight);
-    text_layer_set_text_alignment(carbs_down, GTextAlignmentRight);
+    text_layer_set_text_alignment(carbs_down, GTextAlignmentCenter);
 
     layer_add_child(bg, text_layer_get_layer(carbs_up));
     layer_add_child(bg, text_layer_get_layer(carbs_text));
@@ -363,23 +381,38 @@ void treatment_display_init(Layer *root, TouchServiceHandler handoff) {
             { BACK_X, BACK_Y },
             { BACK_WIDTH, BACK_HEIGHT}
     });
+    back_icon = layer_create((GRect) {
+            { 0, 0 },
+            { BACK_WIDTH, BACK_HEIGHT}
+    });
     text_layer_set_background_color(back, GColorRoseVale);
-    text_layer_set_text(back, back_text);
+    back_image = gdraw_command_image_create_with_resource(NOK_ICON);
+    layer_set_update_proc(back_icon, back_icon_update);
+    text_layer_set_text(back, "");
 
     enter = text_layer_create((GRect) {
             { ENTER_X, ENTER_Y },
             { ENTER_WIDTH, ENTER_HEIGHT}
     });
+    enter_icon = layer_create((GRect) {
+            { 0, 0 },
+            { ENTER_WIDTH, ENTER_HEIGHT}
+    });
     text_layer_set_background_color(enter, GColorGreen);
-    text_layer_set_text(enter, enter_text);
+    enter_image = gdraw_command_image_create_with_resource(OK_ICON);
+    layer_set_update_proc(enter_icon, enter_icon_update);
 
-    text_layer_set_text_alignment(back, GTextAlignmentCenter);
-    text_layer_set_text_alignment(enter, GTextAlignmentCenter);
-    text_layer_set_font(back, font);
-    text_layer_set_font(enter, font);
+    text_layer_set_text(enter, "");
+
+    /* text_layer_set_text_alignment(back, GTextAlignmentCenter); */
+    /* text_layer_set_text_alignment(enter, GTextAlignmentCenter); */
+    /* text_layer_set_font(back, font); */
+    /* text_layer_set_font(enter, font); */
 
     layer_add_child(bg, text_layer_get_layer(back));
     layer_add_child(bg, text_layer_get_layer(enter));
+    layer_add_child(text_layer_get_layer(back), back_icon);
+    layer_add_child(text_layer_get_layer(enter), enter_icon);
 
     if (bolus_value == 0) bolus_value = state.default_bolus;
     if (basal_value == 0) basal_value = state.default_basal;
@@ -407,12 +440,21 @@ void treatment_display_deinit(void) {
 
     text_layer_destroy(bolus_up);
     text_layer_destroy(bolus_text);
+    bitmap_layer_destroy(bolus_icon);
     text_layer_destroy(bolus_down);
 
     text_layer_destroy(basal_up);
+    bitmap_layer_destroy(basal_icon);
     text_layer_destroy(basal_text);
     text_layer_destroy(basal_down);
 
+    text_layer_destroy(carbs_up);
+    text_layer_destroy(carbs_text);
+    bitmap_layer_destroy(carbs_icon);
+    text_layer_destroy(carbs_down);
+
+    layer_destroy(back_icon);
+    layer_destroy(enter_icon);
     text_layer_destroy(back);
     text_layer_destroy(enter);
 
