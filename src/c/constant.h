@@ -5,11 +5,11 @@
 #include <pebble.h>
 
 // Metric Display defines
-#define METRIC_NONE		0
-#define METRIC_PHONEBATT	1
-#define METRIC_WATCHBATT	2
-#define METRIC_STEPS		3
-#define METRIC_HEARTRATE	4
+#define METRIC_NONE         0
+#define METRIC_PHONEBATT    1
+#define METRIC_WATCHBATT    2
+#define METRIC_STEPS        3
+#define METRIC_HEARTRATE    4
 
 // platform defines
 #ifdef PBL_PLATFORM_APLITE
@@ -134,7 +134,7 @@
  */
 // load_bg
 #define SENSOR_NOT_ACTIVE_VALUE "?SN"
-#define MINIMAL_DEVIATION_VALUE	"?MD"
+#define MINIMAL_DEVIATION_VALUE    "?MD"
 #define NO_ANTENNA_VALUE "?NA"
 #define SENSOR_NOT_CALIBRATED_VALUE "?NC"
 #define STOP_LIGHT_VALUE "?CD"
