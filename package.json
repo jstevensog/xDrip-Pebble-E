@@ -119,8 +119,8 @@
           "name": "GOTHAM_BOLD_54",
           "file": "GothamBold.ttf",
           "targetPlatforms": [
-		"emery",
-		"flint"
+            "emery",
+            "flint"
           ]
         },
         {
@@ -129,8 +129,8 @@
           "name": "GOTHAM_BOLD_BG_56",
           "file": "GothamBold.ttf",
           "targetPlatforms": [
-		"emery",
-		"flint"
+            "emery",
+            "flint"
           ]
         },
         {
@@ -139,7 +139,7 @@
           "name": "GOTHAM_BOLD_BG_64",
           "file": "GothamBold.ttf",
           "targetPlatforms": [
-		"gabbro"
+            "gabbro"
           ]
         }
       ]
