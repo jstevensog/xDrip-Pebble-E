@@ -151,9 +151,23 @@ typedef struct {
 typedef struct {
     uint32_t start;             // Start time of the sensor
     uint32_t end;               // Remaining sensor time 
-    uint8_t  state;             // Sensor state
+    union {
+        uint8_t state;          // catchall
+        struct {
+            uint8_t warmup : 1;     // sensor is warming up
+            uint8_t expired : 1;    // sensor is expired
+            uint8_t : 2;            // reserved
+            uint8_t sensor_type : 4;// sensor type
+        };
+    };
     uint16_t interval;          // Sensor interval in s
+    uint16_t warmup_time;       // sensor warmup time in s
 } comm_sensor_info;
+
+#define SENSOR_TYPE_DEXCOM      1
+#define SENSOR_TYPE_LIBRE       2
+#define SENSOR_TYPE_FOLLOWER    3
+#define SENSOR_TYPE_UNKNOWN     15
 
 typedef uint32_t comm_bwp_value;        // Not implemented
 
@@ -169,7 +183,16 @@ typedef struct comm_treatment_t {
     uint16_t carbs;         // carbs value
 } comm_treatment;
 
+
+typedef struct comm_alert_t {
+    uint16_t snooze;        // snooze for x seconds
+    uint16_t settings;      // bitmask 
+} comm_alert;
 #pragma pack()
+
+#define ALERT_SNOOZE_LOW        0x0001  // dismiss low alerts, only works with dismiss active
+#define ALERT_SNOOZE_HIGH       0x0002  // dismiss high alerts, only works with dismiss active
+#define ALERT_SNOOZE_DISMISS    0x0004  // 1 -> dismiss, 0 -> snooze active alert
 
 // iterator prototype
 typedef bool (*comm_iterator)(Tuple *data);

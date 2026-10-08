@@ -87,11 +87,13 @@ typedef struct {
             uint8_t icon;
             uint8_t battery_level;
             uint8_t phone_battery_level;
-            int32_t sensor_interval;
+
+            comm_sensor_info sensor;
+
             comm_bgl_delta delta;
             comm_bgl_value bgl_value;
         };
-        uint8_t state_blob[(sizeof(uint32_t) * 8) + (sizeof(uint8_t) * 4) + sizeof(comm_bgl_value) + sizeof(comm_bgl_delta) + sizeof(int32_t)];
+        uint8_t state_blob[(sizeof(uint32_t) * 7) + (sizeof(uint8_t) * 4) + sizeof(comm_sensor_info) + sizeof(comm_bgl_value) + sizeof(comm_bgl_delta) + sizeof(int32_t)];
     };
 
     // global dirty markers
@@ -109,5 +111,5 @@ void settings_init(AppState *state);
 bool settings_receiver(Tuple *data);
 void settings_deinit(void);
 
-#define STORAGE_MARKER 0x07
+#define STORAGE_MARKER 0x08
 #endif // __SETTINGS_H__

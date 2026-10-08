@@ -71,7 +71,7 @@ void settings_init(AppState *values) {
     state->default_bolus = persist_exists(SET_DEFAULT_BOLUS) ? persist_read_int(SET_DEFAULT_BOLUS) : 10;
     state->default_carbs = persist_exists(SET_DEFAULT_CARBS) ? persist_read_int(SET_DEFAULT_CARBS) : 60;
 
-    if (state->sensor_interval == 0) state->sensor_interval = 5 * SECONDS_PER_MINUTE; // default to 5 mins unless xdrip tells otherwise
+    if (state->sensor.interval == 0) state->sensor.interval = 5 * SECONDS_PER_MINUTE; // default to 5 mins unless xdrip tells otherwise
 
     LOG_SETTING(use_png);
     LOG_SETTING(show_slope);
@@ -94,9 +94,11 @@ void settings_init(AppState *values) {
     LOG_SETTING_INT(stale_data_timeout);
     
     // check if we actually need a refresh
-    if (time(NULL) - state->cgm_time < (uint32_t) state->sensor_interval) {
+    if (time(NULL) - state->cgm_time < (uint32_t) state->sensor.interval) {
         state->dirty.need_cgm = 0;
     }
+
+    if (state->sensor.sensor_type == 0) state->dirty.sensor_info = 1;
 }
 
 void settings_deinit(void) {

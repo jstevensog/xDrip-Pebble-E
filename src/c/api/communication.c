@@ -109,11 +109,8 @@ bool comm_receiver(Tuple *data)
             TRACE(CM "Sensor info");
             if (cb->sensor_info != NULL) {
                 comm_sensor_info *info = (comm_sensor_info *) data->value->data;
+                memcpy(&state.sensor, info, sizeof(comm_sensor_info)); 
                 cb->sensor_info(info);
-                if(info->interval > 0) {
-                    DEBUG("Sensor interval: %d", info->interval);
-                    state.sensor_interval = info->interval;
-                }
             }
             break;
         case FRAMEWORK_BWP_VALUE:
@@ -504,10 +501,12 @@ void health_send_values(void *data) {
 
 	CALLBACK(state.gl_cb.health_poll);
 	if (state.hbm == 0 && state.step_count == 0) return;
+#ifdef PBL_HEALTH
 	comm_send_health((comm_health){
 		.heart_rate = (uint16_t) state.hbm,
 		.steps = (uint32_t) state.step_count,
 	});
+#endif
 
 }
 

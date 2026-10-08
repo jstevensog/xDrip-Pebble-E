@@ -318,17 +318,35 @@ void update_sensor_info_displays(void) {
         char *sensor_info_text = state.left_text_field == METRIC_SENSOR_EXPIRY ? left_text : right_text;
         const uint8_t moon[4] = { 0xF0, 0x9F, 0x8C, 0x99 };
         memcpy(sensor_info_text, moon, 4); // crecent moon unicode U+1F319
-        // convert to days/hours/minutes
-        int32_t remaining = state.sensor_end_time - time(NULL);
-        // we ignore truncation warnings since the time left cannot be more than two characters
-        // change sensor text length once sensors can last > 99 days
+        if (state.sensor.sensor_type == SENSOR_TYPE_UNKNOWN || state.sensor.sensor_type == SENSOR_TYPE_FOLLOWER) {
+            // sensor types with no end/start time
+            snprintf(sensor_info_text, STATUS_TEXT_SIZE, "n/a");
+        } else if (state.sensor.sensor_type == 0) {
+            snprintf(sensor_info_text, STATUS_TEXT_SIZE, "?");
+        } else {
+            // convert to days/hours/minutes
+            int32_t remaining = state.sensor_end_time - time(NULL);
+            // we ignore truncation warnings since the time left cannot be more than two characters
+            // change sensor text length once sensors can last > 99 days
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-truncation"
-        if (remaining > 86400) snprintf(sensor_info_text + 4, STATUS_TEXT_SIZE - 4, "%2ld d", remaining / 86400); 
-        else if ((remaining % 86400) > 3600) snprintf(sensor_info_text + 4, STATUS_TEXT_SIZE - 4, "%2ld h", (remaining % 86400) / 3600); 
-        else if ((remaining % 60) > 0) snprintf(sensor_info_text + 4, STATUS_TEXT_SIZE - 4, "%2ld m", (remaining % 3600) / 60);
-        else snprintf(sensor_info_text, STATUS_TEXT_SIZE, "exp");
+            if (remaining > 86400) snprintf(sensor_info_text + 4, STATUS_TEXT_SIZE - 4, "%2ld d", remaining / 86400); 
+            else if ((remaining % 86400) > 3600) snprintf(sensor_info_text + 4, STATUS_TEXT_SIZE - 4, "%2ld h", (remaining % 86400) / 3600); 
+            else if ((remaining % 60) > 0) snprintf(sensor_info_text + 4, STATUS_TEXT_SIZE - 4, "%2ld m", (remaining % 3600) / 60);
+            else {
+                if (state.sensor.expired) {
+                    snprintf(sensor_info_text, STATUS_TEXT_SIZE, "exp");
+                } else if (state.sensor.warmup) {
+                    int16_t remaining = state.sensor.warmup_time - ((uint32_t )time(NULL) - (uint32_t) state.sensor.start);
+                    if (remaining < 0) {
+                        snprintf(sensor_info_text, STATUS_TEXT_SIZE, "wrm: done"); 
+                    } else {
+                        snprintf(sensor_info_text, STATUS_TEXT_SIZE, "wrm: %2dm", 1 + (remaining / 60)); 
+                    }
+                }
+            }
 #pragma GCC diagnostic pop
+        }
         text_layer_set_text(
                 state.left_text_field == METRIC_SENSOR_EXPIRY ? bottom_left_text_layer : bottom_right_text_layer, 
                 sensor_info_text);
@@ -482,7 +500,7 @@ void handle_message_tick(void *data)
 /** 
  * Callbacks
  */
-inline void set_battery_data(char *watch_battlevel_percent, size_t length, int value) {
+void set_battery_data(char *watch_battlevel_percent, size_t length, int value) {
 #ifdef PBL_COLOR 
 	#ifdef PBL_ROUND
 	snprintf(watch_battlevel_percent, length, "%i%% ", state.battery_level);
@@ -981,7 +999,7 @@ void comm_set_sensor_info(comm_sensor_info *value) {
     if (state.left_text_field == METRIC_SENSOR_EXPIRY || state.right_text_field == METRIC_SENSOR_EXPIRY) {
         // store state.sensor_end_time
         if (value->end != (uint32_t) state.sensor_end_time) {
-            state.sensor_end_time = value->end;
+            state.sensor_end_time = value->end; // replicate
             state.dirty.sensor_info = 1;
             update_sensor_info_displays();
         }

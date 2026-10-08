@@ -368,12 +368,12 @@ void reset_stale_timer_callback(void) {
      * data is invalid, we have no data -> request reset
      */
 
-    if (state.dirty.need_cgm == 0 && interval < state.sensor_interval) {
+    if (state.dirty.need_cgm == 0 && interval < state.sensor.interval) {
         DEBUG("Normal reset");
-        timeout = (state.sensor_interval - (now - state.cgm_time) + SENSOR_DELAY_TIME) * MS_IN_A_SECOND;
-    } else if (state.dirty.need_cgm == 0 && interval > state.sensor_interval && interval < state.sensor_interval + 60) {
+        timeout = (state.sensor.interval - (now - state.cgm_time) + SENSOR_DELAY_TIME) * MS_IN_A_SECOND;
+    } else if (state.dirty.need_cgm == 0 && interval > state.sensor.interval && interval < state.sensor.interval + 60) {
         DEBUG("Normal interval");
-        timeout = (state.sensor_interval + SENSOR_DELAY_TIME) * MS_IN_A_SECOND;
+        timeout = (state.sensor.interval + SENSOR_DELAY_TIME) * MS_IN_A_SECOND;
     } else if (interval > (int32_t) state.stale_data_timeout / 1000) {
         DEBUG("Stale data: %d %d", state.stale_data_timeout / 1000, interval);
         CALLBACK(state.wf_cb.set_delta, "Stale Data!", sizeof("Stale Data!")); 
