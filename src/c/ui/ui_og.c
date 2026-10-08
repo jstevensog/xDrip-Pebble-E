@@ -428,7 +428,7 @@ void touch_handler(const TouchEvent *event, void *context) {
             TRACE("Unknown");
             break;
     }
-    WARNING("Val: %d %d", touch_treatment_value, touch_alert_snooze_value);
+    DEBUG("Val: %d %d", touch_treatment_value, touch_alert_snooze_value);
     if (touch_treatment_value >= TOUCH_TICKS_REQUIRED && state.touch_support) {
         LOG("Success treatment");
         touch_treatment_value = 0;
@@ -439,6 +439,9 @@ void touch_handler(const TouchEvent *event, void *context) {
         LOG("Success alert_snooze");
         touch_treatment_value = 0;
         touch_alert_snooze_value = 0;
+        char message[14];
+        int length = snprintf(message,  sizeof(message), "Snoozed %dm", state.bgl_value.value > 102 ? state.snooze_high : state.snooze_low);
+        set_message(message, length);
         alert_snooze();
     }
 }
@@ -448,14 +451,14 @@ static void swipe_handler(const Recognizer *recognizer, RecognizerEvent event) {
     case RecognizerEvent_Updated: {
         // delta_since_start is (0, 0) at Start, so the content does not jump.
         GPoint d = pan_recognizer_get_delta_since_start(recognizer);
-        WARNING("PAN UPDATED");
+        TRACE("PAN UPDATED");
         break;
     }
     case RecognizerEvent_Completed:
-        WARNING("PAN COMPLETED");
+        TRACE("PAN COMPLETED");
         break;
     case RecognizerEvent_Cancelled:
-        WARNING("PAN CANCELED");
+        TRACE("PAN CANCELED");
         break;
     default:
         break;
@@ -480,12 +483,12 @@ void update_touch_method(void) {
     }
 
     if (state.touch_support == 0) {
-        WARNING("TOUCH DISABLED");
+        INFO("TOUCH DISABLED");
         return;
     }
-    WARNING("TOUCH ENABLED");
-    WARNING("Touch treatment: %d", state.touch_treatment);
-    WARNING("Touch alert snooze: %d", state.touch_alert_snooze);
+    INFO("TOUCH ENABLED");
+    TRACE("Touch treatment: %d", state.touch_treatment);
+    TRACE("Touch alert snooze: %d", state.touch_alert_snooze);
 
     switch(state.touch_treatment) {
         case TOUCH_SWIPE_LEFT:
@@ -614,7 +617,13 @@ void load_battery_watch(void) {
 	LOG(" load_battery_watch: BackLightOnCharge: %u", state.backlight_on_charge);
 	if(state.backlight_on_charge)
 	{
-		if(state.battery_is_charging)
+        // peek since the battery state only reports on actual battery change and not returning
+        // from an app or message, also keeps the lights on when full
+        
+        BatteryChargeState charge_state = battery_state_service_peek();
+        state.battery_is_charging = charge_state.is_charging;
+
+		if(state.battery_is_charging || charge_state.is_plugged)
 		{
 			light_enable(true);
 		}
@@ -910,7 +919,7 @@ void update_collect_health(void) {
     // have fresh values; ~10 min trades data rate for battery
 #endif
     if (state.collect_health) {
-        WARNING("HELATH ENABLED");
+        LOG("HEALTH ENABLED");
 #if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_DIORITE)
         // sample HR on a fixed cadence while collecting so we
         // have fresh values; ~10 min trades data rate for battery
@@ -918,7 +927,7 @@ void update_collect_health(void) {
 #endif
 		CALLBACK(state.gl_cb.health_poll);
     } else {
-        WARNING("HELATH DISABLED");
+        LOG("HEALTH DISABLED");
         health_hr = 0;
         health_steps = 0;
         if (health_send_timer != NULL) {
@@ -1311,6 +1320,7 @@ void load_bg()
 				// make sure we get the data we need
 				state.dirty.need_cgm = 1;
 				state.cgm_time = 0;
+                set_icon(NO_ANTENNA);
                 CALLBACK(state.gl_cb.update_stale_timeout);
 			} // if turnoff nobluetooth msg
 		}

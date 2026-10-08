@@ -217,6 +217,8 @@ void handle_bluetooth_cgm(bool bt_connected)
 {
 	TRACE("HANDLE BT: ENTER CODE");
 
+    state.bluetooth_is_connected = bt_connected;
+
 	if (bt_connected == false)
 	{
 
@@ -376,8 +378,13 @@ void reset_stale_timer_callback(void) {
         timeout = (state.sensor.interval + SENSOR_DELAY_TIME) * MS_IN_A_SECOND;
     } else if (interval > (int32_t) state.stale_data_timeout / 1000) {
         DEBUG("Stale data: %d %d", state.stale_data_timeout / 1000, interval);
-        CALLBACK(state.wf_cb.set_delta, "Stale Data!", sizeof("Stale Data!")); 
+        CALLBACK(state.wf_cb.set_delta, "Stale Data!", sizeof("Stale Data!")); // this has no effect if bluetooth is off 
         CALLBACK(state.gl_cb.alert_handler, APPSYNC_ERR_VIBE);
+        if (!state.bluetooth_is_connected) {
+            CALLBACK(state.wf_cb.set_icon, NO_ANTENNA);
+            CALLBACK(state.wf_cb.set_message, "Conn. lost", sizeof("Conn. lost"));
+        }
+        state.dirty.need_cgm = 1;
         timeout = 1 * SECONDS_PER_MINUTE * MS_IN_A_SECOND;
         // defer update a bit, we might have a settings update, if debug wait longer 
 #if DEBUG_LEVEL >= DEBUG_LEVEL_INFO
