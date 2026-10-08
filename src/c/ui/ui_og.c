@@ -363,13 +363,15 @@ void update_sensor_info_displays(void) {
 #define TOUCH_REGION_BOTTOM 2
 
 int touch_state = TOUCH_STOP;
-int touch_value = 0;
+int touch_treatment_value = 0;
+int touch_alert_snooze_value = 0;
 int32_t touch_time = 0;
 AppTimer *touch_timer = NULL;
 int touch_region = TOUCH_REGION_TOP;
 
 void touch_timer_handler(void *context) {
-    touch_value = 0;
+    touch_treatment_value = 0;
+    touch_alert_snooze_value = 0;
     touch_state = TOUCH_STOP;
     touch_timer = NULL;
 }
@@ -404,7 +406,8 @@ void touch_handler(const TouchEvent *event, void *context) {
                 case TOUCH_START_DOWN:
                     touch_state = TOUCH_START_UP;
                     if (time(NULL) - touch_time < 2) {
-                        touch_value++;
+                        if (touch_region == TOUCH_REGION_TOP) touch_treatment_value++;
+                        else touch_alert_snooze_value++;
                     }
                     touch_time = time(NULL);
                     if (touch_timer == NULL || !app_timer_reschedule(touch_timer, TOUCH_TIMEOUT)) {
@@ -425,12 +428,103 @@ void touch_handler(const TouchEvent *event, void *context) {
             TRACE("Unknown");
             break;
     }
-    LOG("Val: %d", touch_value);
-    if (touch_value >= TOUCH_TICKS_REQUIRED && state.touch_support) {
-        LOG("Success! %d", touch_region);
-        touch_value = 0;
+    WARNING("Val: %d %d", touch_treatment_value, touch_alert_snooze_value);
+    if (touch_treatment_value >= TOUCH_TICKS_REQUIRED && state.touch_support) {
+        LOG("Success treatment");
+        touch_treatment_value = 0;
+        touch_alert_snooze_value = 0;
         // launch insuling thing
         treatment_display_init(window_get_root_layer(window_cgm), touch_handler);
+    } else if (touch_alert_snooze_value >= TOUCH_TICKS_REQUIRED && state.touch_support) {
+        LOG("Success alert_snooze");
+        touch_treatment_value = 0;
+        touch_alert_snooze_value = 0;
+        alert_snooze();
+    }
+}
+
+static void swipe_handler(const Recognizer *recognizer, RecognizerEvent event) {
+    switch (event) {
+    case RecognizerEvent_Updated: {
+        // delta_since_start is (0, 0) at Start, so the content does not jump.
+        GPoint d = pan_recognizer_get_delta_since_start(recognizer);
+        WARNING("PAN UPDATED");
+        break;
+    }
+    case RecognizerEvent_Completed:
+        WARNING("PAN COMPLETED");
+        break;
+    case RecognizerEvent_Cancelled:
+        WARNING("PAN CANCELED");
+        break;
+    default:
+        break;
+    }
+}
+
+Recognizer *swipe_treatment = NULL;
+Recognizer *swipe_alert_snooze = NULL;
+
+void update_touch_method(void) {
+    // touch setting has changed, resubscribe
+    touch_service_unsubscribe(); 
+
+    if (swipe_treatment) {
+        recognizer_destroy(swipe_treatment);
+        swipe_treatment = NULL;
+    }
+
+    if (swipe_alert_snooze) {
+        recognizer_destroy(swipe_alert_snooze);
+        swipe_alert_snooze = NULL;
+    }
+
+    if (state.touch_support == 0) {
+        WARNING("TOUCH DISABLED");
+        return;
+    }
+    WARNING("TOUCH ENABLED");
+    WARNING("Touch treatment: %d", state.touch_treatment);
+    WARNING("Touch alert snooze: %d", state.touch_alert_snooze);
+
+    switch(state.touch_treatment) {
+        case TOUCH_SWIPE_LEFT:
+            swipe_treatment = swipe_recognizer_create(swipe_handler, NULL, SwipeDirection_Left);
+            break;
+        case TOUCH_SWIPE_RIGHT:
+            swipe_treatment = swipe_recognizer_create(swipe_handler, NULL, SwipeDirection_Right);
+            break;
+        case TOUCH_SWIPE_UP:
+            swipe_treatment = swipe_recognizer_create(swipe_handler, NULL, SwipeDirection_Up);
+            break;
+        case TOUCH_SWIPE_DOWN:
+            swipe_treatment = swipe_recognizer_create(swipe_handler, NULL, SwipeDirection_Down);
+            break;
+        case TOUCH_PALM:
+        case TOUCH_TAP:
+        default:
+            touch_service_subscribe(touch_handler, NULL);
+            break;
+    }
+
+    switch(state.touch_alert_snooze) {
+        case TOUCH_SWIPE_LEFT:
+            swipe_alert_snooze = swipe_recognizer_create(swipe_handler, NULL, SwipeDirection_Left);
+            break;
+        case TOUCH_SWIPE_RIGHT:
+            swipe_alert_snooze = swipe_recognizer_create(swipe_handler, NULL, SwipeDirection_Right);
+            break;
+        case TOUCH_SWIPE_UP:
+            swipe_alert_snooze = swipe_recognizer_create(swipe_handler, NULL, SwipeDirection_Up);
+            break;
+        case TOUCH_SWIPE_DOWN:
+            swipe_alert_snooze = swipe_recognizer_create(swipe_handler, NULL, SwipeDirection_Down);
+            break;
+        case TOUCH_PALM:
+        case TOUCH_TAP:
+        default:
+            touch_service_subscribe(touch_handler, NULL);
+            break;
     }
 }
 #endif
@@ -679,10 +773,10 @@ void update_colours(void)
 void update_touch(void) {
     if (state.touch_support) {
         app_touch_navigation_enable(true);
-        touch_service_subscribe(touch_handler, NULL);
+        update_touch_method();
     } else {
         app_touch_navigation_enable(false);
-        touch_service_unsubscribe();
+        update_touch_method();
     }
 }
 #endif
@@ -2102,6 +2196,7 @@ void ui_og_init(AppState *value)
     state.wf_cb.update_message = update_message;
 #ifdef ENABLE_TOUCH
     state.wf_cb.update_touch = update_touch;
+    state.wf_cb.update_touch_methods = update_touch_method;
 #endif
 #ifdef PBL_COLOR
     state.wf_cb.update_colours = update_colours;

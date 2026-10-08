@@ -27,6 +27,7 @@ typedef struct {
 #undef GRect
     GRect (*trend_bounds)(void);
 #define GRect(x, y, w, h) ((GRect){{(x), (y)}, {(w), (h)}})
+    void (*update_touch_methods)(void);
 } WatchfaceCallbacks;
 
 typedef struct {

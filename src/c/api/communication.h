@@ -26,6 +26,7 @@
 #define FRAMEWORK_HEALTH_HR         2013
 #define FRAMEWORK_HEALTH_STEPS      2014
 #define FRAMEWORK_TREATMENT         2015
+#define FRAMEWORK_ALERT_SNOOZE      2016
 
 #define SENSOR_STATE_ACTIVE         0
 #define SENSOR_STATE_WARMUP         1
@@ -228,4 +229,5 @@ void sync_error_callback_cgm(DictionaryResult appsync_dict_error, AppMessageResu
 void inbox_dropped_handler_cgm(AppMessageResult appmsg_indrop_error, void *context);
 void outbox_failed_handler_cgm(DictionaryIterator *failed, AppMessageResult appmsg_outfail_error, void *context);
 void health_send_values(void *data);
+void alert_snooze(void);
 #endif // __COMMUNICATION_H__

@@ -520,6 +520,7 @@ void comm_send_treatment(int32_t basal, int32_t bolus, int32_t carbs)
         .bolus = bolus,
         .carbs = carbs
     };
+
     dict_write_data(iter, FRAMEWORK_TREATMENT, (uint8_t *) &values, sizeof(values));
 
     comm_request_send(iter);
@@ -554,3 +555,16 @@ void comm_inbox_received_handler(DictionaryIterator *iterator, void *context)
 	}
 } // end comm_inbox_received_handler 
 
+void alert_snooze(void) {
+    DictionaryIterator *iter = comm_request_start();
+
+    // for now base on bgl value
+    comm_alert values = {
+        .snooze = state.bgl_value.value > 108 ? state.snooze_high : state.snooze_low,
+        .settings = 0, // does nothign for now
+    };
+
+    dict_write_data(iter, FRAMEWORK_ALERT_SNOOZE, (uint8_t *) &values, sizeof(values));
+
+    comm_request_send(iter);
+}

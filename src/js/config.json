@@ -516,6 +516,7 @@
               "messageKey": "touch",
               "defaultValue": false,
               "label": "Enable touch support",
+              "group": "touch",
               "description": "Here be dragons .. you have been warned ... requires custom firmware until coredevices enables it."
           },
           { 
@@ -523,6 +524,7 @@
               "label": "Default bolus insulin value",
               "messageKey": "default_bolus",
               "defaultValue": 10,
+              "group": "touch",
               "min": 1,
               "max": 100
           },
@@ -532,6 +534,7 @@
               "defaultValue": 16,
               "min": 1,
               "max": 100,
+              "group": "touch",
               "label": "Default basal insulin value"
           },
           { 
@@ -540,7 +543,38 @@
               "defaultValue": 60,
               "min": 1,
               "max": 200,
+              "group": "touch",
               "label": "Default carbohydrate value"
+          },
+          {              
+              "type": "select",
+              "messageKey": "touch_treatment",
+              "label": "Treatment gesture",
+              "defaultValue": 0,
+              "group": "touch",
+              "options": [
+                  { "label": "Tap", "value": 0 },
+                  { "label": "Swipe left", "value": 1 },
+                  { "label": "Swipe right", "value": 2 },
+                  { "label": "Swipe up", "value": 3 },
+                  { "label": "Swipe down", "value": 4},
+                  { "label": "Palm", "value": 5}
+              ]
+          },
+          {              
+              "type": "select",
+              "messageKey": "touch_alert_snooze",
+              "label": "Alert snooze gesture",
+              "defaultValue": 0,
+              "group": "touch",
+              "options": [
+                  { "label": "Tap", "value": 0 },
+                  { "label": "Swipe left", "value": 1 },
+                  { "label": "Swipe right", "value": 2 },
+                  { "label": "Swipe up", "value": 3 },
+                  { "label": "Swipe down", "value": 4},
+                  { "label": "Palm", "value": 5}
+              ]
           }
       ]
   },

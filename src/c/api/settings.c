@@ -71,6 +71,12 @@ void settings_init(AppState *values) {
     state->default_bolus = persist_exists(SET_DEFAULT_BOLUS) ? persist_read_int(SET_DEFAULT_BOLUS) : 10;
     state->default_carbs = persist_exists(SET_DEFAULT_CARBS) ? persist_read_int(SET_DEFAULT_CARBS) : 60;
 
+    state->snooze_low = persist_exists(SET_SNOOZE_LOW) ? persist_read_int(SET_SNOOZE_LOW) : 30;
+    state->snooze_high = persist_exists(SET_SNOOZE_HIGH) ? persist_read_int(SET_SNOOZE_HIGH) : 120;
+
+    state->touch_treatment = persist_exists(SET_TOUCH_TREATMENT) ? persist_read_int(SET_TOUCH_TREATMENT) : TOUCH_TAP;
+    state->touch_alert_snooze = persist_exists(SET_TOUCH_ALERT_SNOOZE) ? persist_read_int(SET_TOUCH_ALERT_SNOOZE) : TOUCH_TAP;
+
     if (state->sensor.interval == 0) state->sensor.interval = 5 * SECONDS_PER_MINUTE; // default to 5 mins unless xdrip tells otherwise
 
     LOG_SETTING(use_png);
@@ -135,14 +141,19 @@ void settings_deinit(void) {
     CALLBACK(state->gl_cb.callback, __VA_ARGS__);\
 }
 
+#define SETTING_INT_CB_WF(name, value, field, callback, ...) \
+{\
+    SETTING_INT(name, value, field);\
+    CALLBACK(state->wf_cb.callback, __VA_ARGS__);\
+}
+
 bool settings_receiver(Tuple *data) {
-    bool rv = false;
+    bool rv = true;
 
     switch (data->key)
     {
         case SET_SAMECOLOUR:
             SETTING_BOOL_CB(fields_same_colour, data->value->uint8, SET_SAMECOLOUR, update_colours);
-            rv = true;
             break;
 
         case SET_FG_COLOUR:
@@ -152,7 +163,6 @@ bool settings_receiver(Tuple *data) {
             LOG_SETTING(foreground_colour);
             CALLBACK(state->wf_cb.update_colours);
 #endif
-        rv = true;
             break;
 
         case SET_BG_COLOUR:
@@ -162,7 +172,6 @@ bool settings_receiver(Tuple *data) {
             LOG_SETTING(background_colour);
             CALLBACK(state->wf_cb.update_colours);
 #endif
-        rv = true;
             break;
 
         case SET_DISP_SECS:
@@ -174,27 +183,22 @@ bool settings_receiver(Tuple *data) {
 
         case SET_VIBE_REPEAT:
             SETTING_BOOL(vibrate_repeat, data->value->uint8, SET_VIBE_REPEAT);
-        rv = true;
             break;
 
         case SET_NO_VIBE:
             SETTING_BOOL(vibrate_off, data->value->uint8, SET_NO_VIBE);
-        rv = true;
             break;
 
         case SET_LIGHT_ON_CHG:
             SETTING_BOOL(backlight_on_charge, data->value->uint8, SET_LIGHT_ON_CHG);
-        rv = true;
             break;
 
         case SET_MESSAGE_TIMEOUT:
             SETTING_INT_CB(message_timeout, data->value->uint8, SET_MESSAGE_TIMEOUT, update_message_timeout, state->message_timeout);
-            rv = true;
             break;
 
         case SET_BOLD_TIMEAGO:
             SETTING_BOOL_CB(bold_timeago, data->value->uint8, SET_BOLD_TIMEAGO, update_timeago);
-            rv = true;
             break;
 
 #pragma GCC diagnostic push
@@ -202,26 +206,28 @@ bool settings_receiver(Tuple *data) {
         //Bottom left metric to display
         case SET_BOTTOM_LEFT_TEXT:
             SETTING_INT_CB(left_text_field, data->value->data[0] - 0x30, SET_BOTTOM_LEFT_TEXT, update_left_field);
-            rv = true;
             break;
 
         //Bottom right metric to display
         case SET_BOTTOM_RIGHT_TEXT:
             SETTING_INT_CB(right_text_field, data->value->data[0] - 0x30, SET_BOTTOM_RIGHT_TEXT, update_right_field);
-            rv = true;
+            break;
+        case SET_TOUCH_TREATMENT:
+            SETTING_INT_CB_WF(touch_treatment, data->value->data[0] - 0x30, SET_TOUCH_TREATMENT, update_touch_methods);
+            break;
+        case SET_TOUCH_ALERT_SNOOZE:
+            SETTING_INT_CB_WF(touch_alert_snooze, data->value->data[0] - 0x30, SET_TOUCH_ALERT_SNOOZE, update_touch_methods);
             break;
 #pragma GCC diagnostic pop
 
         case SET_USE_PNG:
             SETTING_BOOL_CB(use_png, data->value->uint8, SET_USE_PNG, update_trend);
-            rv = true;
             break;
 
         case SET_COLLECT_HEALTH:
 #ifdef PBL_HEALTH
             SETTING_BOOL_CB(collect_health, data->value->uint8, SET_COLLECT_HEALTH, update_collect_health);
 #endif
-            rv = true;
             break;
         case STALE_DATA_ALERT_TIMEOUT:
             if (data->value->uint32 >= 6) {
@@ -241,7 +247,14 @@ bool settings_receiver(Tuple *data) {
         case SET_DEFAULT_CARBS:
             SETTING_INT(default_carbs, data->value->uint16, SET_DEFAULT_CARBS);
             break;
+        case SET_SNOOZE_LOW:
+            SETTING_INT(snooze_low, data->value->uint16, SET_SNOOZE_LOW);
+            break;
+        case SET_SNOOZE_HIGH:
+            SETTING_INT(snooze_high, data->value->uint16, SET_SNOOZE_HIGH);
+            break;
         default:
+            rv = false;
             break;
     }
     return rv;

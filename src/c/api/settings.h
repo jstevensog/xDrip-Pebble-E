@@ -59,6 +59,12 @@ typedef struct {
     uint16_t default_bolus;
     uint16_t default_carbs;
 
+    uint16_t snooze_low;
+    uint16_t snooze_high;
+
+    uint8_t touch_treatment;
+    uint8_t touch_alert_snooze;
+
     // state
     union {
         struct {
@@ -111,5 +117,15 @@ void settings_init(AppState *state);
 bool settings_receiver(Tuple *data);
 void settings_deinit(void);
 
-#define STORAGE_MARKER 0x08
+
+typedef enum {
+    TOUCH_TAP = 0,
+    TOUCH_SWIPE_LEFT = 1,
+    TOUCH_SWIPE_RIGHT = 2,
+    TOUCH_SWIPE_UP = 3,
+    TOUCH_SWIPE_DOWN = 4,
+    TOUCH_PALM = 5,
+} touch_method;
+
+#define STORAGE_MARKER 0x09
 #endif // __SETTINGS_H__

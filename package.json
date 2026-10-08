@@ -211,6 +211,10 @@
       "default_bolus": 126,
       "default_basal": 127,
       "default_carbs": 128,
+      "snooze_low": 129,
+      "snooze_high": 130,
+      "touch_treatment": 131,
+      "touch_alert_snooze": 132,
       "trend_critical_color": 301,
       "trend_high_color": 302,
       "trend_average_color": 303,
@@ -246,7 +250,6 @@
       "watchface": true
     },
     "targetPlatforms": [
-      "aplite",
       "basalt",
       "chalk",
       "diorite",
