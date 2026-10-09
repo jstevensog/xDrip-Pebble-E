@@ -218,6 +218,26 @@ void comm_request_add_png(DictionaryIterator *iter, GRect bounds);
 // which is not guaranteed to run under the framework.
 void comm_send_health(comm_health data);
 
+enum comm_type {
+    COMM_TYPE_BYTES = 1,
+    COMM_TYPE_UINT8 = 2,
+    COMM_TYPE_UINT16 = 3,
+    COMM_TYPE_UINT32 = 4,
+};
+
+typedef struct comm_item_t {
+    int32_t code;
+    void *data;
+    size_t size;
+    enum comm_type type;
+    struct comm_item_t *next;
+} comm_item;
+
+void comm_schedule_item(int32_t code, void *data, size_t size, enum comm_type type);
+void comm_unschedule_items(int32_t code);
+void comm_send_handler(void *data);
+void comm_send_handler_reschedule(void);
+
 /**
  * Send a heartbeat to xdrip
  */

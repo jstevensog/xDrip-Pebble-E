@@ -232,12 +232,12 @@ static void hr_draw_callback(void *context) {
 	INFO("Drawing HRM");
 	if (state.left_text_field == METRIC_HEARTRATE && state.dirty.hbm) {
         if (state.hbm == 0) snprintf(left_text, STATUS_TEXT_SIZE, "Wait.. " HRM_ICON);
-        else snprintf(left_text, STATUS_TEXT_SIZE, "%lu " HRM_ICON, (uint32_t) state.hbm);
+        else snprintf(left_text, STATUS_TEXT_SIZE, "%3ld " HRM_ICON, state.hbm);
 		text_layer_set_text(bottom_left_text_layer, left_text);
 	}
 	if (state.right_text_field == METRIC_HEARTRATE && state.dirty.hbm) {
         if (state.hbm == 0) snprintf(right_text, STATUS_TEXT_SIZE, "Wait.. " HRM_ICON);
-        else snprintf(right_text, STATUS_TEXT_SIZE, "%lu " HRM_ICON, (uint32_t) state.hbm);
+        else snprintf(right_text, STATUS_TEXT_SIZE, "%3ld " HRM_ICON, state.hbm);
 		text_layer_set_text(bottom_right_text_layer, right_text);
 	}
 	hr_draw_timer = NULL;

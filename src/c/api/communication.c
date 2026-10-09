@@ -7,8 +7,24 @@
 
 #define CM "COMM FW: "
 
+/**
+ * Communication for sending uses a queue
+ *
+ * Heartbeats cannot be scheduled, they can only be replaced if one is present
+ *
+ * All other messages can be scheduled and send when time arrives it is possible. 
+ * To avoid opening the bluetooth connection too often there is a slight timeout in 
+ * the initial send (50ms) to allow the watchface to bulk load the data into the
+ * iterator.
+ *
+ * This mechanism also auto-retries if something cannot be send due to losing bluetooth
+ * or some other reason
+ */
+
 extern AppState state;
 CommunicationCallbacks *cb = NULL;
+
+
 
 comm_iterator *comm_handlers;
 int comm_handlers_count = 0;
@@ -363,36 +379,6 @@ void outbox_failed_handler_cgm(DictionaryIterator *failed, AppMessageResult appm
 
 } // end outbox_failed_handler_cgm
 
-DictionaryIterator *comm_request_start(void)
-{
-	DictionaryIterator *iter = NULL;
-    int escape_counter = 0;
-	AppMessageResult sendcmd_openerr = app_message_outbox_begin(&iter);
-	while (sendcmd_openerr != APP_MSG_OK && escape_counter < 4)
-	{
-		sendcmd_openerr = app_message_outbox_begin(&iter);
-		ERROR("send_cmd_cgm: ERR CODE: %i RES: %s", sendcmd_openerr, translate_app_error(sendcmd_openerr));
-		// proceed to send since it's the only way to recover
-        psleep(125);
-        escape_counter++;
-	}
-    return iter;
-}
-
-void comm_request_send(DictionaryIterator *iter)
-{
-	AppMessageResult sendcmd_senderr = APP_MSG_OK;
-
-	dict_write_end(iter);
-
-//send_appmsg:
-	TRACE("send_cmd_cgm: Opening outbox");
-	sendcmd_senderr = app_message_outbox_send();
-	if (sendcmd_senderr != APP_MSG_OK && sendcmd_senderr != APP_MSG_BUSY && sendcmd_senderr != APP_MSG_SEND_REJECTED)
-	{
-		ERROR("send_cmd_cgm: ERR CODE: %i RES: %s", sendcmd_senderr, translate_app_error(sendcmd_senderr));
-	}
-}
 
 void comm_add_receiver(comm_iterator function) {
     if (comm_handlers == NULL) {
@@ -405,7 +391,7 @@ void comm_add_receiver(comm_iterator function) {
     }
 }
 
-void comm_request_add_png(DictionaryIterator *iter, GRect bounds)
+void comm_request_png(GRect bounds)
 {
     TRACE(CM "Sending PNG Request");
     comm_trend_size ts;
@@ -416,14 +402,12 @@ void comm_request_add_png(DictionaryIterator *iter, GRect bounds)
 #ifdef PBL_PLATFORM_GABBRO
     ts.rgb8 = 1;
 #endif
-    dict_write_uint32(iter, FRAMEWORK_PNG_IMAGE, ts.raw);
+    comm_schedule_item(FRAMEWORK_PNG_IMAGE, &ts.raw, sizeof(ts.raw), COMM_TYPE_UINT32);
 }
 
 void comm_request_heartbeat(void)
 {
 	comm_heartbeat hb = {0}; // force zero init
-    DictionaryIterator *iter = comm_request_start();
-    if (iter == NULL) return;
     // send if we are a colour pebble or not 
 #ifdef PBL_COLOR
 	hb.colour = 1;
@@ -461,9 +445,9 @@ void comm_request_heartbeat(void)
 	if (state.dirty.need_cgm) {
 		hb.send_slope_arrow = 1;
 		hb.send_delta_value = 1;
-		dict_write_uint32(iter, FRAMEWORK_BGL_VALUE, state.cgm_time); // request update
+        comm_schedule_item(FRAMEWORK_BGL_VALUE, &state.cgm_time, sizeof(state.cgm_time), COMM_TYPE_UINT32);
 		if (state.use_png) {
-			comm_request_add_png(iter, state.wf_cb.trend_bounds());
+			comm_request_png(state.wf_cb.trend_bounds());
 		}
 	}
 
@@ -473,20 +457,16 @@ void comm_request_heartbeat(void)
 
 	if (state.right_text_field == METRIC_PHONEBATT || state.left_text_field == METRIC_PHONEBATT) hb.send_phone_battery = 1;
 
-	dict_write_uint32(iter, FRAMEWORK_HEARTBEAT, hb.raw);
+    comm_schedule_item(FRAMEWORK_HEARTBEAT, &hb.raw, sizeof(hb.raw), COMM_TYPE_UINT32);
 
-    comm_request_send(iter);
 }
 
 #ifdef PBL_HEALTH
 void comm_send_health(comm_health data)
 {
-    DictionaryIterator *iter = comm_request_start();
     TRACE(CM "Sending health hr=%d steps=%d", data.heart_rate, (int) data.steps);
-    if (iter == NULL) return;
-    if (data.heart_rate > 0) dict_write_uint32(iter, FRAMEWORK_HEALTH_HR, data.heart_rate);
-    if (data.steps > 0)      dict_write_uint32(iter, FRAMEWORK_HEALTH_STEPS, data.steps);
-    comm_request_send(iter);
+    if (data.heart_rate > 0) comm_schedule_item(FRAMEWORK_HEALTH_HR, &data.heart_rate, sizeof(data.heart_rate), COMM_TYPE_UINT16); 
+    if (data.steps > 0)      comm_schedule_item(FRAMEWORK_HEALTH_STEPS, &data.steps, sizeof(data.steps), COMM_TYPE_UINT32); 
 }
 #endif
 
@@ -513,17 +493,12 @@ void health_send_values(void *data) {
 #ifdef ENABLE_TOUCH
 void comm_send_treatment(int32_t basal, int32_t bolus, int32_t carbs)
 {
-    DictionaryIterator *iter = comm_request_start();
-
     comm_treatment values = {
         .basal = basal,
         .bolus = bolus,
         .carbs = carbs
     };
-
-    dict_write_data(iter, FRAMEWORK_TREATMENT, (uint8_t *) &values, sizeof(values));
-
-    comm_request_send(iter);
+    comm_schedule_item(FRAMEWORK_TREATMENT, &values, sizeof(values), COMM_TYPE_BYTES);
 } // end comm_send_treatment
 
 #endif
@@ -556,15 +531,181 @@ void comm_inbox_received_handler(DictionaryIterator *iterator, void *context)
 } // end comm_inbox_received_handler 
 
 void alert_snooze(void) {
-    DictionaryIterator *iter = comm_request_start();
-
     // for now base on bgl value
     comm_alert values = {
         .snooze = state.bgl_value.value > 108 ? state.snooze_high : state.snooze_low,
         .settings = 0, // does nothign for now
     };
 
-    dict_write_data(iter, FRAMEWORK_ALERT_SNOOZE, (uint8_t *) &values, sizeof(values));
+    comm_schedule_item(FRAMEWORK_ALERT_SNOOZE, &values, sizeof(values), COMM_TYPE_UINT32);
+}
 
-    comm_request_send(iter);
+/**
+ * schedule items and send them
+ */
+
+// increasing backoffs, not exponential but good enough
+const int32_t backoffs[9] = { 50, 100, 250, 500, 1000, 2500, 5000, 10000, 15000 };
+uint32_t backoff = 0;
+AppTimer *send_timer = NULL;
+comm_item *send_items = NULL;
+
+comm_item *free_comm_item(comm_item *item) {
+    if (NULL == item) return NULL;
+
+    comm_item *next = item->next;
+    if (NULL != item->data) free(item->data);
+    free(item);
+
+    return next;
+}
+
+bool comm_send_next(void)
+{
+    if (send_items == NULL) return true;
+
+	DictionaryIterator *iter = NULL;
+	AppMessageResult sendcmd_openerr = app_message_outbox_begin(&iter);
+    if (sendcmd_openerr != APP_MSG_OK) {
+		ERROR("send_cmd_cgm: ERR CODE: %i RES: %s", sendcmd_openerr, translate_app_error(sendcmd_openerr));
+        return false;
+    }
+
+	AppMessageResult sendcmd_senderr = APP_MSG_OK;
+
+
+    comm_item *item = send_items;
+
+    while(item != NULL) {
+        if (NULL != item) {
+            WARNING("Comm send [%d] [%d] %d, %08X, %08X", item->code, backoff, backoffs[backoff], item, item->next);
+        }
+    // schedule next items
+        switch (item->type) {
+            case COMM_TYPE_UINT32:
+                dict_write_uint32(iter, item->code, *((uint32_t*) item->data));
+                break;
+            case COMM_TYPE_UINT16:
+                dict_write_uint16(iter, item->code, *((uint16_t*) item->data));
+                break;
+            case COMM_TYPE_UINT8:
+                dict_write_uint8(iter, item->code, *((uint8_t*) item->data));
+                break;
+            case COMM_TYPE_BYTES:
+                dict_write_data(iter, item->code, item->data, item->size);
+                break;
+        }
+        item = item->next;
+    }
+
+	dict_write_end(iter);
+
+	TRACE("send_cmd_cgm: Opening outbox");
+	sendcmd_senderr = app_message_outbox_send();
+    // if not succesful, keep message in chain
+	if (sendcmd_senderr != APP_MSG_OK)
+	{
+		ERROR("send_cmd_cgm: ERR CODE: %i RES: %s", sendcmd_senderr, translate_app_error(sendcmd_senderr));
+        return false;
+	}
+
+    while (send_items != NULL) send_items = free_comm_item(send_items);
+    return true;
+}
+
+
+void comm_send_handler_reschedule(void) {
+    DEBUG("Rescheduling send handler");
+    if (NULL == send_timer || !app_timer_reschedule(send_timer, backoffs[backoff])) {
+        send_timer = app_timer_register(backoffs[backoff], comm_send_handler, NULL);
+    }
+}
+
+void comm_send_handler(void *data) {
+    // clear timer
+    send_timer = NULL;
+
+    if (!comm_send_next()) {
+        backoff++;
+        if (backoff >= sizeof(backoffs)) backoff = sizeof(backoffs) - 1;
+        // increase backoff to avoid congestion
+    } else {
+        if (send_items != NULL) comm_send_handler(NULL); // recursive call   
+    }
+
+    if (send_items != NULL) comm_send_handler_reschedule();
+    else backoff = 0;
+}
+
+void comm_schedule_item(int32_t code, void *data, size_t size, enum comm_type type) {
+    WARNING("SCHEDULING: %d", code);
+    // check if heartbeat
+    if (code == FRAMEWORK_HEARTBEAT) {
+        comm_item *t = send_items;
+        while(t != NULL && t->code != FRAMEWORK_HEARTBEAT) t = t->next;
+        // found or null
+        if (t != NULL) {
+            WARNING("Replacing heartbeat");
+            if (t->size != size) {
+                ERROR("Invalid heartbeat size");
+                return;
+            }
+            memcpy(t->data, data, size);
+            return;
+        }
+    }
+
+    // allocate
+    comm_item *item = (comm_item *) calloc(1, sizeof(comm_item));
+    
+    if (NULL == item) {
+        ERROR("Out of memory, cannot send item");
+        return;
+    }
+
+    item->data = malloc(size);
+
+    if (NULL == item->data) {
+        ERROR("Out of memory, cannot send item");
+        free(item);
+        return;
+    }
+
+    // copy
+    item->code = code;
+    memcpy(item->data, data, size);
+    item->size = size;
+    item->type = type;
+
+    // add
+    if (send_items == NULL) {
+        send_items = item;
+    } else {
+        comm_item *t = send_items; 
+        while(t->next != NULL) t = t->next;
+        t->next = item;
+    }
+
+    // schedule if nothing there yet
+    if (send_timer == NULL) comm_send_handler_reschedule();
+
+}
+
+void comm_unschedule_items(int32_t code) {
+    if (send_items == NULL) return;
+
+    comm_item *current = send_items;
+
+    while(current != NULL) {
+        if (current->code == code) {
+            free(current->data);
+            if (current == send_items) {
+                send_items = current = free_comm_item(current);
+            } else {
+                current = free_comm_item(current); 
+            }
+        } else {
+            current = current->next;
+        }
+    }
 }
