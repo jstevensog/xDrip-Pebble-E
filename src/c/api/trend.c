@@ -185,16 +185,22 @@ static bool draw_trend(Layer *layer, GContext *ctx) {
 #endif
         for (int i = 0; i < bounds.size.w; i++) {
             if (interp) {
-                int16_t y0 = lerp(
-                        config.bgl.values[(config.bgl.index + index) % (config.bgl.size)], 
-                        config.bgl.values[(config.bgl.index + index + 1) % (config.bgl.size)], 
-                        t);
+                // do not draw if zero, e.g. missing data
+                if (config.bgl.values[(config.bgl.index + index + 1) % (config.bgl.size)] != 0 && config.bgl.values[(config.bgl.index + index) % (config.bgl.size)] != 0) {
+                    int16_t y0 = lerp(
+                            config.bgl.values[(config.bgl.index + index) % (config.bgl.size)], 
+                            config.bgl.values[(config.bgl.index + index + 1) % (config.bgl.size)], 
+                            t);
+                    draw_bgl_point(y0, i, bounds, ctx);
+                }
                 t += interval;
                 if (t >= (1 << 16)) index++;
-                draw_bgl_point(y0, i, bounds, ctx);
                 t %= 1 << 16;
             } else {
-                draw_bgl_point(config.bgl.values[(config.bgl.index + i) % (config.bgl.size)], i, bounds, ctx); 
+                // do not draw if zero, e.g. missing data
+                if (config.bgl.values[(config.bgl.index + i) % (config.bgl.size)] != 0) {
+                    draw_bgl_point(config.bgl.values[(config.bgl.index + i) % (config.bgl.size)], i, bounds, ctx); 
+                }
             }
         }
 #ifndef PBL_PLATFORM_APLITE
@@ -202,7 +208,8 @@ static bool draw_trend(Layer *layer, GContext *ctx) {
         TRACE(TREND_LOG "Style lines");
         if (interp) {
             for (int i = 0; i < bounds.size.w; i++) {
-                if (interp) {
+                // do not draw if zero, e.g. missing data
+                if (config.bgl.values[(config.bgl.index + index + 1) % (config.bgl.size)] != 0 && config.bgl.values[(config.bgl.index + index) % (config.bgl.size)] != 0) {
                     int16_t y0 = lerp(
                             config.bgl.values[(config.bgl.index + index) % (config.bgl.size)], 
                             config.bgl.values[(config.bgl.index + index + 1) % (config.bgl.size)], 
@@ -212,20 +219,23 @@ static bool draw_trend(Layer *layer, GContext *ctx) {
                             config.bgl.values[(config.bgl.index + index + 1) % (config.bgl.size)], 
                             t += interval);
                     draw_bgl_line(y0, y1, i, i+1, bounds, ctx);
-                    if (t >= (1 << 16)) {
-                        index++;
-                        t %= 1 << 16;
-                    }
+                }
+                if (t >= (1 << 16)) {
+                    index++;
+                    t %= 1 << 16;
                 }
             }
         } else {
             // currently forced path
             uint32_t t = (bounds.size.w << 16) / (config.bgl.size - 1); 
             for (uint32_t i = 0, j = 0; i < ((uint32_t) bounds.size.w << 16); i += t, j++) {
-                draw_bgl_line(
-                        config.bgl.values[(config.bgl.index + j) % (config.bgl.size)],
-                        config.bgl.values[(config.bgl.index + j + 1) % (config.bgl.size)],
-                        i >> 16, (i+t) >> 16, bounds, ctx); 
+                // do not draw if zero, e.g. missing data
+                if (config.bgl.values[(config.bgl.index + j + 1) % (config.bgl.size)] != 0 && config.bgl.values[(config.bgl.index + j) % (config.bgl.size)] != 0) {
+                    draw_bgl_line(
+                            config.bgl.values[(config.bgl.index + j) % (config.bgl.size)],
+                            config.bgl.values[(config.bgl.index + j + 1) % (config.bgl.size)],
+                            i >> 16, (i+t) >> 16, bounds, ctx); 
+                }
             }
         }
     }

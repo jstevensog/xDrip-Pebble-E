@@ -127,5 +127,5 @@ typedef enum {
     TOUCH_PALM = 5,
 } touch_method;
 
-#define STORAGE_MARKER 0x09
+#define STORAGE_MARKER 0x0A
 #endif // __SETTINGS_H__

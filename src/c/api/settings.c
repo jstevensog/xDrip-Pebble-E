@@ -222,6 +222,10 @@ bool settings_receiver(Tuple *data) {
 
         case SET_USE_PNG:
             SETTING_BOOL_CB(use_png, data->value->uint8, SET_USE_PNG, update_trend);
+            // special case, if this is received wipe storage and request data
+            state->cgm_time = 0;
+            state->dirty.need_cgm = 1;
+            comm_request_heartbeat();
             break;
 
         case SET_COLLECT_HEALTH:
