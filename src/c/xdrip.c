@@ -129,7 +129,7 @@ static void battery_handler()
 
 static void alert_handler_cgm(uint8_t alertValue)
 {
-//	TRACE("ALERT HANDLER");
+	TRACE("ALERT HANDLER");
 	LOG("alert_handler: alertValue: %d", alertValue);
 	// CONSTANTS
 	// constants for vibrations patterns; has to be uint32_t, measured in ms, maximum duration 10000ms

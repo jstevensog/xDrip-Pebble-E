@@ -7,18 +7,6 @@
 /**
  * Settings values and other constants
  */
-#define CGM_ICON_KEY			0	// TUPLE_CSTRING, MAX 2 BYTES (10)
-#define CGM_BG_KEY			    1	// TUPLE_CSTRING, MAX 4 BYTES (253 OR 22.2)
-#define CGM_TCGM_KEY			2	// TUPLE_INT, 4 BYTES (CGM TIME)
-#define CGM_TAPP_KEY			3	// TUPLE_INT, 4 BYTES (APP / PHONE TIME)
-#define CGM_DLTA_KEY			4	// TUPLE_CSTRING, MAX 5 BYTES (BG DELTA, -100 or -10.0)
-#define CGM_UBAT_KEY			5	// TUPLE_CSTRING, MAX 3 BYTES (UPLOADER BATTERY, 100)
-#define CGM_NAME_KEY			6	// TUPLE_CSTRING, MAX 9 BYTES (Christine)
-#define CGM_TREND_BEGIN_KEY		7	// TUPLE_INT, 4 BYTES (length of CGM_TREND_DATA_KEY
-#define CGM_TREND_DATA_KEY		8	// TUPLE_BYTE[], No Maximum, based on value found in CGM_TREND_DATA_KEY
-#define CGM_TREND_END_KEY		9	// TUPLE_INT, always 0.
-#define CGM_MESSAGE_KEY		 	10	// TUPLE_CSTRING, Message to display flashing in mid screen
-#define CGM_VIBE_KEY			11	// TUPLE_INT, Vibe pattern to alert with
 #define SET_DISP_SECS			100	// Setting key - Display Seconds
 #define SET_FG_COLOUR			101	// Setting key - Foreground Colour
 #define SET_BG_COLOUR			102	// Setting key - Background Colour
@@ -51,14 +39,6 @@
 #define SET_SNOOZE_HIGH         130
 #define SET_TOUCH_TREATMENT     131
 #define SET_TOUCH_ALERT_SNOOZE  132
-#define CGM_SYNC_KEY			1000	// key pebble will use to request an update.	This should probably include the "capabilities" bits
-#define PBL_PLATFORM			1001	// key pebble will use to send it's platform	This is probably not required under the new famework.
-#define PBL_APP_VER			    1002	// key pebble will use to send the face/app version.	This is probably not required under the new framework.
-#define PBL_TREND_SIZE			1003	// key pebble will use to send trend image size.
-#define PBL_TREND_LINES		 	1004	// key pebble will use to send trend line options.
-#define PBL_TREND_PERIOD		1005	// key pebble will use to send the trend period it wants.
-#define PBL_DISP_OPTS			1006	// key pebble will use to send display options (delta/arrows).
-#define PBL_VIBE_OPTS			1007	// key pebble will use to send vibration options (alerts, missed signal, no bluetooth)
 
 // Metric Display defines
 #define METRIC_NONE 		      0

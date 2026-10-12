@@ -975,16 +975,16 @@ void comm_set_bgl_delta(comm_bgl_delta value) {
 	else if (value.undefined) set_delta("???", sizeof("???"));
 	else if (value.is_mmol && value.display_units) {
 		mgdl_to_mmoll_str(value.value, text, sizeof(text), 1);
-        set_delta(text, strlen(text));
+                set_delta(text, strlen(text));
 	} else if (value.display_units && !value.is_mmol) {
 		int l = snprintf(text, sizeof(text), "%hd mg/dL", value.value);
-        set_delta(text, l);
+                set_delta(text, l);
 	} else if (value.is_mmol) {
 		mgdl_to_mmoll_str(value.value, text, sizeof(text), 0);
-        set_delta(text, strlen(text));
+                set_delta(text, strlen(text));
 	} else {
 		int l = snprintf(text, sizeof(text), "%hd", (int16_t) value.value);
-        set_delta(text, l);
+                set_delta(text, l);
 	}
 	state.show_delta = value.hidden ? false : true;
 }
