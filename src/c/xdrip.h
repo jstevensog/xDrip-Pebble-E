@@ -12,6 +12,16 @@
 #define ENABLE_COMM_FRAMEWORK
 #define ENABLE_TREND_RENDERER
 
+/*
+ * Highly experimental, requires custom firmware
+ */
+//#define ENABLE_TOUCH
+
+// guard for non touch devices
+#if !defined(PBL_TOUCH) && defined(ENABLE_TOUCH)
+#undef ENABLE_TOUCH
+#endif
+
 /** 
  * Face name
  */
@@ -32,48 +42,21 @@
 
 #define HIGH_RES() (PBL_PLATFORM_TYPE_CURRENT == PlatformTypeEmery || PBL_PLATFORM_TYPE_CURRENT == PlatformTypeGabbro)
 
-
-#define SET_DISP_SECS                100    // Setting key - Display Seconds
-#define SET_FG_COLOUR                101    // Setting key - Foreground Colour
-#define SET_BG_COLOUR                102    // Setting key - Background Colour
-#define SET_VIBE_REPEAT              103    // Setting key - Vibration Repeat
-#define SET_NO_VIBE                  104    // Setting key - No Vibrations
-#define SET_LIGHT_ON_CHG             105    // Setting key - Backlight on when charging
-#define SET_SAMECOLOUR               106    // Setting key - Same Colours top and bottom
-#define SET_NO_DELTA                 107    // Setting key - Do not display the Delta value
-#define SET_NO_ARROWS                108    // Setting key - Do not show arrows
-#define SET_HIGH_LINE                110    // Setting key - Enable High line on graph.
-#define SET_LOW_LINE                 111    // Setting key - Enable Low line on graph.
-#define SET_COLLECT_HEALTH           112    // setting key - Enable Health collection
-#define SET_MESSAGE_TIMEOUT          113    // Setting key - Message timeout
-#define SET_BOLD_TIMEAGO             114    // Setting key - Meke the TimeAgo text bold if true
-#define SET_BOTTOM_LEFT_TEXT         115    // Setting key - What to display in the bottom left text field
-#define SET_BOTTOM_RIGHT_TEXT        116    // Setting key - What to display in the bottom right text field
-#define STALE_DATA_ALERT_TIMEOUT     122    // Setting key - How long to wait on data from xDrip before alerting through vibration.
-#define PBL_PLATFORM                 1001    // key pebble will use to send it's platform    This is probably not required under the new famework.
-#define PBL_APP_VER                  1002    // key pebble will use to send the face/app version.    This is probably not required under the new framework.
-#define PBL_TREND_SIZE               1003    // key pebble will use to send trend image size.
-#define PBL_TREND_LINES              1004    // key pebble will use to send trend line options.
-#define PBL_TREND_PERIOD             1005    // key pebble will use to send the trend period it wants.
-#define PBL_DISP_OPTS                1006    // key pebble will use to send display options (delta/arrows).
-#define PBL_VIBE_OPTS                1007    // key pebble will use to send vibration options (alerts, missed signal, no bluetooth)
-
-
 // TOTAL MESSAGE DATA 4x3+2+5+3+9 = 31 BYTES
 // TOTAL KEY HEADER DATA (STRINGS) 4x6+2 = 26 BYTES
 // TOTAL MESSAGE 57 BYTES
 
 //Trend layer dimensions
 #if defined(PBL_PLATFORM_FLINT)
-#define TREND_HEIGHT    88
+#define TREND_HEIGHT	88
 #elif defined(PBL_PLATFORM_CHALK)
-#define TREND_HEIGHT    84
+#define TREND_HEIGHT	84
 #elif defined(PBL_PLATFORM_EMERY)
-#define TREND_HEIGHT    114
+#define TREND_HEIGHT	114
 #elif defined(PBL_PLATFORM_GABBRO)
-#define TREND_HEIGHT    122
+#define TREND_HEIGHT	122
 #else
-#define TREND_HEIGHT    64
+#define TREND_HEIGHT	64
 #endif
 
 #define MGDL_TO_MMOL(x)      ((int) ((float) x / 18.016)) 
@@ -106,4 +89,6 @@ void reset_timer_callback_cgm(int32_t seconds);
 void update_health_metric_displays();
 void health_handler(HealthEventType event, void *context);
 #endif
+
+int mgdl_to_mmoll_str(int mgdl, char *result, const int size, int unit);
 #endif // __XDRIP_H__

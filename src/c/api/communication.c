@@ -1,25 +1,69 @@
 #include "communication.h"
 #include "../xdrip.h"
 #include "../debug.h"
+#include "../api/settings.h"
+#include "../api/trend.h"
 #include <pebble.h>
 
 #define CM "COMM FW: "
 
-comm_callback *cb = NULL;
+/**
+ * Communication for sending uses a queue
+ *
+ * Heartbeats cannot be scheduled, they can only be replaced if one is present
+ *
+ * All other messages can be scheduled and send when time arrives it is possible. 
+ * To avoid opening the bluetooth connection too often there is a slight timeout in 
+ * the initial send (50ms) to allow the watchface to bulk load the data into the
+ * iterator.
+ *
+ * This mechanism also auto-retries if something cannot be send due to losing bluetooth
+ * or some other reason
+ */
 
-void comm_init(comm_callback *callbacks) {
-    cb = callbacks;
+extern AppState state;
+CommunicationCallbacks *cb = NULL;
+
+
+
+comm_iterator *comm_handlers;
+int comm_handlers_count = 0;
+
+void comm_inbox_received_handler(DictionaryIterator *iterator, void *context);
+
+void comm_init(void)
+{
+    /* state = value; */
+    cb = &state.comm_callbacks;
+
+	TRACE("INIT CODE, ABOUT TO CALL APP MSG OPEN");
+#ifdef PBL_PLATFORM_APLITE
+	app_message_open(512, 256);
+#else
+	app_message_open(app_message_inbox_size_maximum(), app_message_outbox_size_maximum());
+#endif
+
+	TRACE("INIT CODE, APP MSG OPEN DONE");
+    // add self
+    comm_add_receiver(comm_receiver);
+
+	TRACE("INIT CODE, REGISTER APP MESSAGE ERROR HANDLERS");
+	app_message_register_inbox_dropped(inbox_dropped_handler_cgm);
+	app_message_register_outbox_failed(outbox_failed_handler_cgm);
+	app_message_register_inbox_received(comm_inbox_received_handler);
 }
 
-void comm_handle(Tuple *data) {
+bool comm_receiver(Tuple *data)
+{
     uint32_t key = data->key;
     INFO(CM "Key: %d", key);
 
     if (cb == NULL) {
         WARNING(CM "Cannot perform anu actions, no callback registered");
-        return;
+        return false;
     }
-
+    bool rv = true;
+    
     switch (key) {
         case FRAMEWORK_HIGHLIMIT:
             TRACE(CM "High limit");
@@ -49,8 +93,13 @@ void comm_handle(Tuple *data) {
             TRACE(CM "Update value");
             comm_bgl_data *value = (comm_bgl_data *) data->value->data;
             if (cb->bgl_data != NULL) cb->bgl_data(value);
-            /* if (cb->bgl_timestamp != NULL) cb->bgl_timestamp(value->timestamp); */
-            /* if (cb->bgl_value != NULL) cb->bgl_value(value->bgl); */
+            if (cb->bgl_timestamp != NULL) cb->bgl_timestamp(value->timestamp);
+            if (cb->bgl_value != NULL) {
+                cb->bgl_value(value->bgl);
+#ifdef PBL_HEALTH
+                CALLBACK(state.gl_cb.health_schedule_send);
+#endif
+            }
             break;
         case FRAMEWORK_BGL_SERIES:
             TRACE(CM "BGL Data stream");
@@ -58,15 +107,27 @@ void comm_handle(Tuple *data) {
             TRACE(CM "Since %d", series->timestamp);
             if (cb->bgl_series != NULL) cb->bgl_series(series);
             if (cb->bgl_timestamp != NULL) cb->bgl_timestamp(series->timestamp);
-            if (cb->bgl_value != NULL) cb->bgl_value(series->bgl_values[series->length - 1]);
+            if (cb->bgl_value != NULL) {
+                cb->bgl_value(series->bgl_values[series->length - 1]);
+#ifdef PBL_HEALTH
+                CALLBACK(state.gl_cb.health_schedule_send);
+#endif
+            }
             break;
         case FRAMEWORK_PNG_IMAGE:
             TRACE(CM "PNG image data");
             if (cb->png != NULL) cb->png((comm_png_data *) data->value->data);
+#ifdef PBL_HEALTH
+            CALLBACK(state.gl_cb.health_schedule_send);
+#endif
             break;
-        case FRAMEWORK_SENSOR_TIME_LEFT:
-            TRACE(CM "Sensor expiry time left");
-            if (cb->sensor_time_left != NULL) cb->sensor_time_left(data->value->uint32);
+        case FRAMEWORK_SENSOR_INFO:
+            TRACE(CM "Sensor info");
+            if (cb->sensor_info != NULL) {
+                comm_sensor_info *info = (comm_sensor_info *) data->value->data;
+                memcpy(&state.sensor, info, sizeof(comm_sensor_info)); 
+                cb->sensor_info(info);
+            }
             break;
         case FRAMEWORK_BWP_VALUE:
             TRACE(CM "Bolus wizard previes value");
@@ -89,11 +150,249 @@ void comm_handle(Tuple *data) {
 #endif
         default:
             DEBUG(CM "id %ld not handled by communications framework", key);
+            rv = false;
             break;
+    }
+
+    return rv;
+}
+
+
+void sync_error_callback_cgm(DictionaryResult appsync_dict_error, AppMessageResult appsync_error, void *context)
+{
+
+	// VARIABLES
+	DictionaryIterator *iter = NULL;
+	AppMessageResult appsync_err_openerr = APP_MSG_OK;
+	AppMessageResult appsync_err_senderr = APP_MSG_OK;
+
+	// CODE START
+
+	// APPSYNC ERROR debug logs
+	LOG("sync_error_callback_cgm: MSG ERR CODE: %i RES: %s", appsync_error, translate_app_error(appsync_error));
+	LOG("sync_error_callback_cgm: DICT ERR CODE: %i RES: %s", appsync_dict_error, translate_dict_error(appsync_dict_error));
+
+	state.bluetooth_is_connected = bluetooth_connection_service_peek();
+
+	if (!state.bluetooth_is_connected)
+	{
+		// bluetooth is out, BT message already set; return out
+		return;
+	}
+
+	appsync_err_openerr = app_message_outbox_begin(&iter);
+
+	LOG("APP SYNC OPEN ERR CODE: %i RES: %s", appsync_err_openerr, translate_app_error(appsync_err_openerr));
+
+	if (appsync_err_openerr == APP_MSG_OK)
+	{
+		// reset state.app_sync_error_alert to flag for vibrate
+		state.app_sync_error_alert = false;
+
+		// send message
+		appsync_err_senderr = app_message_outbox_send();
+		TRACE("APP SYNC SEND ERR CODE: %i RES: %s", appsync_err_senderr, translate_app_error(appsync_err_senderr));
+		if (appsync_err_senderr != APP_MSG_OK  && appsync_err_senderr != APP_MSG_BUSY && appsync_err_senderr != APP_MSG_SEND_REJECTED)
+		{
+			INFO("APP SYNC SEND ERROR");
+			DEBUG("APP SYNC SEND ERR CODE: %i RES: %s", appsync_err_senderr, translate_app_error(appsync_err_senderr));
+		}
+		else
+		{
+			return;
+		}
+	}
+
+	DEBUG("APP SYNC RESEND ERR CODE: %i RES: %s", appsync_err_openerr, translate_app_error(appsync_err_openerr));
+	DEBUG("state.app_sync_error_alert:	%i", state.app_sync_error_alert);
+
+	state.bluetooth_is_connected = bluetooth_connection_service_peek();
+
+	if (!state.bluetooth_is_connected || appsync_err_openerr == APP_MSG_BUSY)
+	{
+		// bluetooth is out, BT message already set; return out
+		return;
+	}
+
+	// set message to RESTART WATCH -> PHONE
+#if DEBUG
+	text_layer_set_text(delta_layer, translate_app_error(appsync_err_openerr));
+    CALLBACK(state.wf_cb.set_delta, translate_app_error(appsync_err_openerr), strlen(translate_app_error(appsync_err_openerr))); 
+#else
+    CALLBACK(state.wf_cb.set_delta, "RSTRT WCH/PHN", 14); 
+#endif
+
+	// erase cgm and app ago times
+    CALLBACK(state.wf_cb.set_cgmtime, "", 0);
+
+	// check if need to vibrate
+	if (!state.app_sync_error_alert)
+	{
+		LOG("APPSYNC ERROR: VIBRATE");
+		CALLBACK(state.gl_cb.alert_handler, APPSYNC_ERR_VIBE);
+		state.app_sync_error_alert = true;
+	}
+
+} // end sync_error_callback_cgm
+
+void inbox_dropped_handler_cgm(AppMessageResult appmsg_indrop_error, void *context)
+{
+	// incoming appmessage send back from Pebble app dropped; no data received
+
+	// VARIABLES
+	DictionaryIterator *iter = NULL;
+	AppMessageResult appmsg_indrop_openerr = APP_MSG_OK;
+	AppMessageResult appmsg_indrop_senderr = APP_MSG_OK;
+
+	// CODE START
+
+	// APPMSG IN DROP debug logs
+	INFO("inbox_dropped_handler_cgm");
+	DEBUG("APPMSG IN DROP ERR CODE: %i RES: %s", appmsg_indrop_error, translate_app_error(appmsg_indrop_error));
+	
+	state.bluetooth_is_connected = bluetooth_connection_service_peek();
+
+	if (!state.bluetooth_is_connected)
+	{
+		// bluetooth is out, BT message already set; return out
+		return;
+	}
+
+	appmsg_indrop_openerr = app_message_outbox_begin(&iter);
+	if (appmsg_indrop_openerr == APP_MSG_OK )
+	{
+		// reset state.app_msg_in_drop_alert to flag for vibrate
+		state.app_msg_in_drop_alert = false;
+
+		// send message
+		appmsg_indrop_senderr = app_message_outbox_send();
+		if (appmsg_indrop_senderr != APP_MSG_OK || appmsg_indrop_senderr == APP_MSG_BUSY || appmsg_indrop_senderr == APP_MSG_SEND_REJECTED)
+		{
+//			INFO("inbox_drepped_handler_cgm: SEND ERROR");
+			DEBUG("inbox_drepped_handler_cgm: SEND ERROR : %i RES: %s", appmsg_indrop_senderr, translate_app_error(appmsg_indrop_senderr));
+		}
+		else
+		{
+			return;
+		}
+	}
+//	INFO("APPMSG IN DROP RESEND ERROR");
+	DEBUG("inbox_drepped_handler_cgm: RESEND ERR CODE: %i RES: %s", appmsg_indrop_openerr, translate_app_error(appmsg_indrop_openerr));
+	DEBUG("state.app_msg_in_drop_alert:	%i", state.app_msg_in_drop_alert);
+
+	state.bluetooth_is_connected = bluetooth_connection_service_peek();
+
+	if (!state.bluetooth_is_connected)
+	{
+		// bluetooth is out, BT message already set; return out
+		return;
+	}
+
+	// set message to RESTART WATCH -> PHONE
+    CALLBACK(state.wf_cb.set_delta, "RSTRT WCH/PHN", 14); 
+
+	// erase cgm and app ago times
+    CALLBACK(state.wf_cb.set_cgmtime, "", 0);
+
+	// check if need to vibrate
+	if (!state.app_msg_in_drop_alert)
+	{
+	LOG("inbox_drepped_handler_cgm: VIBRATE");
+		CALLBACK(state.gl_cb.alert_handler, APPMSG_INDROP_VIBE);
+		state.app_msg_in_drop_alert = true;
+	}
+
+} // end inbox_dropped_handler_cgm
+
+void outbox_failed_handler_cgm(DictionaryIterator *failed, AppMessageResult appmsg_outfail_error, void *context)
+{
+	// outgoing appmessage send failed to deliver to Pebble
+
+	// VARIABLES
+	DictionaryIterator *iter = NULL;
+	AppMessageResult appmsg_outfail_openerr = APP_MSG_OK;
+	AppMessageResult appmsg_outfail_senderr = APP_MSG_OK;
+
+	// CODE START
+
+	// APPMSG OUT FAIL debug logs
+//	INFO("APPMSG OUT FAIL ERROR");
+	ERROR("outbox_failed_handler_cgm: ERR CODE: %i RES: %s", appmsg_outfail_error, translate_app_error(appmsg_outfail_error));
+
+	state.bluetooth_is_connected = bluetooth_connection_service_peek();
+
+	if (!state.bluetooth_is_connected)
+	{
+		// bluetooth is out, BT message already set; return out
+		return;
+	}
+
+	appmsg_outfail_openerr = app_message_outbox_begin(&iter);
+
+	if (appmsg_outfail_openerr == APP_MSG_OK)
+	{
+		// reset state.app_msg_out_fail_alert to flag for vibrate
+		state.app_msg_out_fail_alert = false;
+
+		// send message
+		AppMessageResult appsync_err_senderr = app_message_outbox_send();
+		TRACE("APP SYNC SEND ERR CODE: %i RES: %s", appsync_err_senderr, translate_app_error(appsync_err_senderr));
+		if (appsync_err_senderr != APP_MSG_OK  && appsync_err_senderr != APP_MSG_BUSY && appsync_err_senderr != APP_MSG_SEND_REJECTED)
+		{
+			INFO("APP SYNC SEND ERROR");
+			DEBUG("APP SYNC SEND ERR CODE: %i RES: %s", appsync_err_senderr, translate_app_error(appsync_err_senderr));
+		}
+		return;
+	}
+
+//	INFO("APPMSG OUT FAIL RESEND ERROR");
+	DEBUG("outbox_failed_handler_cgm RESEND ERR CODE: %i RES: %s", appmsg_outfail_openerr, translate_app_error(appmsg_outfail_openerr));
+	DEBUG("state.app_msg_out_fail_alert: %i", state.app_msg_out_fail_alert);
+
+	state.bluetooth_is_connected = bluetooth_connection_service_peek();
+
+	if (!state.bluetooth_is_connected || appmsg_outfail_senderr != APP_MSG_SEND_REJECTED)
+	{
+		// bluetooth is out, BT message already set; return out
+		return;
+	}
+
+	// set message to RESTART WATCH -> PHONE
+#if DEBUG
+    CALLBACK(state.wf_cb.set_delta, translate_app_error(appmsg_outfail_openerr), strlen(translate_app_error(appmsg_outfail_openerr));
+	text_layer_set_text(delta_layer, translate_app_error(appmsg_outfail_openerr));
+#else
+    CALLBACK(state.wf_cb.set_delta, "RSTRT WCH/PHN", 14);
+#endif
+
+	// erase cgm and app ago times
+    CALLBACK(state.wf_cb.set_cgmtime, "", 0);
+	//text_layer_set_text(time_app_layer, "");
+
+	// check if need to vibrate
+	if (!state.app_msg_out_fail_alert)
+	{
+		LOG("outbox_failed_handler_cgm: VIBRATE");
+        CALLBACK(state.gl_cb.alert_handler, APPMSG_OUTFAIL_VIBE);
+		state.app_msg_out_fail_alert = true;
+	}
+
+} // end outbox_failed_handler_cgm
+
+
+void comm_add_receiver(comm_iterator function) {
+    if (comm_handlers == NULL) {
+        comm_handlers = malloc(sizeof(comm_iterator));
+        comm_handlers[0] = function;
+        comm_handlers_count++;
+    } else {
+        comm_handlers = realloc(comm_handlers, (comm_handlers_count+1) * sizeof(comm_iterator));
+        comm_handlers[comm_handlers_count++] = function;
     }
 }
 
-void comm_request_png(DictionaryIterator *iter, GRect bounds) {
+void comm_request_png(GRect bounds)
+{
     TRACE(CM "Sending PNG Request");
     comm_trend_size ts;
 
@@ -103,14 +402,310 @@ void comm_request_png(DictionaryIterator *iter, GRect bounds) {
 #ifdef PBL_PLATFORM_GABBRO
     ts.rgb8 = 1;
 #endif
-    dict_write_uint32(iter, FRAMEWORK_PNG_IMAGE, ts.raw);
+    comm_schedule_item(FRAMEWORK_PNG_IMAGE, &ts.raw, sizeof(ts.raw), COMM_TYPE_UINT32);
+}
+
+void comm_request_heartbeat(void)
+{
+	comm_heartbeat hb = {0}; // force zero init
+    // send if we are a colour pebble or not 
+#ifdef PBL_COLOR
+	hb.colour = 1;
+#else 
+	hb.colour = 0;
+#endif
+
+	hb.time_series = state.use_png ? 0 : 1;
+
+    // currently not used
+#ifdef PBL_PLATFORM_GABBRO
+	hb.time_period = 1;
+#else
+	hb.time_period = 3;
+#endif
+#ifdef ENABLE_TREND_RENDERER
+	// trend line and limit values
+	if (!trend_isinitialized() && !state.use_png) { 
+		hb.high_limit = 1;
+		hb.low_limit = 1;
+	}
+#endif
+
+	// pump values
+    // these are currently not implemented in xdrip
+	/* hb.send_iob = 1; */
+	/* hb.send_pump_state = 1; */
+	/* hb.send_pump_battery = 1; */
+   
+
+    // update cgm triggers quite a bit of data, it at least requires the delta and slope
+    // xdrip decides what to send with respect to the CGM_TIME and if use_png is set or not
+    // Due to xdrip possibly not knowing what the state of the screen is the png size is also
+    // send to xdrip
+	if (state.dirty.need_cgm) {
+		hb.send_slope_arrow = 1;
+		hb.send_delta_value = 1;
+        comm_schedule_item(FRAMEWORK_BGL_VALUE, &state.cgm_time, sizeof(state.cgm_time), COMM_TYPE_UINT32);
+		if (state.use_png) {
+			comm_request_png(state.wf_cb.trend_bounds());
+		}
+	}
+
+    if (state.right_text_field == METRIC_SENSOR_EXPIRY || state.left_text_field == METRIC_SENSOR_EXPIRY) {
+        hb.send_sensor_info = 1;
+    }
+
+	if (state.right_text_field == METRIC_PHONEBATT || state.left_text_field == METRIC_PHONEBATT) hb.send_phone_battery = 1;
+
+    comm_schedule_item(FRAMEWORK_HEARTBEAT, &hb.raw, sizeof(hb.raw), COMM_TYPE_UINT32);
+
 }
 
 #ifdef PBL_HEALTH
-void comm_send_health(DictionaryIterator *iter, comm_health data) {
+void comm_send_health(comm_health data)
+{
     TRACE(CM "Sending health hr=%d steps=%d", data.heart_rate, (int) data.steps);
-    if (iter == NULL) return;
-    if (data.heart_rate > 0) dict_write_uint32(iter, FRAMEWORK_HEALTH_HR, data.heart_rate);
-    if (data.steps > 0)      dict_write_uint32(iter, FRAMEWORK_HEALTH_STEPS, data.steps);
+    if (data.heart_rate > 0) comm_schedule_item(FRAMEWORK_HEALTH_HR, &data.heart_rate, sizeof(data.heart_rate), COMM_TYPE_UINT16); 
+    if (data.steps > 0)      comm_schedule_item(FRAMEWORK_HEALTH_STEPS, &data.steps, sizeof(data.steps), COMM_TYPE_UINT32); 
 }
 #endif
+
+// health_send_values - push the current heart rate + step total to the phone as
+// a standalone AppMessage via the comm framework. Scheduled ~2s after an
+// incoming CGM push (health_schedule_send), when xDrip's process is awake and
+// its broadcast receiver will actually get the reply.
+void health_send_values(void *data) {
+    INFO("Health send values");
+
+	if (!state.collect_health || state.bluetooth_alert) return;
+
+	CALLBACK(state.gl_cb.health_poll);
+	if (state.hbm == 0 && state.step_count == 0) return;
+#ifdef PBL_HEALTH
+	comm_send_health((comm_health){
+		.heart_rate = (uint16_t) state.hbm,
+		.steps = (uint32_t) state.step_count,
+	});
+#endif
+
+}
+
+#ifdef ENABLE_TOUCH
+void comm_send_treatment(int32_t basal, int32_t bolus, int32_t carbs)
+{
+    comm_treatment values = {
+        .basal = basal,
+        .bolus = bolus,
+        .carbs = carbs
+    };
+    comm_schedule_item(FRAMEWORK_TREATMENT, &values, sizeof(values), COMM_TYPE_BYTES);
+} // end comm_send_treatment
+
+#endif
+
+void comm_inbox_received_handler(DictionaryIterator *iterator, void *context)
+{
+	Tuple *data = dict_read_first(iterator);
+//	TRACE("SYNC TUPLE");
+	LOG("inbox_received_callback_cgm: got dictionary");
+
+	if (state.global_lock)
+	{
+		LOG("inbox_received_handler_cgm: GLOBALLY LOCKED");
+		return;
+	}
+
+
+	// CODE START
+	while ((data != NULL) && (!state.global_lock))
+	{
+        for (int i = 0; i < comm_handlers_count; i++) {
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic push 
+            bool processed = comm_handlers[i](data);
+            TRACE("Iterator handler %d, processed: %d", i, processed);
+#pragma GCC diagnostic pop
+        }
+		data = dict_read_next(iterator);
+	}
+} // end comm_inbox_received_handler 
+
+void alert_snooze(void) {
+    // for now base on bgl value
+    comm_alert values = {
+        .snooze = state.bgl_value.value > 108 ? state.snooze_high : state.snooze_low,
+        .settings = 0, // does nothign for now
+    };
+
+    comm_schedule_item(FRAMEWORK_ALERT_SNOOZE, &values, sizeof(values), COMM_TYPE_UINT32);
+}
+
+/**
+ * schedule items and send them
+ */
+
+// increasing backoffs, not exponential but good enough
+const int32_t backoffs[9] = { 50, 100, 250, 500, 1000, 2500, 5000, 10000, 15000 };
+uint32_t backoff = 0;
+AppTimer *send_timer = NULL;
+comm_item *send_items = NULL;
+
+comm_item *free_comm_item(comm_item *item) {
+    if (NULL == item) return NULL;
+
+    comm_item *next = item->next;
+    if (NULL != item->data) free(item->data);
+    free(item);
+
+    return next;
+}
+
+bool comm_send_next(void)
+{
+    if (send_items == NULL) return true;
+
+	DictionaryIterator *iter = NULL;
+	AppMessageResult sendcmd_openerr = app_message_outbox_begin(&iter);
+    if (sendcmd_openerr != APP_MSG_OK) {
+		ERROR("send_cmd_cgm: ERR CODE: %i RES: %s", sendcmd_openerr, translate_app_error(sendcmd_openerr));
+        return false;
+    }
+
+	AppMessageResult sendcmd_senderr = APP_MSG_OK;
+
+
+    comm_item *item = send_items;
+
+    while(item != NULL) {
+        if (NULL != item) {
+            WARNING("Comm send [%d] [%d] %d, %08X, %08X", item->code, backoff, backoffs[backoff], item, item->next);
+        }
+    // schedule next items
+        switch (item->type) {
+            case COMM_TYPE_UINT32:
+                dict_write_uint32(iter, item->code, *((uint32_t*) item->data));
+                break;
+            case COMM_TYPE_UINT16:
+                dict_write_uint16(iter, item->code, *((uint16_t*) item->data));
+                break;
+            case COMM_TYPE_UINT8:
+                dict_write_uint8(iter, item->code, *((uint8_t*) item->data));
+                break;
+            case COMM_TYPE_BYTES:
+                dict_write_data(iter, item->code, item->data, item->size);
+                break;
+        }
+        item = item->next;
+    }
+
+	dict_write_end(iter);
+
+	TRACE("send_cmd_cgm: Opening outbox");
+	sendcmd_senderr = app_message_outbox_send();
+    // if not succesful, keep message in chain
+	if (sendcmd_senderr != APP_MSG_OK)
+	{
+		ERROR("send_cmd_cgm: ERR CODE: %i RES: %s", sendcmd_senderr, translate_app_error(sendcmd_senderr));
+        return false;
+	}
+
+    while (send_items != NULL) send_items = free_comm_item(send_items);
+    return true;
+}
+
+
+void comm_send_handler_reschedule(void) {
+    DEBUG("Rescheduling send handler");
+    if (NULL == send_timer || !app_timer_reschedule(send_timer, backoffs[backoff])) {
+        send_timer = app_timer_register(backoffs[backoff], comm_send_handler, NULL);
+    }
+}
+
+void comm_send_handler(void *data) {
+    // clear timer
+    send_timer = NULL;
+
+    if (!comm_send_next()) {
+        backoff++;
+        if (backoff >= sizeof(backoffs)) backoff = sizeof(backoffs) - 1;
+        // increase backoff to avoid congestion
+    } else {
+        if (send_items != NULL) comm_send_handler(NULL); // recursive call   
+    }
+
+    if (send_items != NULL) comm_send_handler_reschedule();
+    else backoff = 0;
+}
+
+void comm_schedule_item(int32_t code, void *data, size_t size, enum comm_type type) {
+    WARNING("SCHEDULING: %d", code);
+    // check if heartbeat
+    if (code == FRAMEWORK_HEARTBEAT) {
+        comm_item *t = send_items;
+        while(t != NULL && t->code != FRAMEWORK_HEARTBEAT) t = t->next;
+        // found or null
+        if (t != NULL) {
+            WARNING("Replacing heartbeat");
+            if (t->size != size) {
+                ERROR("Invalid heartbeat size");
+                return;
+            }
+            memcpy(t->data, data, size);
+            return;
+        }
+    }
+
+    // allocate
+    comm_item *item = (comm_item *) calloc(1, sizeof(comm_item));
+    
+    if (NULL == item) {
+        ERROR("Out of memory, cannot send item");
+        return;
+    }
+
+    item->data = malloc(size);
+
+    if (NULL == item->data) {
+        ERROR("Out of memory, cannot send item");
+        free(item);
+        return;
+    }
+
+    // copy
+    item->code = code;
+    memcpy(item->data, data, size);
+    item->size = size;
+    item->type = type;
+
+    // add
+    if (send_items == NULL) {
+        send_items = item;
+    } else {
+        comm_item *t = send_items; 
+        while(t->next != NULL) t = t->next;
+        t->next = item;
+    }
+
+    // schedule if nothing there yet
+    if (send_timer == NULL) comm_send_handler_reschedule();
+
+}
+
+void comm_unschedule_items(int32_t code) {
+    if (send_items == NULL) return;
+
+    comm_item *current = send_items;
+
+    while(current != NULL) {
+        if (current->code == code) {
+            free(current->data);
+            if (current == send_items) {
+                send_items = current = free_comm_item(current);
+            } else {
+                current = free_comm_item(current); 
+            }
+        } else {
+            current = current->next;
+        }
+    }
+}
