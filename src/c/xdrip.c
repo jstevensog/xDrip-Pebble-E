@@ -276,7 +276,7 @@ void handle_bluetooth_cgm(bool bt_connected)
 			// make sure we get the data we need
 			//dirty.need_cgm = 1;
 			state.cgm_time = 0;
-            state.gl_cb.update_stale_timeout();
+                        state.gl_cb.update_stale_timeout();
 		}
 
 		// erase cgm and app ago times
@@ -297,8 +297,7 @@ void handle_bluetooth_cgm(bool bt_connected)
 		}
 		// mark data as dirty to prompt hb send
 #ifdef PBL_COLOR
-        CALLBACK(state.wf_cb.update_colours);
-
+                CALLBACK(state.wf_cb.update_colours);
 #endif
 
     }
@@ -341,7 +340,7 @@ static void send_cmd_cgm(void)
 	// if bt escapes early (above) outbox_begin MAY NOT be triggered as it will leave the outbox in
 	// an unrecoverable state, the entire function must be performed if app_message_outbox_begin succeeds.
 
-    comm_request_heartbeat();
+        comm_request_heartbeat();
 
 	TRACE("send_cmd_cgm: done");
 } // end send_cmd_cgm
@@ -425,7 +424,7 @@ void reset_stale_timer_callback(void) {
 // stale data tick handler
 void handle_stale_data_tick(void *data)
 {
-	INFO("handle_stale_data_tick: entered");
+    INFO("handle_stale_data_tick: entered");
     stale_data_timer = NULL;
     reset_stale_timer_callback();
     INFO("handle_stale_data_tick: reset stale_data_timer");
