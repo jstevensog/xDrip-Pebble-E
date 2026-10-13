@@ -48,15 +48,15 @@
 
 //Trend layer dimensions
 #if defined(PBL_PLATFORM_FLINT)
-#define TREND_HEIGHT	88
+#define TREND_HEIGHT    88
 #elif defined(PBL_PLATFORM_CHALK)
-#define TREND_HEIGHT	84
+#define TREND_HEIGHT    84
 #elif defined(PBL_PLATFORM_EMERY)
-#define TREND_HEIGHT	114
+#define TREND_HEIGHT    114
 #elif defined(PBL_PLATFORM_GABBRO)
-#define TREND_HEIGHT	122
+#define TREND_HEIGHT    122
 #else
-#define TREND_HEIGHT	64
+#define TREND_HEIGHT    64
 #endif
 
 #define MGDL_TO_MMOL(x)      ((int) ((float) x / 18.016)) 

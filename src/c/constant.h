@@ -7,28 +7,28 @@
 /**
  * Settings values and other constants
  */
-#define SET_DISP_SECS			100	// Setting key - Display Seconds
-#define SET_FG_COLOUR			101	// Setting key - Foreground Colour
-#define SET_BG_COLOUR			102	// Setting key - Background Colour
-#define SET_VIBE_REPEAT		 	103	// Setting key - Vibration Repeat
-#define SET_NO_VIBE			    104	// Setting key - No Vibrations
-#define SET_LIGHT_ON_CHG		105	// Setting key - Backlight on when charging
-#define SET_SAMECOLOUR			106	// Setting key - Same Colours top and bottom
-#define SET_NO_DELTA			107	// Setting key - Do not display the Delta value
-#define SET_NO_ARROWS			108	// Setting key - Do not show arrows
-#define SET_HIGH_LINE			110	// Setting key - Enable High line on graph.
-#define SET_LOW_LINE			111	// Setting key - Enable Low line on graph.
-#define SET_COLLECT_HEALTH		112	// setting key - Enable Health collection
-#define SET_MESSAGE_TIMEOUT		113	// Setting key - Message timeout
-#define SET_BOLD_TIMEAGO		114	// Setting key - Meke the TimeAgo text bold if true
-#define SET_BOTTOM_LEFT_TEXT	115	// Setting key - What to display in the bottom left text field
-#define SET_BOTTOM_RIGHT_TEXT	116	// Setting key - What to display in the bottom right text field
+#define SET_DISP_SECS            100    // Setting key - Display Seconds
+#define SET_FG_COLOUR            101    // Setting key - Foreground Colour
+#define SET_BG_COLOUR            102    // Setting key - Background Colour
+#define SET_VIBE_REPEAT             103    // Setting key - Vibration Repeat
+#define SET_NO_VIBE                104    // Setting key - No Vibrations
+#define SET_LIGHT_ON_CHG        105    // Setting key - Backlight on when charging
+#define SET_SAMECOLOUR            106    // Setting key - Same Colours top and bottom
+#define SET_NO_DELTA            107    // Setting key - Do not display the Delta value
+#define SET_NO_ARROWS            108    // Setting key - Do not show arrows
+#define SET_HIGH_LINE            110    // Setting key - Enable High line on graph.
+#define SET_LOW_LINE            111    // Setting key - Enable Low line on graph.
+#define SET_COLLECT_HEALTH        112    // setting key - Enable Health collection
+#define SET_MESSAGE_TIMEOUT        113    // Setting key - Message timeout
+#define SET_BOLD_TIMEAGO        114    // Setting key - Meke the TimeAgo text bold if true
+#define SET_BOTTOM_LEFT_TEXT    115    // Setting key - What to display in the bottom left text field
+#define SET_BOTTOM_RIGHT_TEXT    116    // Setting key - What to display in the bottom right text field
 #define SET_USE_PNG             117     // Set the use of PNG images from xDrip or local rendered
 #define SET_SHOW_UNIT           118     // Show unit in delta screen
 #define SET_SHOW_DELTA          119     // Show the delta
 #define SET_SHOW_SLOPE          120     // Show the slope icon
 #define SET_SHOW_TREND          121     // Show the trend
-#define STALE_DATA_ALERT_TIMEOUT	122 // Setting key - How long to wait on data from xDrip before alerting through vibration.
+#define STALE_DATA_ALERT_TIMEOUT    122 // Setting key - How long to wait on data from xDrip before alerting through vibration.
 #define STORED_DATA             123     // Stored watchface state identifier
 #define STORED_TREND            124     // Stored trend data identifier
 #define SET_TOUCH_SUPPORT       125
@@ -41,11 +41,11 @@
 #define SET_TOUCH_ALERT_SNOOZE  132
 
 // Metric Display defines
-#define METRIC_NONE		     0
-#define METRIC_PHONEBATT	 1
-#define METRIC_WATCHBATT	 2
-#define METRIC_STEPS		 3
-#define METRIC_HEARTRATE	 4
+#define METRIC_NONE             0
+#define METRIC_PHONEBATT     1
+#define METRIC_WATCHBATT     2
+#define METRIC_STEPS         3
+#define METRIC_HEARTRATE     4
 #define METRIC_SENSOR_EXPIRY 5
 
 // platform defines
@@ -171,7 +171,7 @@
  */
 // load_bg
 #define SENSOR_NOT_ACTIVE_VALUE "?SN"
-#define MINIMAL_DEVIATION_VALUE	"?MD"
+#define MINIMAL_DEVIATION_VALUE    "?MD"
 #define NO_ANTENNA_VALUE "?NA"
 #define SENSOR_NOT_CALIBRATED_VALUE "?NC"
 #define STOP_LIGHT_VALUE "?CD"

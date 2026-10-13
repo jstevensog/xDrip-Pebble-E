@@ -8,7 +8,7 @@
  * Dirty markers
  */
 typedef struct {
-    uint32_t delta : 1;	 // mark delta layer as dirty and update 
+    uint32_t delta : 1;     // mark delta layer as dirty and update 
     uint32_t need_cgm : 1;  // make the heartbeat request delta and slope
     uint32_t step_count : 1;
     uint32_t hbm : 1;
