@@ -1551,7 +1551,7 @@ void load_battlevel_phone()
 		return;
 	}
 
-	if (state.phone_battery_level == 0)
+	if (state.phone_battery_level > 0 && state.phone_battery_level <= 5)
 	{
 		// Zero battery level; set here, so if we get zero later we know we have an error instead
 		INFO("load_battlevel: 0 value");
