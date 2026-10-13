@@ -1551,20 +1551,20 @@ void load_battlevel_phone()
         return;
     }
 
-    if (state.phone_battery_level == 0)
-    {
-        // Zero battery level; set here, so if we get zero later we know we have an error instead
-        INFO("load_battlevel: 0 value");
-        if(state.left_text_field == METRIC_PHONEBATT) text_layer_set_text(bottom_left_text_layer, PHONE_ICON "0%");
-        if(state.right_text_field == METRIC_PHONEBATT) text_layer_set_text(bottom_right_text_layer, PHONE_ICON "0%");
-        if (!state.battery_low_alert)
-        {
-            INFO("load_battlevel: 0 value, vibe");
-            CALLBACK(state.gl_cb.alert_handler, LOWBATTERY_VIBE);
-            state.battery_low_alert = true;
-        }
-        return;
-    }
+	if (state.phone_battery_level > 0 && state.phone_battery_level <= 5)
+	{
+		// Zero battery level; set here, so if we get zero later we know we have an error instead
+		INFO("load_battlevel: 0 value");
+		if(state.left_text_field == METRIC_PHONEBATT) text_layer_set_text(bottom_left_text_layer, PHONE_ICON "0%");
+		if(state.right_text_field == METRIC_PHONEBATT) text_layer_set_text(bottom_right_text_layer, PHONE_ICON "0%");
+		if (!state.battery_low_alert)
+		{
+			INFO("load_battlevel: 0 value, vibe");
+			CALLBACK(state.gl_cb.alert_handler, LOWBATTERY_VIBE);
+			state.battery_low_alert = true;
+		}
+		return;
+	}
 
     if (current_battlevel == state.phone_battery_level) {
         TRACE("Battery level early exit to not mark layers dirty");
