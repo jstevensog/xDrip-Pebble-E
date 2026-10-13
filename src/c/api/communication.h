@@ -28,6 +28,7 @@
 #define FRAMEWORK_TREATMENT         2015
 #define FRAMEWORK_ALERT_SNOOZE      2016
 
+// Sensor status values in FRAMEWORK_SENSOR_INFO dictionary field
 #define SENSOR_STATE_ACTIVE         0
 #define SENSOR_STATE_WARMUP         1
 #define SENSOR_STATE_EXPIRED        2

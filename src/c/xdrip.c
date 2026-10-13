@@ -38,9 +38,6 @@ static void send_cmd_cgm(void);
  * predefines
  */
 
-//function prototypes
-static void send_cmd_cgm(void);
-
 #ifdef PBL_HEALTH
 // health_poll - peek the current heart rate and step total into health_hr /
 // health_steps. PebbleOS does not reliably emit HealthEventHeartRateUpdate at
@@ -68,39 +65,38 @@ void health_poll(void) {
 
 // health_handler - handler to deal with health events
 void health_handler(HealthEventType event, void *context) {
-    // Which type of event occurred?
-    switch(event) {
-        case HealthEventSignificantUpdate:
-            LOG("health_handler: Significant Update");
-        break;
+	// Which type of event occurred?
+	switch(event) {
+		case HealthEventSignificantUpdate:
+			LOG("health_handler: Significant Update");
+		break;
 
-        case HealthEventMovementUpdate:
-             LOG("health_handler: Movement Update");
-        break;
+		case HealthEventMovementUpdate:
+ 			LOG("health_handler: Movement Update");
+		break;
 
-        case HealthEventMetricAlert:
-             LOG("health_handler: Metric Alert");
-        break;
+		case HealthEventMetricAlert:
+ 			LOG("health_handler: Metric Alert");
+		break;
 
-        case HealthEventSleepUpdate:
-            //LOG("health_handler: Sleep Update");
-        break;
-        
-        case HealthEventHeartRateUpdate:
-            LOG("health_handler: Heart rate Update");
-        break;
-        case HealthEventHRVUpdate:
-            LOG("health_handler: Heart rate HRV Update");
+		case HealthEventSleepUpdate:
+			//LOG("health_handler: Sleep Update");
+		break;
+		
+		case HealthEventHeartRateUpdate:
+			LOG("health_handler: Heart rate Update");
+		break;
+		case HealthEventHRVUpdate:
+			LOG("health_handler: Heart rate HRV Update");
 
-    }
-    health_poll();
-    update_health_metric_displays();
+	}
+	health_poll();
+	update_health_metric_displays();
 } //end health_handler
 
 void health_send(void *data) {
     health_send_timer = NULL;
     health_send_values(NULL);
-
 }
 // health_schedule_send - arm the one-shot send timer. Called from the CGM
 // receive path so the reply goes out while the phone is awake.
@@ -110,7 +106,6 @@ void health_schedule_send(void) {
 	if (health_send_timer == NULL || !app_timer_reschedule(health_send_timer, 2000)) {
 		health_send_timer = app_timer_register(2000, health_send, NULL);
 	}
-
 }
 #endif
 
@@ -122,7 +117,6 @@ static void battery_handler()
 
     state.battery_is_charging = charge_state.is_charging;
     state.battery_level = charge_state.charge_percent;
-
 
     CALLBACK(state.wf_cb.update_battery_state);
 } // end battery_handler
@@ -215,7 +209,6 @@ static void alert_handler_cgm(uint8_t alertValue)
 
 	} // switch alertValue
 
-
 } // end alert_handler_cgm
 
 void BT_timer_callback(void *data);
@@ -300,16 +293,15 @@ void handle_bluetooth_cgm(bool bt_connected)
                 CALLBACK(state.wf_cb.update_colours);
 #endif
 
-    }
+	}
 
 	TRACE("state.bluetooth_alert: %i", state.bluetooth_alert);
-
 } // end handle_bluetooth_cgm
 
 
 void BT_timer_callback(void *data)
 {
-    TRACE("BT TIMER CALLBACK: ENTER CODE");
+	TRACE("BT TIMER CALLBACK: ENTER CODE");
 
 	// reset timer pop and timer
 	state.bluetooth_timer_pop = TRUE;
@@ -318,10 +310,9 @@ void BT_timer_callback(void *data)
 		BT_timer = NULL;
 	}
 
-
-    // check bluetooth and call handler
-    bluetooth_connected_cgm = bluetooth_connection_service_peek();
-    handle_bluetooth_cgm(bluetooth_connected_cgm);
+	// check bluetooth and call handler
+	bluetooth_connected_cgm = bluetooth_connection_service_peek();
+	handle_bluetooth_cgm(bluetooth_connected_cgm);
 
 } // end BT_timer_callback
 
@@ -460,7 +451,6 @@ void handle_minute_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
         CALLBACK(state.wf_cb.minutes_tick, tick_time_cgm, units_changed_cgm);
 	}
 
-
 } // end handle_minute_tick_cgm
 
 static void init_cgm(void)
@@ -533,12 +523,11 @@ static void init_cgm(void)
 	LOG("init_cgm done.");
 }	// end init_cgm
 
-
 static void deinit_cgm(void)
 {
-    INFO("DEINIT CODE IN");
-    // Make sure we are not handling a second tick.
-    while (handling_second) {};
+	INFO("DEINIT CODE IN");
+	// Make sure we are not handling a second tick.
+	while (handling_second) {};
 
     settings_deinit();
     ui_og_deinit();
@@ -552,18 +541,17 @@ static void deinit_cgm(void)
 
 	app_timer_cancel(stale_data_timer);
 
+	// unsubscribe to the bluetooth connection service
+	TRACE("DEINIT, UNSUBSCRIBE BLUETOOTH");
+	bluetooth_connection_service_unsubscribe();
 
-    // unsubscribe to the bluetooth connection service
-    TRACE("DEINIT, UNSUBSCRIBE BLUETOOTH");
-    bluetooth_connection_service_unsubscribe();
-
-    battery_state_service_unsubscribe();
+	battery_state_service_unsubscribe();
 #ifdef PBL_HEALTH
-    health_service_events_unsubscribe();
-    if (health_send_timer != NULL) {
-        app_timer_cancel(health_send_timer);
-        health_send_timer = NULL;
-    }
+	health_service_events_unsubscribe();
+	if (health_send_timer != NULL) {
+		app_timer_cancel(health_send_timer);
+		health_send_timer = NULL;
+	}
 #if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_DIORITE) || defined(PBL_PLATFORM_FLINT) || defined(PBL_PLATFORM_GABBRO)
 	if (state.collect_health) health_service_set_heart_rate_sample_period(0);
 #endif
@@ -585,7 +573,6 @@ static void deinit_cgm(void)
 	}
 
 	TRACE("DEINIT CODE OUT");
-
 } // end deinit_cgm
 
 
@@ -594,19 +581,19 @@ static void deinit_cgm(void)
 
  */
 int mgdl_to_mmoll_str(int mgdl, char *result, const int size, int unit) {
-    const char *fmt = unit ? "%s%d.%d mmol/l" : "%s%d.%d";
-    int val = MGDL_TO_MMOL(mgdl);
-    int dec = MGDL_TO_MMOL_DEC(mgdl);
+	const char *fmt = unit ? "%s%d.%d mmol/l" : "%s%d.%d";
+	int val = MGDL_TO_MMOL(mgdl);
+	int dec = MGDL_TO_MMOL_DEC(mgdl);
   
-    // fix rounding up
-    if (dec == 10) {
-        val++;
-        dec = 0;
-    } else if (dec == -10) {
-        val--;
-        dec = 0;
-    }
-    return snprintf(result, size, fmt, (dec < 0 && val == 0) || val < 0 ? "-" : "", abs(val), abs(dec));
+	// fix rounding up
+	if (dec == 10) {
+		val++;
+		dec = 0;
+	} else if (dec == -10) {
+		val--;
+		dec = 0;
+	}
+	return snprintf(result, size, fmt, (dec < 0 && val == 0) || val < 0 ? "-" : "", abs(val), abs(dec));
 }
 
 int main(void)

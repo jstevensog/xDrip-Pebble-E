@@ -219,11 +219,10 @@ static bool draw_trend(Layer *layer, GContext *ctx) {
                             config.bgl.values[(config.bgl.index + index + 1) % (config.bgl.size)], 
                             t += interval);
                     draw_bgl_line(y0, y1, i, i+1, bounds, ctx);
-
-                    if (t >= (1 << 16)) {
-                        index++;
-                        t %= 1 << 16;
-                    }
+                }
+                if (t >= (1 << 16)) {
+                    index++;
+                    t %= 1 << 16;
                 }
             }
         } else {
@@ -299,7 +298,6 @@ static bool draw_trend_lines(Layer *layer, GContext *ctx) {
             if (config.bgl_high_line) {
                 graphics_context_set_stroke_color(ctx, COLOR_FALLBACK(config.high_line_color, GColorWhite));
                 graphics_context_set_fill_color(ctx, COLOR_FALLBACK(config.high_line_color, GColorWhite));
-
                 for (int x = 0; x < bounds.size.w; x+=s) {
                     graphics_fill_rect(ctx, (GRect) 
                             { 
@@ -542,7 +540,6 @@ bool trend_receiver(Tuple *data) {
         case SET_AUTO_ADJUST_MAX:
             persist_write_int(SET_AUTO_ADJUST_MAX, data->value->int8);
             config.auto_adjust_max = data->value->int8;
-            trend_draw();
             break;
         default:
             DEBUG("Not a trend key: %d", data->key);
