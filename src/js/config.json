@@ -482,7 +482,8 @@
       "items": [
 		  {
 			  "type": "heading",
-			  "defaultValue": "Experimental"
+			  "defaultValue": "Experimental",
+              "messageKey": "experimental"
 		  },
           {
               "type": "toggle",

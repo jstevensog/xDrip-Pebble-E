@@ -190,5 +190,14 @@ module.exports = function(minified) {
             }
 
         }
+
+        /* Hide all settings not yet supported by the OS */
+        clayConfig.getItemByMessageKey("experimental").hide();
+        clayConfig.getItemByMessageKey("touch").hide();
+        clayConfig.getItemByMessageKey("default_bolus").hide();
+        clayConfig.getItemByMessageKey("default_basal").hide();
+        clayConfig.getItemByMessageKey("default_carbs").hide();
+        clayConfig.getItemByMessageKey("touch_treatment").hide();
+        clayConfig.getItemByMessageKey("touch_alert_snooze").hide();
     });
 };
