@@ -102,6 +102,10 @@
                 {
                     "label": "Watch Battery",
                     "value": 2
+                },
+                {
+                    "label": "Sensor Time Left",
+                    "value": 5
                 }
             ]
           },
@@ -127,6 +131,10 @@
                 {
                     "label": "Step Count",
                     "value": 3
+                },
+                {
+                    "label": "Sensor Time Left",
+                    "value": 5
                 }
             ]
           },
@@ -156,6 +164,10 @@
                 {
                     "label": "Heart Rate",
                     "value": 4
+                },
+                {
+                    "label": "Sensor Time Left",
+                    "value": 5
                 }
             ]
           },
@@ -177,6 +189,10 @@
                 {
                     "label": "Watch Battery",
                     "value": 2
+                },
+                {
+                    "label": "Sensor Time Left",
+                    "value": 5
                 }
             ]
           },
@@ -202,6 +218,10 @@
                 {
                     "label": "Step Count",
                     "value": 3
+                },
+                {
+                    "label": "Sensor Time Left",
+                    "value": 5
                 }
             ]
           },
@@ -231,6 +251,10 @@
                 {
                     "label": "Heart Rate",
                     "value": 4
+                },
+                {
+                    "label": "Sensor Time Left",
+                    "value": 5
                 }
             ]
           },
@@ -256,6 +280,10 @@
                 {
                     "label": "Step Count",
                     "value": 3 
+                },
+                {
+                    "label": "Sensor Time Left",
+                    "value": 5
                 }
               ]
           },
@@ -285,6 +313,10 @@
                 {
                     "label": "Heart Rate",
                     "value": 4
+                },
+                {
+                    "label": "Sensor Time Left",
+                    "value": 5
                 }
             ]
           }
