@@ -2109,7 +2109,6 @@ void window_load_cgm(Window *window_cgm)
 #endif
 	LOG("Setting display values to correct state");
     CALLBACK(state.wf_cb.set_delta, LOADING_MESSAGE, sizeof(LOADING_MESSAGE));
-    CALLBACK(state.wf_cb.set_icon, SPECIAL_VALUE);
     state.dirty.delta = 1;
     state.dirty.hbm = 1;
     state.dirty.sensor_info = 1;
