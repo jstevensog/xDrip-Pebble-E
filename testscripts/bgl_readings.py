@@ -11,6 +11,24 @@ def calculate_sine_val(index, min_val=40, max_val=400, period=20):
     amplitude = (max_val - min_val) / 2.0
     return round(midpoint + amplitude * math.sin(2 * math.pi * index / period))
 
+def slope_ordinal(bg_slope_value):
+    """Calculate the slope value"""
+    print(f"bg_slope_value = {bg_slope_value}")
+    match bg_slope_value:
+        case x if x <= -63:
+            return 7
+        case x if x <= -37:
+            return 6
+        case x if x <= -18:
+            return 5
+        case x if x <= 18:
+            return 4
+        case x if x <= 37:
+            return 3
+        case x if x <= 63:
+            return 2
+        case _:
+            return 1
 
 def pack_bgl_delta(
     delta_value,
@@ -114,10 +132,16 @@ def main():
         action="store_true",
         help="Set flag to display delta units",
     )
+    parser.add_argument(
+        "-s",
+        "--send_slope",
+        action="store_true",
+        help="Send the slope value with the BGL",
+    )
 
     args = parser.parse_args()
     interval_seconds = args.interval * 60
-
+    slope_val = 0
     # 1. Generate and send initial series for index 2009
     hex_output, initial_raw_values, last_timestamp = generate_initial_series(
         num_points=args.num_points,
@@ -137,7 +161,7 @@ def main():
     )
     print(f"Sending initial series (2009={hex_output})...")
     subprocess.run(
-        ["pebble", "send-app-message", "--bytes", f"2001={delta_hex}",f"2009={hex_output}"]
+        ["pebble", "send-app-message", "--bytes", f"2001={delta_hex}",f"2009={hex_output}", "--int", f"2008={slope_val}"]
     )
 
     # Track state for loop iterations
@@ -154,7 +178,11 @@ def main():
 
         # Calculate new point and raw numerical delta
         curr_raw_value = calculate_sine_val(current_step)
-        delta = curr_raw_value - prev_raw_value
+        print(f"curr_raw_value = {curr_raw_value}")
+        if args.send_slope:
+            slope_val = slope_ordinal(curr_raw_value - prev_raw_value)
+        else:
+            slope_val = 0
 
         # Format current value with optional mmol flag
         curr_formatted_value = curr_raw_value
@@ -178,17 +206,12 @@ def main():
             f"[Step {current_step}] Time: {current_time} | Value: {curr_raw_value} | Delta: {delta}"
         )
         print(
-            f"Sending 2002 (--bytes) = {packed_2002} | 2001 (--bytes) = {delta} as {delta_hex}"
+            f"Sending 2002 (--bytes) = {packed_2002} | 2001 (--bytes) = {delta} as {delta_hex}", "--int", f"2008={slope_val}"
         )
 
-        # Send index 2002 (--bytes timestamped value)
+        # Send index 2001 (--bytes hexrepresentation) and 2002 (--bytes timestamped value)
         subprocess.run(
-            ["pebble", "send-app-message", "--bytes", f"2002={packed_2002}"]
-        )
-
-        # Send index 2001 as --bytes (hex representation)
-        subprocess.run(
-            ["pebble", "send-app-message", "--bytes", f"2001={delta_hex}"]
+            ["pebble", "send-app-message", "--bytes", f"2002={packed_2002}", f"2001={delta_hex}", "--int", f"2008={slope_val}"]
         )
 
         prev_raw_value = curr_raw_value
