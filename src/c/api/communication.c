@@ -544,7 +544,7 @@ void alert_snooze(void) {
  */
 
 // increasing backoffs, not exponential but good enough
-const int32_t backoffs[9] = { 50, 100, 250, 500, 1000, 2500, 5000, 10000, 15000 };
+const int32_t backoffs[9] = { 100, 250, 500, 1000, 2500, 5000, 10000, 15000 };
 uint32_t backoff = 0;
 AppTimer *send_timer = NULL;
 comm_item *send_items = NULL;
@@ -577,7 +577,7 @@ bool comm_send_next(void)
 
     while(item != NULL) {
         if (NULL != item) {
-            WARNING("Comm send [%d] [%d] %d, %08X, %08X", item->code, backoff, backoffs[backoff], item, item->next);
+            DEBUG("Comm send [%d] [%d] %d, %08X, %08X", item->code, backoff, backoffs[backoff], item, item->next);
         }
     // schedule next items
         switch (item->type) {
@@ -628,8 +628,6 @@ void comm_send_handler(void *data) {
         backoff++;
         if (backoff >= sizeof(backoffs)) backoff = sizeof(backoffs) - 1;
         // increase backoff to avoid congestion
-    } else {
-        if (send_items != NULL) comm_send_handler(NULL); // recursive call   
     }
 
     if (send_items != NULL) comm_send_handler_reschedule();
@@ -637,11 +635,11 @@ void comm_send_handler(void *data) {
 }
 
 void comm_schedule_item(int32_t code, void *data, size_t size, enum comm_type type) {
-    WARNING("SCHEDULING: %d", code);
-    // check if heartbeat
-    if (code == FRAMEWORK_HEARTBEAT) {
+    DEBUG("SCHEDULING: %d", code);
+    // check if heartbeat or bgl request, only ever send one of those
+    if (code == FRAMEWORK_HEARTBEAT || code == FRAMEWORK_BGL_VALUE) {
         comm_item *t = send_items;
-        while(t != NULL && t->code != FRAMEWORK_HEARTBEAT) t = t->next;
+        while(t != NULL && t->code != code) t = t->next;
         // found or null
         if (t != NULL) {
             WARNING("Replacing heartbeat");
