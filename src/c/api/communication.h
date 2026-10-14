@@ -8,23 +8,31 @@
  * Message codes for framework communication
  */
 #define FRAMEWORK_HEARTBEAT         2000
-#define FRAMEWORK_BGL_DELTA         2001
-#define FRAMEWORK_BGL_VALUE         2002
-#define FRAMEWORK_PHONEBAT          2003
-#define FRAMEWORK_MESSAGE           2004
-#define FRAMEWORK_HIGHLIMIT         2005
-#define FRAMEWORK_LOWLIMIT          2006
-#define FRAMEWORK_VIBE              2007
-#define FRAMEWORK_SLOPEVAL          2008 
+#define FRAMEWORK_BGL_DELTA         2001    //uint16 value 
+#define FRAMEWORK_BGL_VALUE         2002    //BGL value and Timestamp
+#define FRAMEWORK_PHONEBAT          2003    //uint8 indicating 0-100%
+#define FRAMEWORK_MESSAGE           2004    //char array
+#define FRAMEWORK_HIGHLIMIT         2005    //uint32 value
+#define FRAMEWORK_LOWLIMIT          2006    //uint32 value
+#define FRAMEWORK_VIBE              2007    //uint8 value 0-3.
+#define FRAMEWORK_SLOPEVAL          2008    //uint8 value 0-15.  0=No Arrow, 1-7=Double up to Double Down, 8-15 various icons.
 #define FRAMEWORK_BGL_SERIES        2009
 #define FRAMEWORK_PNG_IMAGE         2010
 #define FRAMEWORK_BWP_VALUE         2011
-#define FRAMEWORK_SENSOR_TIME_LEFT  2012
+#define FRAMEWORK_SENSOR_INFO       2012
 // watch->phone: current health metrics, sent as plain uint32 values so the
 // phone side can decode them with PebbleKit without a struct layout. A zero
 // value means "not available" and is not written. See comm_send_health().
 #define FRAMEWORK_HEALTH_HR         2013
 #define FRAMEWORK_HEALTH_STEPS      2014
+#define FRAMEWORK_TREATMENT         2015
+#define FRAMEWORK_ALERT_SNOOZE      2016
+
+// Sensor status values in FRAMEWORK_SENSOR_INFO dictionary field
+#define SENSOR_STATE_ACTIVE         0
+#define SENSOR_STATE_WARMUP         1
+#define SENSOR_STATE_EXPIRED        2
+#define SENSOR_STATE_UNKNOWN        255
 
 /**
  * Struct definitions for communication
@@ -57,11 +65,12 @@ typedef union comm_heartbeat_t {
         // B2-3
         uint32_t : 16;                  // RFU
         // B1
-        uint32_t : 3;
+        uint32_t : 2;
+        uint32_t send_sensor_info : 1;  // Send sensor info values
         uint32_t send_slope_arrow : 1;  // Send slope arrow value
         uint32_t send_delta_value : 1;  // Send delta value
         uint32_t send_pump_battery : 1; // Send battery state
-        uint32_t send_phone_battery : 1; // 
+        uint32_t send_phone_battery : 1; // Send phone battery state 
         uint32_t send_pump_state : 1;   // Send pump state
         // B0
         uint32_t send_iob : 1;          // Send IOB data
@@ -115,13 +124,14 @@ typedef struct comm_message_t {
     char    *message;       // Message, MUST BE A UTF-8 encoded null terminated cstring
 } comm_message;
 
-typedef union  {
+typedef union {
     struct {
         uint16_t high_line;     // High line value in mg/dl
         uint16_t high_limit;    // High limit in mg/dl (usually either what user set or 400)
     };
     uint32_t raw;               // Convenience blob
 } comm_high_limit;
+
 typedef union {
     struct {
         uint16_t low_line;      // Low line value in mg/dl
@@ -129,16 +139,38 @@ typedef union {
     };
     uint32_t raw;               // Convenience blob
 } comm_low_limit;
+
 typedef uint8_t comm_vibe;      // Vibate type 
+
 typedef uint8_t comm_slopeval;  // Slope icon value
+
 typedef struct {
     uint16_t length : 15;       // PNG data blob length
     uint16_t hidden : 1;        // PNG trend is hidden
     uint8_t  data[];            // PNG data blob
 } comm_png_data;
 
+typedef struct {
+    uint32_t start;             // Start time of the sensor
+    uint32_t end;               // Remaining sensor time 
+    union {
+        uint8_t state;          // catchall
+        struct {
+            uint8_t warmup : 1;     // sensor is warming up
+            uint8_t expired : 1;    // sensor is expired
+            uint8_t : 2;            // reserved
+            uint8_t sensor_type : 4;// sensor type
+        };
+    };
+    uint16_t interval;          // Sensor interval in s
+    uint16_t warmup_time;       // sensor warmup time in s
+} comm_sensor_info;
 
-typedef uint32_t comm_sensor_time_left; // Not implemented
+#define SENSOR_TYPE_DEXCOM      1
+#define SENSOR_TYPE_LIBRE       2
+#define SENSOR_TYPE_FOLLOWER    3
+#define SENSOR_TYPE_UNKNOWN     15
+
 typedef uint32_t comm_bwp_value;        // Not implemented
 
 typedef struct comm_health_t {
@@ -146,49 +178,77 @@ typedef struct comm_health_t {
     uint32_t steps;        // step count so far today, 0 = not available
 } comm_health;
 
+
+typedef struct comm_treatment_t {
+    uint16_t basal;          // Basal value
+    uint16_t bolus;          // Bolus value
+    uint16_t carbs;         // carbs value
+} comm_treatment;
+
+
+typedef struct comm_alert_t {
+    uint16_t snooze;        // snooze for x seconds
+    uint16_t settings;      // bitmask 
+} comm_alert;
 #pragma pack()
 
-/*
- * Callback struct
- *
- * All callbacks are registered on comm_init, this way a user
- * can provide which to support and all others are ignored
- */
-typedef struct comm_callback_t {
-    void (*phonebat)(comm_phonebat value);
-    void (*low_limit)(comm_low_limit value);
-    void (*high_limit)(comm_high_limit value);
-    void (*slopeval)(comm_slopeval value);
-    void (*vibe)(comm_vibe value);
-    void (*message)(comm_message message);
-    void (*bgl_data)(comm_bgl_data *value);
-    void (*bgl_series)(comm_bgl_series *value);
-    void (*bgl_delta)(comm_bgl_delta value);
-    void (*bgl_value)(comm_bgl_value value);
-    void (*bgl_timestamp)(uint32_t timestamp);
-    void (*bwp_value)(comm_bwp_value value);
-    void (*sensor_time_left)(comm_sensor_time_left value);
-    void (*png)(comm_png_data *data);
-    void (*health)(comm_health value);
-} comm_callback;
+#define ALERT_SNOOZE_LOW        0x0001  // dismiss low alerts, only works with dismiss active
+#define ALERT_SNOOZE_HIGH       0x0002  // dismiss high alerts, only works with dismiss active
+#define ALERT_SNOOZE_DISMISS    0x0004  // 1 -> dismiss, 0 -> snooze active alert
 
+// iterator prototype
+typedef bool (*comm_iterator)(Tuple *data);
 /**
  * Initialize the comms with a callback function blob
  */
-void comm_init(comm_callback *cb);
+void comm_init(void);
 
+void comm_add_receiver(comm_iterator function);
 /**
  * Handle a tuple of data, place this in the app mesage processing thread or function
  */
-void comm_handle(Tuple *data);
+bool comm_receiver(Tuple *data);
 
 /**
  * Request a png of a specific size
  */
-void comm_request_png(DictionaryIterator *iter, GRect bounds);
+void comm_request_add_png(DictionaryIterator *iter, GRect bounds);
 // Write the current heart rate / step total into an already-open outbox
 // dictionary. Fields that are 0 are skipped. Kept here so any face can report
 // health data without duplicating the key layout. Independent of send_cmd_cgm,
 // which is not guaranteed to run under the framework.
-void comm_send_health(DictionaryIterator *iter, comm_health data);
+void comm_send_health(comm_health data);
+
+enum comm_type {
+    COMM_TYPE_BYTES = 1,
+    COMM_TYPE_UINT8 = 2,
+    COMM_TYPE_UINT16 = 3,
+    COMM_TYPE_UINT32 = 4,
+};
+
+typedef struct comm_item_t {
+    int32_t code;
+    void *data;
+    size_t size;
+    enum comm_type type;
+    struct comm_item_t *next;
+} comm_item;
+
+void comm_schedule_item(int32_t code, void *data, size_t size, enum comm_type type);
+void comm_unschedule_items(int32_t code);
+void comm_send_handler(void *data);
+void comm_send_handler_reschedule(void);
+
+/**
+ * Send a heartbeat to xdrip
+ */
+void comm_request_heartbeat(void);
+
+void comm_send_treatment(int32_t basal, int32_t bolus, int32_t carbs);
+
+void sync_error_callback_cgm(DictionaryResult appsync_dict_error, AppMessageResult appsync_error, void *context);
+void inbox_dropped_handler_cgm(AppMessageResult appmsg_indrop_error, void *context);
+void outbox_failed_handler_cgm(DictionaryIterator *failed, AppMessageResult appmsg_outfail_error, void *context);
+void health_send_values(void *data);
+void alert_snooze(void);
 #endif // __COMMUNICATION_H__

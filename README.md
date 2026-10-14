@@ -44,16 +44,16 @@ The above settings are stored in the watch, and persist between watch face trans
 * Clay: @rebble/clay latest v1.0.10 or later
 
 ## Contributing:
-Please do not fork and fragment this code to create your own face to put into xDrip+.  This happened with my initial work on this face causing a number of issues, such as:
+Please do not fork and fragment this code to create your own face to put into xDrip.  This happened with my initial work on this face causing a number of issues, such as:
 * Every watch face added to xDrip+ base repository uses the same UUID, which is against how the Pebble development is meant to work.
-* Every change that was made and sent back to me created a lot of rework because people used different editors/IDEs that did not honour the hard tabs and hard line feekds of the original code.  I lost many hours having to reformat the code so that diffs were understandable and merges of PRs made sense.
+* Every change that was made and sent back to me created a lot of rework because people used different editors/IDEs that did not honour the hard tabs and hard line feeds of the original code.  I lost many hours having to reformat the code so that diffs were understandable and merges of PRs made sense. I have altered my code to Soft tabs of 4 spaces to match the most common settings of others.  Please honour the hard line feeds.
 * When the xDrip+ developers added different model watch faces, each with it's own PBW as a BIN file, it caused a lot of confusion for users, and I was inundated with questions and requests for changes that I could neither answer or make as I had no way of tracing back to the forks.
 
-That said, I appreciate all contributions, especially as the xDrip+ Pebble Protocol Framework takes shape and matures.  I am not aware of how everyone uses xDrip+ and the various other apps it integrates with, so the proposed framework will only accommodate what you want if you contribute to it's development.  
+That said, I appreciate all contributions, especially as the xDrip+ Pebble Protocol Framework takes shape and matures.  I am not aware of how everyone uses xDrip and the various other apps it integrates with, so the proposed framework will only accommodate what you want if you contribute to it's development.  
 
 Feel free to use the Discussions to get more information, or reach out to me directly via e-mail at jstevensog@gmail.com.
 If you fork this to develop and improve the code, please raise PRs against this repository and explain what you have improved.
-The master branch is not being updated frequently, most work is being done in the "new" branch.  That means it is also not as stable.  Please choose wisely wich branch you wish to develop with to improve.
+The master branch is not being updated frequently, most work is being done in the "framework" branch.  That means it is also not as stable.  Please choose wisely which branch you wish to develop with to improve.
 
 # Contributors:
 * jstevensog
@@ -62,8 +62,8 @@ The master branch is not being updated frequently, most work is being done in th
 * BW
 
 ## Plan for Multiple Apps.
- * Apps will be identified in xDrip settings as their name/version.  This will set a string that matches the PBL_APP_VER key that is sent when the Pebble requests an update or responds to xDrip.  The xDrip Pebble watch face settings will also set the watch face/app UUID in settings.  No two watch faces can have the same UUID.
- * The Pebble code in xDrip will try to activate the selected watch face, and if it fails to do so, will install the face.
+ * Apps will be identified in xDrip settings as their name/version.  The xDrip Pebble watch face settings will also set the watch face/app UUID in xDrip settings.  No two watch faces can have the same UUID.
+ * The plan for Pebble Store faces/apps is that they will contain the string "xDrip Pebble Framework" within their description.  This will allow xDrip to display faces/apps that are built using this framework (not yet available in xDrip).
 
 ## Build Environment:
 * Pebble Tool: v5.0.40
@@ -71,6 +71,12 @@ The master branch is not being updated frequently, most work is being done in th
 * Clay: @rebble/clay latest v1.0 or later
 
 ## Change Log:
+20261008 - Changes are:
+* Altered all my legacy code files to use soft tabs of 4 spaces instead of hard tabs.  This is more common for other developers, so I have grown up.;)
+* Added testscripts/ with a couple of scripts to help with testing faces.  This will grow, but we have:
+ * settings.sh - sets up a test face with basic settings.  Run it as a bash/sh source i.e. '. testecripts/settings.sh'
+ * bgl_readings.py - Sends the watch face a sine wave of readings in either mmol/l (my units use -m/--mmol) or mg/dl (default), and then sends new readings every 5 minutes (settable on the command line with -i X or --interval X).  It can also send the flag to display the units in the delta value (-u/--deltau).
+
 20260902 - Changed UUID and name so that there is no clash with the "Pebble Display Trend"/"xDrip Watch Face" in the Pebble app and no clash with settings between the two.
 * updated UUID (only in framework branch) and name.
 * updated README.md

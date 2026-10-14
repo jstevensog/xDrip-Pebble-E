@@ -1,5 +1,6 @@
 #ifndef __DEBUG_H__
 #define __DEBUG_H__
+#include <pebble.h>
 /*
  * Debug helper macros
  */
@@ -24,7 +25,7 @@ Make sure you udefine this before building a release.
 #define DEBUG_APP_INFO 1
 #define DEBUG_APP_NONE 0
 
-/* #define DEBUG_LEVEL DEBUG_APP_TRACE */
+/* #define DEBUG_LEVEL DEBUG_APP_TRACE  */
 
 /*  
  *  The line below will set the debug message level.
@@ -77,4 +78,11 @@ Make sure you udefine this before building a release.
 #define WARNING(...) APP_LOG(APP_LOG_LEVEL_WARNING, __VA_ARGS__)
 #define ERROR(...) APP_LOG(APP_LOG_LEVEL_WARNING, __VA_ARGS__)
 
+char *translate_app_error(AppMessageResult result);
+
+#if defined(DEBUG_LEVEL) && DEBUG_LEVEL >= DEBUG_LEVEL_INFO
+char *translate_dict_error(DictionaryResult result);
+#else
+#define translate_dict_error(...)
+#endif
 #endif // __DEBUG_H__ 

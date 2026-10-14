@@ -30,11 +30,6 @@
 /*
  * Settings from clay
  */
-#define SET_USE_PNG                 117     // Set the use of PNG images from xDrip or local rendered
-#define SET_SHOW_UNIT               118     // Show unit in delta screen    @deprecated
-#define SET_SHOW_DELTA              119     // Show the delta               @deprecated
-#define SET_SHOW_SLOPE              120     // Show the slope icon          @deprecated
-#define SET_SHOW_TREND              121     // Show the trend               @deprecated
 #define SET_BGL_CRITICAL_COLOUR     301     // Colour of the top of the trend line above SET_BGL_CRITICAL
 #define SET_BGL_HIGH_COLOUR         302     // Colour of the high part of the trend line between SET_BGL_HIGH and SET_BGL_CRITICAL
 #define SET_BGL_AVERAGE_COLOUR      303     // Colour of the middle part of the trend line between SET_BGL_AVERAGE and SET_BGL_HIGH
@@ -61,6 +56,7 @@
 
 #define TREND_LOG "TREND :: "
 
+#pragma pack(push, trend, 1)
 typedef int16_t trend_bgl_value; 
 
 /*
@@ -86,11 +82,17 @@ typedef enum {
 } trend_line_style;
 
 typedef struct {
+    int32_t stored_time;                    // time at which data was stored for recovery
+    uint8_t marker;                         // marker to flag dirty
     int8_t  initialized;                    // 0 if no series received, 1 afterwards 
     int16_t size;                           // Actual size of series (depends on update rate and hours) 
     int16_t index;                          // Current index of the series 
     int8_t  hours;                          // Number of hours displayed
+#ifndef PBL_PLATFORM_APLITE
     trend_bgl_value values[PBL_DISPLAY_WIDTH]; // Values, maximum is the display width
+#else
+    trend_bgl_value values[20*4]; // Values, maximum is the display width
+#endif
 } bgl_array;
 
 
@@ -125,6 +127,7 @@ typedef struct {
     trend_line_style hour_line_style;   // Hour line style
     int8_t      redraw;                 // Redraw value (not really working right now)
 } trend_config;
+#pragma pack(pop, trend)
 
 /**
  * Called by main function to initialize values and load config from persistent storage
@@ -156,7 +159,7 @@ void trend_draw(void);
  *
  * @param data  The tuple to process
  */
-void trend_process_config(Tuple *data);
+bool trend_receiver(Tuple *data);
 
 /**
  * Callback function to set the bgl series to use for drawing the trend line
@@ -186,15 +189,18 @@ void trend_set_high_line(comm_high_limit value);
 void trend_set_low_line(comm_low_limit value);
 
 int trend_isinitialized(void);
+int16_t trend_last_value(void);
 void trend_set_hidden(bool value);
+void trend_reset(void);
 
 /**
  * convert bgl to y, respecting limits and bounds
  */
 #define BGL_TO_Y(bgl, config, bounds) (\
             bounds.size.h - \
-            ((int32_t) (bounds.size.h * (bgl - config.bgl_low_limit))) /\
-            (config.bgl_high_limit - config.bgl_low_limit)\
+            (((int32_t)bounds.size.h * ((int32_t)bgl - (int32_t) config.bgl_low_limit)) /\
+            ((int32_t) config.bgl_high_limit - (int32_t) config.bgl_low_limit))\
         )
 
+#define TREND_MARKER 0x01
 #endif
