@@ -161,64 +161,6 @@ bool comm_receiver(Tuple *data)
 void sync_error_callback_cgm(DictionaryResult appsync_dict_error, AppMessageResult appsync_error, void *context)
 {
 
-<<<<<<< HEAD
-	// VARIABLES
-	DictionaryIterator *iter = NULL;
-	AppMessageResult appsync_err_openerr = APP_MSG_OK;
-	AppMessageResult appsync_err_senderr = APP_MSG_OK;
-
-	// CODE START
-
-	// APPSYNC ERROR debug logs
-	LOG("sync_error_callback_cgm: MSG ERR CODE: %i RES: %s", appsync_error, translate_app_error(appsync_error));
-	LOG("sync_error_callback_cgm: DICT ERR CODE: %i RES: %s", appsync_dict_error, translate_dict_error(appsync_dict_error));
-
-	state.bluetooth_is_connected = bluetooth_connection_service_peek();
-
-	if (!state.bluetooth_is_connected)
-	{
-		// bluetooth is out, BT message already set; return out
-		return;
-	}
-
-	appsync_err_openerr = app_message_outbox_begin(&iter);
-
-	LOG("APP SYNC OPEN ERR CODE: %i RES: %s", appsync_err_openerr, translate_app_error(appsync_err_openerr));
-
-	if (appsync_err_openerr == APP_MSG_OK)
-	{
-		// reset state.app_sync_error_alert to flag for vibrate
-		state.app_sync_error_alert = false;
-
-		// send message
-		appsync_err_senderr = app_message_outbox_send();
-		TRACE("APP SYNC SEND ERR CODE: %i RES: %s", appsync_err_senderr, translate_app_error(appsync_err_senderr));
-		if (appsync_err_senderr != APP_MSG_OK  && appsync_err_senderr != APP_MSG_BUSY && appsync_err_senderr != APP_MSG_SEND_REJECTED)
-		{
-			INFO("APP SYNC SEND ERROR");
-			DEBUG("APP SYNC SEND ERR CODE: %i RES: %s", appsync_err_senderr, translate_app_error(appsync_err_senderr));
-		}
-		else
-		{
-			return;
-		}
-	}
-
-	DEBUG("APP SYNC RESEND ERR CODE: %i RES: %s", appsync_err_openerr, translate_app_error(appsync_err_openerr));
-	DEBUG("state.app_sync_error_alert:	%i", state.app_sync_error_alert);
-
-	state.bluetooth_is_connected = bluetooth_connection_service_peek();
-
-	if (!state.bluetooth_is_connected || appsync_err_openerr == APP_MSG_BUSY)
-	{
-		// bluetooth is out, BT message already set; return out
-		return;
-	}
-
-	// set message to RESTART WATCH -> PHONE
-#if DEBUG
-	text_layer_set_text(delta_layer, translate_app_error(appsync_err_openerr));
-=======
     // VARIABLES
     DictionaryIterator *iter = NULL;
     AppMessageResult appsync_err_openerr = APP_MSG_OK;
@@ -275,25 +217,11 @@ void sync_error_callback_cgm(DictionaryResult appsync_dict_error, AppMessageResu
     // set message to RESTART WATCH -> PHONE
 #if DEBUG
     text_layer_set_text(delta_layer, translate_app_error(appsync_err_openerr));
->>>>>>> 8e90c063f1eaba42df770d5125fd04224f79c063
     CALLBACK(state.wf_cb.set_delta, translate_app_error(appsync_err_openerr), strlen(translate_app_error(appsync_err_openerr))); 
 #else
     CALLBACK(state.wf_cb.set_delta, "RSTRT WCH/PHN", 14); 
 #endif
 
-<<<<<<< HEAD
-	// erase cgm and app ago times
-    CALLBACK(state.wf_cb.set_cgmtime, "", 0);
-
-	// check if need to vibrate
-	if (!state.app_sync_error_alert)
-	{
-		LOG("APPSYNC ERROR: VIBRATE");
-		CALLBACK(state.gl_cb.alert_handler, APPSYNC_ERR_VIBE);
-		state.app_sync_error_alert = true;
-	}
-=======
-    // erase cgm and app ago times
     CALLBACK(state.wf_cb.set_cgmtime, "", 0);
 
     // check if need to vibrate
@@ -303,7 +231,6 @@ void sync_error_callback_cgm(DictionaryResult appsync_dict_error, AppMessageResu
         CALLBACK(state.gl_cb.alert_handler, APPSYNC_ERR_VIBE);
         state.app_sync_error_alert = true;
     }
->>>>>>> 8e90c063f1eaba42df770d5125fd04224f79c063
 
 } // end sync_error_callback_cgm
 
@@ -479,37 +406,6 @@ void comm_request_png(GRect bounds)
 
 void comm_request_heartbeat(void)
 {
-<<<<<<< HEAD
-	comm_heartbeat hb = {0}; // force zero init
-    // send if we are a colour pebble or not 
-#ifdef PBL_COLOR
-	hb.colour = 1;
-#else 
-	hb.colour = 0;
-#endif
-
-	hb.time_series = state.use_png ? 0 : 1;
-
-    // currently not used
-#ifdef PBL_PLATFORM_GABBRO
-	hb.time_period = 1;
-#else
-	hb.time_period = 3;
-#endif
-#ifdef ENABLE_TREND_RENDERER
-	// trend line and limit values
-	if (!trend_isinitialized() && !state.use_png) { 
-		hb.high_limit = 1;
-		hb.low_limit = 1;
-	}
-#endif
-
-	// pump values
-    // these are currently not implemented in xdrip
-	/* hb.send_iob = 1; */
-	/* hb.send_pump_state = 1; */
-	/* hb.send_pump_battery = 1; */
-=======
     comm_heartbeat hb = {0}; // force zero init
     // send if we are a colour pebble or not 
 #ifdef PBL_COLOR
@@ -539,7 +435,6 @@ void comm_request_heartbeat(void)
     /* hb.send_iob = 1; */
     /* hb.send_pump_state = 1; */
     /* hb.send_pump_battery = 1; */
->>>>>>> 8e90c063f1eaba42df770d5125fd04224f79c063
    
 
     // update cgm triggers quite a bit of data, it at least requires the delta and slope
