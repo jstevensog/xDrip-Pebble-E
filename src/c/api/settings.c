@@ -14,15 +14,15 @@ void settings_init(AppState *values) {
     // set local pointer
     state = values;
 
-	// prep for battery display, even if we don't have one.
-	state->icon = NOT_CALIBRATED; // no icon set and ignore
-	state->cgm_time = 0;
-	state->app_time = 0;
+    // prep for battery display, even if we don't have one.
+    state->icon = NOT_CALIBRATED; // no icon set and ignore
+    state->cgm_time = 0;
+    state->app_time = 0;
     state->dirty.need_cgm = 1;
     state->dirty.delta = 1;
     state->dirty.sensor_info = 1;
-	state->phone_battery_level = 255;
-	state->battery_level = 255;
+    state->phone_battery_level = 255;
+    state->battery_level = 255;
 
     // fetch previous data (if available)
     if (persist_exists(STORED_DATA)) {
@@ -44,24 +44,24 @@ void settings_init(AppState *values) {
 
     // fetch all values from storage
     
-	state->use_png = persist_exists(SET_USE_PNG) ? persist_read_bool(SET_USE_PNG) : false;
-	state->show_slope = persist_exists(SET_SHOW_SLOPE) ? persist_read_bool(SET_SHOW_SLOPE) : true;
-	state->show_delta = persist_exists(SET_SHOW_DELTA) ? persist_read_bool(SET_SHOW_DELTA) : true;
-	state->show_trend = persist_exists(SET_SHOW_TREND) ? persist_read_bool(SET_SHOW_TREND) : true;
+    state->use_png = persist_exists(SET_USE_PNG) ? persist_read_bool(SET_USE_PNG) : false;
+    state->show_slope = persist_exists(SET_SHOW_SLOPE) ? persist_read_bool(SET_SHOW_SLOPE) : true;
+    state->show_delta = persist_exists(SET_SHOW_DELTA) ? persist_read_bool(SET_SHOW_DELTA) : true;
+    state->show_trend = persist_exists(SET_SHOW_TREND) ? persist_read_bool(SET_SHOW_TREND) : true;
 
-	//Load persistent state
-	state->enable_seconds= persist_exists(SET_DISP_SECS)? persist_read_bool(SET_DISP_SECS) : false;
-	state->vibrate_repeat = persist_exists(SET_VIBE_REPEAT)? persist_read_bool(SET_VIBE_REPEAT) : true;
-	state->vibrate_off = persist_exists(SET_NO_VIBE)? persist_read_bool(SET_NO_VIBE) : true;
-	state->fields_same_colour = persist_exists(SET_SAMECOLOUR)? persist_read_bool(SET_SAMECOLOUR) : false;
-	state->message_timeout = persist_exists(SET_MESSAGE_TIMEOUT) ? persist_read_int(SET_MESSAGE_TIMEOUT) * 1000 : 15000;
-	state->backlight_on_charge = persist_exists(SET_LIGHT_ON_CHG)? persist_read_bool(SET_LIGHT_ON_CHG) : false;
-	state->bold_timeago = persist_exists(SET_BOLD_TIMEAGO)? persist_read_bool(SET_BOLD_TIMEAGO) : false;
-	state->left_text_field = persist_exists(SET_BOTTOM_LEFT_TEXT) ? persist_read_int(SET_BOTTOM_LEFT_TEXT) : METRIC_PHONEBATT;
-	state->right_text_field = persist_exists(SET_BOTTOM_RIGHT_TEXT) ? persist_read_int(SET_BOTTOM_RIGHT_TEXT) : METRIC_WATCHBATT;
+    //Load persistent state
+    state->enable_seconds= persist_exists(SET_DISP_SECS)? persist_read_bool(SET_DISP_SECS) : false;
+    state->vibrate_repeat = persist_exists(SET_VIBE_REPEAT)? persist_read_bool(SET_VIBE_REPEAT) : true;
+    state->vibrate_off = persist_exists(SET_NO_VIBE)? persist_read_bool(SET_NO_VIBE) : true;
+    state->fields_same_colour = persist_exists(SET_SAMECOLOUR)? persist_read_bool(SET_SAMECOLOUR) : false;
+    state->message_timeout = persist_exists(SET_MESSAGE_TIMEOUT) ? persist_read_int(SET_MESSAGE_TIMEOUT) * 1000 : 15000;
+    state->backlight_on_charge = persist_exists(SET_LIGHT_ON_CHG)? persist_read_bool(SET_LIGHT_ON_CHG) : false;
+    state->bold_timeago = persist_exists(SET_BOLD_TIMEAGO)? persist_read_bool(SET_BOLD_TIMEAGO) : false;
+    state->left_text_field = persist_exists(SET_BOTTOM_LEFT_TEXT) ? persist_read_int(SET_BOTTOM_LEFT_TEXT) : METRIC_PHONEBATT;
+    state->right_text_field = persist_exists(SET_BOTTOM_RIGHT_TEXT) ? persist_read_int(SET_BOTTOM_RIGHT_TEXT) : METRIC_WATCHBATT;
 #ifdef PBL_COLOR
-	state->foreground_colour = persist_exists(SET_FG_COLOUR)? GColorFromHEX(persist_read_int(SET_FG_COLOUR)) : COLOR_FALLBACK(GColorWhite,GColorWhite);
-	state->background_colour = persist_exists(SET_BG_COLOUR)? GColorFromHEX(persist_read_int(SET_BG_COLOUR)) : COLOR_FALLBACK(GColorDukeBlue,GColorBlack);
+    state->foreground_colour = persist_exists(SET_FG_COLOUR)? GColorFromHEX(persist_read_int(SET_FG_COLOUR)) : COLOR_FALLBACK(GColorWhite,GColorWhite);
+    state->background_colour = persist_exists(SET_BG_COLOUR)? GColorFromHEX(persist_read_int(SET_BG_COLOUR)) : COLOR_FALLBACK(GColorDukeBlue,GColorBlack);
 #endif
     state->stale_data_timeout = persist_exists(STALE_DATA_ALERT_TIMEOUT) ? persist_read_int(STALE_DATA_ALERT_TIMEOUT) : 6 * 60000;
     state->collect_health = persist_exists(SET_COLLECT_HEALTH) ? persist_read_bool(SET_COLLECT_HEALTH) : false;

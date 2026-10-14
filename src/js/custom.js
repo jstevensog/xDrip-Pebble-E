@@ -136,6 +136,27 @@ module.exports = function(minified) {
         hours.trigger('change');
 
 
+        // touch hide functions
+        var touch = clayConfig.getItemByMessageKey("touch");
+        var touch_function = function() {
+            const bolus = clayConfig.getItemByMessageKey("default_bolus");
+            const basal = clayConfig.getItemByMessageKey("default_basal");
+            const carbs = clayConfig.getItemByMessageKey("default_carbs");
+            if (this.get()) {
+                bolus.enable();
+                basal.enable();
+                carbs.enable();
+            } else {
+                bolus.disable();
+                basal.disable();
+                carbs.disable();
+            }
+        }
+
+        touch.on('change', touch_function);
+        touch.trigger('change');
+
+
         // this is also done by the "selector" values, but there is overlap in those
         if (!clayConfig.meta.activeWatchInfo || 
             clayConfig.meta.activeWatchInfo.platform === 'aplite' || 
@@ -169,5 +190,14 @@ module.exports = function(minified) {
             }
 
         }
+
+        /* Hide all settings not yet supported by the OS */
+        clayConfig.getItemByMessageKey("experimental").hide();
+        clayConfig.getItemByMessageKey("touch").hide();
+        clayConfig.getItemByMessageKey("default_bolus").hide();
+        clayConfig.getItemByMessageKey("default_basal").hide();
+        clayConfig.getItemByMessageKey("default_carbs").hide();
+        clayConfig.getItemByMessageKey("touch_treatment").hide();
+        clayConfig.getItemByMessageKey("touch_alert_snooze").hide();
     });
 };

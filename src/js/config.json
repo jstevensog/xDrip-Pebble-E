@@ -102,6 +102,10 @@
                 {
                     "label": "Watch Battery",
                     "value": 2
+                },
+                {
+                    "label": "Sensor Time Left",
+                    "value": 5
                 }
             ]
           },
@@ -127,6 +131,10 @@
                 {
                     "label": "Step Count",
                     "value": 3
+                },
+                {
+                    "label": "Sensor Time Left",
+                    "value": 5
                 }
             ]
           },
@@ -156,6 +164,10 @@
                 {
                     "label": "Heart Rate",
                     "value": 4
+                },
+                {
+                    "label": "Sensor Time Left",
+                    "value": 5
                 }
             ]
           },
@@ -177,6 +189,10 @@
                 {
                     "label": "Watch Battery",
                     "value": 2
+                },
+                {
+                    "label": "Sensor Time Left",
+                    "value": 5
                 }
             ]
           },
@@ -202,6 +218,10 @@
                 {
                     "label": "Step Count",
                     "value": 3
+                },
+                {
+                    "label": "Sensor Time Left",
+                    "value": 5
                 }
             ]
           },
@@ -231,6 +251,10 @@
                 {
                     "label": "Heart Rate",
                     "value": 4
+                },
+                {
+                    "label": "Sensor Time Left",
+                    "value": 5
                 }
             ]
           },
@@ -256,6 +280,10 @@
                 {
                     "label": "Step Count",
                     "value": 3 
+                },
+                {
+                    "label": "Sensor Time Left",
+                    "value": 5
                 }
               ]
           },
@@ -285,6 +313,10 @@
                 {
                     "label": "Heart Rate",
                     "value": 4
+                },
+                {
+                    "label": "Sensor Time Left",
+                    "value": 5
                 }
             ]
           }
@@ -473,6 +505,82 @@
               "label": "Auto-scale the maximum height of the graph",
               "default": false,
               "description": "If enabled the highest will be the highest bgl value or the high-line + 5%, else it will use the xdrip values." 
+          }
+      ]
+  },
+  {
+      "type": "section",
+      "capabilities": [ "NOT_PLATFORM_APLITE", "NOT_PLATFORM_CHALK", "NOT_PLATFORM_BASALT", "NOT_PLATFORM_DIORITE"],
+      "items": [
+          {
+              "type": "heading",
+              "defaultValue": "Experimental",
+              "messageKey": "experimental"
+          },
+          {
+              "type": "toggle",
+              "messageKey": "touch",
+              "defaultValue": false,
+              "label": "Enable touch support",
+              "group": "touch",
+              "description": "Here be dragons .. you have been warned ... requires custom firmware until coredevices enables it."
+          },
+          { 
+              "type": "slider",
+              "label": "Default bolus insulin value",
+              "messageKey": "default_bolus",
+              "defaultValue": 10,
+              "group": "touch",
+              "min": 1,
+              "max": 100
+          },
+          { 
+              "type": "slider",
+              "messageKey": "default_basal",
+              "defaultValue": 16,
+              "min": 1,
+              "max": 100,
+              "group": "touch",
+              "label": "Default basal insulin value"
+          },
+          { 
+              "type": "slider",
+              "messageKey": "default_carbs",
+              "defaultValue": 60,
+              "min": 1,
+              "max": 200,
+              "group": "touch",
+              "label": "Default carbohydrate value"
+          },
+          {              
+              "type": "select",
+              "messageKey": "touch_treatment",
+              "label": "Treatment gesture",
+              "defaultValue": 0,
+              "group": "touch",
+              "options": [
+                  { "label": "Tap", "value": 0 },
+                  { "label": "Swipe left", "value": 1 },
+                  { "label": "Swipe right", "value": 2 },
+                  { "label": "Swipe up", "value": 3 },
+                  { "label": "Swipe down", "value": 4},
+                  { "label": "Palm", "value": 5}
+              ]
+          },
+          {              
+              "type": "select",
+              "messageKey": "touch_alert_snooze",
+              "label": "Alert snooze gesture",
+              "defaultValue": 0,
+              "group": "touch",
+              "options": [
+                  { "label": "Tap", "value": 0 },
+                  { "label": "Swipe left", "value": 1 },
+                  { "label": "Swipe right", "value": 2 },
+                  { "label": "Swipe up", "value": 3 },
+                  { "label": "Swipe down", "value": 4},
+                  { "label": "Palm", "value": 5}
+              ]
           }
       ]
   },

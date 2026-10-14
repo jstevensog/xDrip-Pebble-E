@@ -36,21 +36,21 @@ void comm_init(void)
     /* state = value; */
     cb = &state.comm_callbacks;
 
-	TRACE("INIT CODE, ABOUT TO CALL APP MSG OPEN");
+    TRACE("INIT CODE, ABOUT TO CALL APP MSG OPEN");
 #ifdef PBL_PLATFORM_APLITE
-	app_message_open(512, 256);
+    app_message_open(512, 256);
 #else
-	app_message_open(app_message_inbox_size_maximum(), app_message_outbox_size_maximum());
+    app_message_open(app_message_inbox_size_maximum(), app_message_outbox_size_maximum());
 #endif
 
-	TRACE("INIT CODE, APP MSG OPEN DONE");
+    TRACE("INIT CODE, APP MSG OPEN DONE");
     // add self
     comm_add_receiver(comm_receiver);
 
-	TRACE("INIT CODE, REGISTER APP MESSAGE ERROR HANDLERS");
-	app_message_register_inbox_dropped(inbox_dropped_handler_cgm);
-	app_message_register_outbox_failed(outbox_failed_handler_cgm);
-	app_message_register_inbox_received(comm_inbox_received_handler);
+    TRACE("INIT CODE, REGISTER APP MESSAGE ERROR HANDLERS");
+    app_message_register_inbox_dropped(inbox_dropped_handler_cgm);
+    app_message_register_outbox_failed(outbox_failed_handler_cgm);
+    app_message_register_inbox_received(comm_inbox_received_handler);
 }
 
 bool comm_receiver(Tuple *data)
@@ -161,6 +161,7 @@ bool comm_receiver(Tuple *data)
 void sync_error_callback_cgm(DictionaryResult appsync_dict_error, AppMessageResult appsync_error, void *context)
 {
 
+<<<<<<< HEAD
 	// VARIABLES
 	DictionaryIterator *iter = NULL;
 	AppMessageResult appsync_err_openerr = APP_MSG_OK;
@@ -217,11 +218,70 @@ void sync_error_callback_cgm(DictionaryResult appsync_dict_error, AppMessageResu
 	// set message to RESTART WATCH -> PHONE
 #if DEBUG
 	text_layer_set_text(delta_layer, translate_app_error(appsync_err_openerr));
+=======
+    // VARIABLES
+    DictionaryIterator *iter = NULL;
+    AppMessageResult appsync_err_openerr = APP_MSG_OK;
+    AppMessageResult appsync_err_senderr = APP_MSG_OK;
+
+    // CODE START
+
+    // APPSYNC ERROR debug logs
+    LOG("sync_error_callback_cgm: MSG ERR CODE: %i RES: %s", appsync_error, translate_app_error(appsync_error));
+    LOG("sync_error_callback_cgm: DICT ERR CODE: %i RES: %s", appsync_dict_error, translate_dict_error(appsync_dict_error));
+
+    state.bluetooth_is_connected = bluetooth_connection_service_peek();
+
+    if (!state.bluetooth_is_connected)
+    {
+        // bluetooth is out, BT message already set; return out
+        return;
+    }
+
+    appsync_err_openerr = app_message_outbox_begin(&iter);
+
+    LOG("APP SYNC OPEN ERR CODE: %i RES: %s", appsync_err_openerr, translate_app_error(appsync_err_openerr));
+
+    if (appsync_err_openerr == APP_MSG_OK)
+    {
+        // reset state.app_sync_error_alert to flag for vibrate
+        state.app_sync_error_alert = false;
+
+        // send message
+        appsync_err_senderr = app_message_outbox_send();
+        TRACE("APP SYNC SEND ERR CODE: %i RES: %s", appsync_err_senderr, translate_app_error(appsync_err_senderr));
+        if (appsync_err_senderr != APP_MSG_OK  && appsync_err_senderr != APP_MSG_BUSY && appsync_err_senderr != APP_MSG_SEND_REJECTED)
+        {
+            INFO("APP SYNC SEND ERROR");
+            DEBUG("APP SYNC SEND ERR CODE: %i RES: %s", appsync_err_senderr, translate_app_error(appsync_err_senderr));
+        }
+        else
+        {
+            return;
+        }
+    }
+
+    DEBUG("APP SYNC RESEND ERR CODE: %i RES: %s", appsync_err_openerr, translate_app_error(appsync_err_openerr));
+    DEBUG("state.app_sync_error_alert:    %i", state.app_sync_error_alert);
+
+    state.bluetooth_is_connected = bluetooth_connection_service_peek();
+
+    if (!state.bluetooth_is_connected || appsync_err_openerr == APP_MSG_BUSY)
+    {
+        // bluetooth is out, BT message already set; return out
+        return;
+    }
+
+    // set message to RESTART WATCH -> PHONE
+#if DEBUG
+    text_layer_set_text(delta_layer, translate_app_error(appsync_err_openerr));
+>>>>>>> 8e90c063f1eaba42df770d5125fd04224f79c063
     CALLBACK(state.wf_cb.set_delta, translate_app_error(appsync_err_openerr), strlen(translate_app_error(appsync_err_openerr))); 
 #else
     CALLBACK(state.wf_cb.set_delta, "RSTRT WCH/PHN", 14); 
 #endif
 
+<<<<<<< HEAD
 	// erase cgm and app ago times
     CALLBACK(state.wf_cb.set_cgmtime, "", 0);
 
@@ -232,150 +292,162 @@ void sync_error_callback_cgm(DictionaryResult appsync_dict_error, AppMessageResu
 		CALLBACK(state.gl_cb.alert_handler, APPSYNC_ERR_VIBE);
 		state.app_sync_error_alert = true;
 	}
+=======
+    // erase cgm and app ago times
+    CALLBACK(state.wf_cb.set_cgmtime, "", 0);
+
+    // check if need to vibrate
+    if (!state.app_sync_error_alert)
+    {
+        LOG("APPSYNC ERROR: VIBRATE");
+        CALLBACK(state.gl_cb.alert_handler, APPSYNC_ERR_VIBE);
+        state.app_sync_error_alert = true;
+    }
+>>>>>>> 8e90c063f1eaba42df770d5125fd04224f79c063
 
 } // end sync_error_callback_cgm
 
 void inbox_dropped_handler_cgm(AppMessageResult appmsg_indrop_error, void *context)
 {
-	// incoming appmessage send back from Pebble app dropped; no data received
+    // incoming appmessage send back from Pebble app dropped; no data received
 
-	// VARIABLES
-	DictionaryIterator *iter = NULL;
-	AppMessageResult appmsg_indrop_openerr = APP_MSG_OK;
-	AppMessageResult appmsg_indrop_senderr = APP_MSG_OK;
+    // VARIABLES
+    DictionaryIterator *iter = NULL;
+    AppMessageResult appmsg_indrop_openerr = APP_MSG_OK;
+    AppMessageResult appmsg_indrop_senderr = APP_MSG_OK;
 
-	// CODE START
+    // CODE START
 
-	// APPMSG IN DROP debug logs
-	INFO("inbox_dropped_handler_cgm");
-	DEBUG("APPMSG IN DROP ERR CODE: %i RES: %s", appmsg_indrop_error, translate_app_error(appmsg_indrop_error));
-	
-	state.bluetooth_is_connected = bluetooth_connection_service_peek();
+    // APPMSG IN DROP debug logs
+    INFO("inbox_dropped_handler_cgm");
+    DEBUG("APPMSG IN DROP ERR CODE: %i RES: %s", appmsg_indrop_error, translate_app_error(appmsg_indrop_error));
+    
+    state.bluetooth_is_connected = bluetooth_connection_service_peek();
 
-	if (!state.bluetooth_is_connected)
-	{
-		// bluetooth is out, BT message already set; return out
-		return;
-	}
+    if (!state.bluetooth_is_connected)
+    {
+        // bluetooth is out, BT message already set; return out
+        return;
+    }
 
-	appmsg_indrop_openerr = app_message_outbox_begin(&iter);
-	if (appmsg_indrop_openerr == APP_MSG_OK )
-	{
-		// reset state.app_msg_in_drop_alert to flag for vibrate
-		state.app_msg_in_drop_alert = false;
+    appmsg_indrop_openerr = app_message_outbox_begin(&iter);
+    if (appmsg_indrop_openerr == APP_MSG_OK )
+    {
+        // reset state.app_msg_in_drop_alert to flag for vibrate
+        state.app_msg_in_drop_alert = false;
 
-		// send message
-		appmsg_indrop_senderr = app_message_outbox_send();
-		if (appmsg_indrop_senderr != APP_MSG_OK || appmsg_indrop_senderr == APP_MSG_BUSY || appmsg_indrop_senderr == APP_MSG_SEND_REJECTED)
-		{
-//			INFO("inbox_drepped_handler_cgm: SEND ERROR");
-			DEBUG("inbox_drepped_handler_cgm: SEND ERROR : %i RES: %s", appmsg_indrop_senderr, translate_app_error(appmsg_indrop_senderr));
-		}
-		else
-		{
-			return;
-		}
-	}
-//	INFO("APPMSG IN DROP RESEND ERROR");
-	DEBUG("inbox_drepped_handler_cgm: RESEND ERR CODE: %i RES: %s", appmsg_indrop_openerr, translate_app_error(appmsg_indrop_openerr));
-	DEBUG("state.app_msg_in_drop_alert:	%i", state.app_msg_in_drop_alert);
+        // send message
+        appmsg_indrop_senderr = app_message_outbox_send();
+        if (appmsg_indrop_senderr != APP_MSG_OK || appmsg_indrop_senderr == APP_MSG_BUSY || appmsg_indrop_senderr == APP_MSG_SEND_REJECTED)
+        {
+//            INFO("inbox_drepped_handler_cgm: SEND ERROR");
+            DEBUG("inbox_drepped_handler_cgm: SEND ERROR : %i RES: %s", appmsg_indrop_senderr, translate_app_error(appmsg_indrop_senderr));
+        }
+        else
+        {
+            return;
+        }
+    }
+//    INFO("APPMSG IN DROP RESEND ERROR");
+    DEBUG("inbox_drepped_handler_cgm: RESEND ERR CODE: %i RES: %s", appmsg_indrop_openerr, translate_app_error(appmsg_indrop_openerr));
+    DEBUG("state.app_msg_in_drop_alert:    %i", state.app_msg_in_drop_alert);
 
-	state.bluetooth_is_connected = bluetooth_connection_service_peek();
+    state.bluetooth_is_connected = bluetooth_connection_service_peek();
 
-	if (!state.bluetooth_is_connected)
-	{
-		// bluetooth is out, BT message already set; return out
-		return;
-	}
+    if (!state.bluetooth_is_connected)
+    {
+        // bluetooth is out, BT message already set; return out
+        return;
+    }
 
-	// set message to RESTART WATCH -> PHONE
+    // set message to RESTART WATCH -> PHONE
     CALLBACK(state.wf_cb.set_delta, "RSTRT WCH/PHN", 14); 
 
-	// erase cgm and app ago times
+    // erase cgm and app ago times
     CALLBACK(state.wf_cb.set_cgmtime, "", 0);
 
-	// check if need to vibrate
-	if (!state.app_msg_in_drop_alert)
-	{
-	LOG("inbox_drepped_handler_cgm: VIBRATE");
-		CALLBACK(state.gl_cb.alert_handler, APPMSG_INDROP_VIBE);
-		state.app_msg_in_drop_alert = true;
-	}
+    // check if need to vibrate
+    if (!state.app_msg_in_drop_alert)
+    {
+    LOG("inbox_drepped_handler_cgm: VIBRATE");
+        CALLBACK(state.gl_cb.alert_handler, APPMSG_INDROP_VIBE);
+        state.app_msg_in_drop_alert = true;
+    }
 
 } // end inbox_dropped_handler_cgm
 
 void outbox_failed_handler_cgm(DictionaryIterator *failed, AppMessageResult appmsg_outfail_error, void *context)
 {
-	// outgoing appmessage send failed to deliver to Pebble
+    // outgoing appmessage send failed to deliver to Pebble
 
-	// VARIABLES
-	DictionaryIterator *iter = NULL;
-	AppMessageResult appmsg_outfail_openerr = APP_MSG_OK;
-	AppMessageResult appmsg_outfail_senderr = APP_MSG_OK;
+    // VARIABLES
+    DictionaryIterator *iter = NULL;
+    AppMessageResult appmsg_outfail_openerr = APP_MSG_OK;
+    AppMessageResult appmsg_outfail_senderr = APP_MSG_OK;
 
-	// CODE START
+    // CODE START
 
-	// APPMSG OUT FAIL debug logs
-//	INFO("APPMSG OUT FAIL ERROR");
-	ERROR("outbox_failed_handler_cgm: ERR CODE: %i RES: %s", appmsg_outfail_error, translate_app_error(appmsg_outfail_error));
+    // APPMSG OUT FAIL debug logs
+//    INFO("APPMSG OUT FAIL ERROR");
+    ERROR("outbox_failed_handler_cgm: ERR CODE: %i RES: %s", appmsg_outfail_error, translate_app_error(appmsg_outfail_error));
 
-	state.bluetooth_is_connected = bluetooth_connection_service_peek();
+    state.bluetooth_is_connected = bluetooth_connection_service_peek();
 
-	if (!state.bluetooth_is_connected)
-	{
-		// bluetooth is out, BT message already set; return out
-		return;
-	}
+    if (!state.bluetooth_is_connected)
+    {
+        // bluetooth is out, BT message already set; return out
+        return;
+    }
 
-	appmsg_outfail_openerr = app_message_outbox_begin(&iter);
+    appmsg_outfail_openerr = app_message_outbox_begin(&iter);
 
-	if (appmsg_outfail_openerr == APP_MSG_OK)
-	{
-		// reset state.app_msg_out_fail_alert to flag for vibrate
-		state.app_msg_out_fail_alert = false;
+    if (appmsg_outfail_openerr == APP_MSG_OK)
+    {
+        // reset state.app_msg_out_fail_alert to flag for vibrate
+        state.app_msg_out_fail_alert = false;
 
-		// send message
-		AppMessageResult appsync_err_senderr = app_message_outbox_send();
-		TRACE("APP SYNC SEND ERR CODE: %i RES: %s", appsync_err_senderr, translate_app_error(appsync_err_senderr));
-		if (appsync_err_senderr != APP_MSG_OK  && appsync_err_senderr != APP_MSG_BUSY && appsync_err_senderr != APP_MSG_SEND_REJECTED)
-		{
-			INFO("APP SYNC SEND ERROR");
-			DEBUG("APP SYNC SEND ERR CODE: %i RES: %s", appsync_err_senderr, translate_app_error(appsync_err_senderr));
-		}
-		return;
-	}
+        // send message
+        AppMessageResult appsync_err_senderr = app_message_outbox_send();
+        TRACE("APP SYNC SEND ERR CODE: %i RES: %s", appsync_err_senderr, translate_app_error(appsync_err_senderr));
+        if (appsync_err_senderr != APP_MSG_OK  && appsync_err_senderr != APP_MSG_BUSY && appsync_err_senderr != APP_MSG_SEND_REJECTED)
+        {
+            INFO("APP SYNC SEND ERROR");
+            DEBUG("APP SYNC SEND ERR CODE: %i RES: %s", appsync_err_senderr, translate_app_error(appsync_err_senderr));
+        }
+        return;
+    }
 
-//	INFO("APPMSG OUT FAIL RESEND ERROR");
-	DEBUG("outbox_failed_handler_cgm RESEND ERR CODE: %i RES: %s", appmsg_outfail_openerr, translate_app_error(appmsg_outfail_openerr));
-	DEBUG("state.app_msg_out_fail_alert: %i", state.app_msg_out_fail_alert);
+//    INFO("APPMSG OUT FAIL RESEND ERROR");
+    DEBUG("outbox_failed_handler_cgm RESEND ERR CODE: %i RES: %s", appmsg_outfail_openerr, translate_app_error(appmsg_outfail_openerr));
+    DEBUG("state.app_msg_out_fail_alert: %i", state.app_msg_out_fail_alert);
 
-	state.bluetooth_is_connected = bluetooth_connection_service_peek();
+    state.bluetooth_is_connected = bluetooth_connection_service_peek();
 
-	if (!state.bluetooth_is_connected || appmsg_outfail_senderr != APP_MSG_SEND_REJECTED)
-	{
-		// bluetooth is out, BT message already set; return out
-		return;
-	}
+    if (!state.bluetooth_is_connected || appmsg_outfail_senderr != APP_MSG_SEND_REJECTED)
+    {
+        // bluetooth is out, BT message already set; return out
+        return;
+    }
 
-	// set message to RESTART WATCH -> PHONE
+    // set message to RESTART WATCH -> PHONE
 #if DEBUG
     CALLBACK(state.wf_cb.set_delta, translate_app_error(appmsg_outfail_openerr), strlen(translate_app_error(appmsg_outfail_openerr));
-	text_layer_set_text(delta_layer, translate_app_error(appmsg_outfail_openerr));
+    text_layer_set_text(delta_layer, translate_app_error(appmsg_outfail_openerr));
 #else
     CALLBACK(state.wf_cb.set_delta, "RSTRT WCH/PHN", 14);
 #endif
 
-	// erase cgm and app ago times
+    // erase cgm and app ago times
     CALLBACK(state.wf_cb.set_cgmtime, "", 0);
-	//text_layer_set_text(time_app_layer, "");
+    //text_layer_set_text(time_app_layer, "");
 
-	// check if need to vibrate
-	if (!state.app_msg_out_fail_alert)
-	{
-		LOG("outbox_failed_handler_cgm: VIBRATE");
+    // check if need to vibrate
+    if (!state.app_msg_out_fail_alert)
+    {
+        LOG("outbox_failed_handler_cgm: VIBRATE");
         CALLBACK(state.gl_cb.alert_handler, APPMSG_OUTFAIL_VIBE);
-		state.app_msg_out_fail_alert = true;
-	}
+        state.app_msg_out_fail_alert = true;
+    }
 
 } // end outbox_failed_handler_cgm
 
@@ -407,6 +479,7 @@ void comm_request_png(GRect bounds)
 
 void comm_request_heartbeat(void)
 {
+<<<<<<< HEAD
 	comm_heartbeat hb = {0}; // force zero init
     // send if we are a colour pebble or not 
 #ifdef PBL_COLOR
@@ -436,26 +509,57 @@ void comm_request_heartbeat(void)
 	/* hb.send_iob = 1; */
 	/* hb.send_pump_state = 1; */
 	/* hb.send_pump_battery = 1; */
+=======
+    comm_heartbeat hb = {0}; // force zero init
+    // send if we are a colour pebble or not 
+#ifdef PBL_COLOR
+    hb.colour = 1;
+#else 
+    hb.colour = 0;
+#endif
+
+    hb.time_series = state.use_png ? 0 : 1;
+
+    // currently not used
+#ifdef PBL_PLATFORM_GABBRO
+    hb.time_period = 1;
+#else
+    hb.time_period = 3;
+#endif
+#ifdef ENABLE_TREND_RENDERER
+    // trend line and limit values
+    if (!trend_isinitialized() && !state.use_png) { 
+        hb.high_limit = 1;
+        hb.low_limit = 1;
+    }
+#endif
+
+    // pump values
+    // these are currently not implemented in xdrip
+    /* hb.send_iob = 1; */
+    /* hb.send_pump_state = 1; */
+    /* hb.send_pump_battery = 1; */
+>>>>>>> 8e90c063f1eaba42df770d5125fd04224f79c063
    
 
     // update cgm triggers quite a bit of data, it at least requires the delta and slope
     // xdrip decides what to send with respect to the CGM_TIME and if use_png is set or not
     // Due to xdrip possibly not knowing what the state of the screen is the png size is also
     // send to xdrip
-	if (state.dirty.need_cgm) {
-		hb.send_slope_arrow = 1;
-		hb.send_delta_value = 1;
+    if (state.dirty.need_cgm) {
+        hb.send_slope_arrow = 1;
+        hb.send_delta_value = 1;
         comm_schedule_item(FRAMEWORK_BGL_VALUE, &state.cgm_time, sizeof(state.cgm_time), COMM_TYPE_UINT32);
-		if (state.use_png) {
-			comm_request_png(state.wf_cb.trend_bounds());
-		}
-	}
+        if (state.use_png) {
+            comm_request_png(state.wf_cb.trend_bounds());
+        }
+    }
 
     if (state.right_text_field == METRIC_SENSOR_EXPIRY || state.left_text_field == METRIC_SENSOR_EXPIRY) {
         hb.send_sensor_info = 1;
     }
 
-	if (state.right_text_field == METRIC_PHONEBATT || state.left_text_field == METRIC_PHONEBATT) hb.send_phone_battery = 1;
+    if (state.right_text_field == METRIC_PHONEBATT || state.left_text_field == METRIC_PHONEBATT) hb.send_phone_battery = 1;
 
     comm_schedule_item(FRAMEWORK_HEARTBEAT, &hb.raw, sizeof(hb.raw), COMM_TYPE_UINT32);
 
@@ -477,15 +581,15 @@ void comm_send_health(comm_health data)
 void health_send_values(void *data) {
     INFO("Health send values");
 
-	if (!state.collect_health || state.bluetooth_alert) return;
+    if (!state.collect_health || state.bluetooth_alert) return;
 
-	CALLBACK(state.gl_cb.health_poll);
-	if (state.hbm == 0 && state.step_count == 0) return;
+    CALLBACK(state.gl_cb.health_poll);
+    if (state.hbm == 0 && state.step_count == 0) return;
 #ifdef PBL_HEALTH
-	comm_send_health((comm_health){
-		.heart_rate = (uint16_t) state.hbm,
-		.steps = (uint32_t) state.step_count,
-	});
+    comm_send_health((comm_health){
+        .heart_rate = (uint16_t) state.hbm,
+        .steps = (uint32_t) state.step_count,
+    });
 #endif
 
 }
@@ -505,20 +609,20 @@ void comm_send_treatment(int32_t basal, int32_t bolus, int32_t carbs)
 
 void comm_inbox_received_handler(DictionaryIterator *iterator, void *context)
 {
-	Tuple *data = dict_read_first(iterator);
-//	TRACE("SYNC TUPLE");
-	LOG("inbox_received_callback_cgm: got dictionary");
+    Tuple *data = dict_read_first(iterator);
+//    TRACE("SYNC TUPLE");
+    LOG("inbox_received_callback_cgm: got dictionary");
 
-	if (state.global_lock)
-	{
-		LOG("inbox_received_handler_cgm: GLOBALLY LOCKED");
-		return;
-	}
+    if (state.global_lock)
+    {
+        LOG("inbox_received_handler_cgm: GLOBALLY LOCKED");
+        return;
+    }
 
 
-	// CODE START
-	while ((data != NULL) && (!state.global_lock))
-	{
+    // CODE START
+    while ((data != NULL) && (!state.global_lock))
+    {
         for (int i = 0; i < comm_handlers_count; i++) {
 #pragma GCC diagnostic ignored "-Wunused-variable"
 #pragma GCC diagnostic push 
@@ -526,8 +630,8 @@ void comm_inbox_received_handler(DictionaryIterator *iterator, void *context)
             TRACE("Iterator handler %d, processed: %d", i, processed);
 #pragma GCC diagnostic pop
         }
-		data = dict_read_next(iterator);
-	}
+        data = dict_read_next(iterator);
+    }
 } // end comm_inbox_received_handler 
 
 void alert_snooze(void) {
@@ -564,14 +668,14 @@ bool comm_send_next(void)
 {
     if (send_items == NULL) return true;
 
-	DictionaryIterator *iter = NULL;
-	AppMessageResult sendcmd_openerr = app_message_outbox_begin(&iter);
+    DictionaryIterator *iter = NULL;
+    AppMessageResult sendcmd_openerr = app_message_outbox_begin(&iter);
     if (sendcmd_openerr != APP_MSG_OK) {
-		ERROR("send_cmd_cgm: ERR CODE: %i RES: %s", sendcmd_openerr, translate_app_error(sendcmd_openerr));
+        ERROR("send_cmd_cgm: ERR CODE: %i RES: %s", sendcmd_openerr, translate_app_error(sendcmd_openerr));
         return false;
     }
 
-	AppMessageResult sendcmd_senderr = APP_MSG_OK;
+    AppMessageResult sendcmd_senderr = APP_MSG_OK;
 
 
     comm_item *item = send_items;
@@ -598,16 +702,16 @@ bool comm_send_next(void)
         item = item->next;
     }
 
-	dict_write_end(iter);
+    dict_write_end(iter);
 
-	TRACE("send_cmd_cgm: Opening outbox");
-	sendcmd_senderr = app_message_outbox_send();
+    TRACE("send_cmd_cgm: Opening outbox");
+    sendcmd_senderr = app_message_outbox_send();
     // if not succesful, keep message in chain
-	if (sendcmd_senderr != APP_MSG_OK)
-	{
-		ERROR("send_cmd_cgm: ERR CODE: %i RES: %s", sendcmd_senderr, translate_app_error(sendcmd_senderr));
+    if (sendcmd_senderr != APP_MSG_OK)
+    {
+        ERROR("send_cmd_cgm: ERR CODE: %i RES: %s", sendcmd_senderr, translate_app_error(sendcmd_senderr));
         return false;
-	}
+    }
 
     while (send_items != NULL) send_items = free_comm_item(send_items);
     return true;
