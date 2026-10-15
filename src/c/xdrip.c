@@ -47,7 +47,7 @@ void health_poll(void) {
     if (!state.collect_health) return;
 
     time_t now = time(NULL);
-#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_DEORITE)
+#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_DIORITE)
     if (health_service_metric_accessible(HealthMetricHeartRateBPM, now, now)
         & HealthServiceAccessibilityMaskAvailable) {
         HealthValue bpm = health_service_peek_current_value(HealthMetricHeartRateBPM);
