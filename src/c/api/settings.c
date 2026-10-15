@@ -10,6 +10,7 @@ static AppState *state;
 #define LOG_SETTING_INT(s)  LOG("state: " #s " = %d", (int32_t) state-> s) 
 
 void settings_init(AppState *values) {
+
     DEBUG("Initializing state");
     // set local pointer
     state = values;
@@ -108,6 +109,7 @@ void settings_init(AppState *values) {
 }
 
 void settings_deinit(void) {
+
     state->stored_time = time(NULL);
     state->storage_marker = STORAGE_MARKER;
     persist_write_data(STORED_DATA, state->state_blob, sizeof(state->state_blob));
@@ -148,6 +150,7 @@ void settings_deinit(void) {
 }
 
 bool settings_receiver(Tuple *data) {
+
     bool rv = true;
 
     switch (data->key)

@@ -23,6 +23,7 @@ trend_config config = {
 static void trend_layer_callback(Layer *layer, GContext *ctx);
 
 void trend_init(Layer *layer) {
+
     config.layer = layer;
     config.bgl.initialized = 0;
     if (persist_exists(STORED_TREND)) {
@@ -88,6 +89,7 @@ void trend_init(Layer *layer) {
 }
 
 void trend_deinit(void) {
+
     if (config.layer != NULL) {
         layer_set_hidden(config.layer, true);
         layer_set_update_proc(config.layer, NULL); // discard
@@ -125,6 +127,7 @@ static inline void draw_bgl_point(trend_bgl_value value, int16_t x, GRect bounds
 }
 
 static inline void draw_bgl_line(trend_bgl_value value, trend_bgl_value value2, int16_t x1, int16_t x2, GRect bounds, GContext *ctx) {
+
     /**
      * Since the trend image is just a graph, we do not need to know the 
      * actual type of data
@@ -162,6 +165,7 @@ static inline int16_t lerp(int32_t y0, int32_t y1, uint32_t t) {
 
 // only allow dots on aplite to save memory
 static bool draw_trend(Layer *layer, GContext *ctx) {
+
     graphics_context_set_stroke_width(ctx, config.trend_width); // constant
 
     GRect bounds = layer_get_bounds(layer);
@@ -244,6 +248,7 @@ static bool draw_trend(Layer *layer, GContext *ctx) {
 }
 
 static bool draw_trend_lines(Layer *layer, GContext *ctx) {
+
     // top is 0,0
     // excape if no line needs to be drawn
     GRect bounds = layer_get_bounds(layer);
@@ -390,6 +395,7 @@ static bool draw_trend_lines(Layer *layer, GContext *ctx) {
 }
 
 void trend_layer_callback(Layer *layer, GContext *ctx) {
+
     TRACE("Drawing trend");
     // auto scale
     int16_t highest = 0, limit = config.bgl_high_limit;
@@ -417,6 +423,7 @@ void trend_layer_callback(Layer *layer, GContext *ctx) {
 }
 
 void trend_draw(void) {
+
     DEBUG(TREND_LOG "Marking trend layer dirty");
     config.redraw = 1;
     if (config.layer != NULL) layer_mark_dirty(config.layer);
@@ -428,6 +435,7 @@ void trend_draw(void) {
  */
 
 void trend_set_series(comm_bgl_series *values) {
+
 
     TRACE(TREND_LOG "Trend set series"); 
     if (!config.bgl.initialized) {
@@ -450,6 +458,7 @@ void trend_set_series(comm_bgl_series *values) {
 }
 
 void trend_set_value(comm_bgl_data *value) {
+
     TRACE(TREND_LOG "Trend set value");
     config.bgl.values[config.bgl.index % (config.bgl.size)] = value->bgl.value;
     config.bgl.index++;
@@ -459,6 +468,7 @@ void trend_set_value(comm_bgl_data *value) {
 }
 
 bool trend_receiver(Tuple *data) {
+
     bool rv = true;
     DEBUG("Trend key: %d", data->key);
     switch (data->key) {
@@ -552,6 +562,7 @@ bool trend_receiver(Tuple *data) {
 
 
 void trend_set_high_line(comm_high_limit value) {
+
     DEBUG("High line limit: %hd %hd", value.high_line, value.high_limit);
     config.bgl_high_line = value.high_line;
     config.bgl_high_limit = value.high_limit;
@@ -561,6 +572,7 @@ void trend_set_high_line(comm_high_limit value) {
 }
 
 void trend_set_low_line(comm_low_limit value) {
+
     DEBUG("Low line limit: %hd %hd", value.low_line, value.low_limit);
     config.bgl_low_line = value.low_line;
     config.bgl_low_limit = value.low_limit;

@@ -33,6 +33,7 @@ void comm_inbox_received_handler(DictionaryIterator *iterator, void *context);
 
 void comm_init(void)
 {
+
     /* state = value; */
     cb = &state.comm_callbacks;
 
@@ -55,6 +56,7 @@ void comm_init(void)
 
 bool comm_receiver(Tuple *data)
 {
+
     uint32_t key = data->key;
     INFO(CM "Key: %d", key);
 
@@ -161,6 +163,7 @@ bool comm_receiver(Tuple *data)
 void sync_error_callback_cgm(DictionaryResult appsync_dict_error, AppMessageResult appsync_error, void *context)
 {
 
+
     // VARIABLES
     DictionaryIterator *iter = NULL;
     AppMessageResult appsync_err_openerr = APP_MSG_OK;
@@ -236,6 +239,7 @@ void sync_error_callback_cgm(DictionaryResult appsync_dict_error, AppMessageResu
 
 void inbox_dropped_handler_cgm(AppMessageResult appmsg_indrop_error, void *context)
 {
+
     // incoming appmessage send back from Pebble app dropped; no data received
 
     // VARIABLES
@@ -305,6 +309,7 @@ void inbox_dropped_handler_cgm(AppMessageResult appmsg_indrop_error, void *conte
 
 void outbox_failed_handler_cgm(DictionaryIterator *failed, AppMessageResult appmsg_outfail_error, void *context)
 {
+
     // outgoing appmessage send failed to deliver to Pebble
 
     // VARIABLES
@@ -380,6 +385,7 @@ void outbox_failed_handler_cgm(DictionaryIterator *failed, AppMessageResult appm
 
 
 void comm_add_receiver(comm_iterator function) {
+
     if (comm_handlers == NULL) {
         comm_handlers = malloc(sizeof(comm_iterator));
         comm_handlers[0] = function;
@@ -406,6 +412,7 @@ void comm_request_png(GRect bounds)
 
 void comm_request_heartbeat(void)
 {
+
     comm_heartbeat hb = {0}; // force zero init
     // send if we are a colour pebble or not 
 #ifdef PBL_COLOR
@@ -445,7 +452,7 @@ void comm_request_heartbeat(void)
         hb.send_slope_arrow = 1;
         hb.send_delta_value = 1;
         comm_schedule_item(FRAMEWORK_BGL_VALUE, &state.cgm_time, sizeof(state.cgm_time), COMM_TYPE_UINT32);
-        if (state.use_png) {
+        if (state.use_png && state.wf_cb.trend_bounds != NULL) {
             comm_request_png(state.wf_cb.trend_bounds());
         }
     }
@@ -463,6 +470,7 @@ void comm_request_heartbeat(void)
 #ifdef PBL_HEALTH
 void comm_send_health(comm_health data)
 {
+
     TRACE(CM "Sending health hr=%d steps=%d", data.heart_rate, (int) data.steps);
     if (data.heart_rate > 0) comm_schedule_item(FRAMEWORK_HEALTH_HR, &data.heart_rate, sizeof(data.heart_rate), COMM_TYPE_UINT16); 
     if (data.steps > 0)      comm_schedule_item(FRAMEWORK_HEALTH_STEPS, &data.steps, sizeof(data.steps), COMM_TYPE_UINT32); 
@@ -489,18 +497,19 @@ void health_send_values(void *data) {
 
 }
 
-#ifdef ENABLE_TOUCH
 void comm_send_treatment(int32_t basal, int32_t bolus, int32_t carbs)
 {
+#ifdef ENABLE_TOUCH
+
     comm_treatment values = {
         .basal = basal,
         .bolus = bolus,
         .carbs = carbs
     };
     comm_schedule_item(FRAMEWORK_TREATMENT, &values, sizeof(values), COMM_TYPE_BYTES);
+#endif
 } // end comm_send_treatment
 
-#endif
 
 void comm_inbox_received_handler(DictionaryIterator *iterator, void *context)
 {
@@ -530,6 +539,7 @@ void comm_inbox_received_handler(DictionaryIterator *iterator, void *context)
 } // end comm_inbox_received_handler 
 
 void alert_snooze(void) {
+
     // for now base on bgl value
     comm_alert values = {
         .snooze = state.bgl_value.value > 108 ? state.snooze_high : state.snooze_low,
@@ -561,6 +571,7 @@ comm_item *free_comm_item(comm_item *item) {
 
 bool comm_send_next(void)
 {
+
     if (send_items == NULL) return true;
 
     DictionaryIterator *iter = NULL;
@@ -614,6 +625,7 @@ bool comm_send_next(void)
 
 
 void comm_send_handler_reschedule(void) {
+
     DEBUG("Rescheduling send handler");
     if (NULL == send_timer || !app_timer_reschedule(send_timer, backoffs[backoff])) {
         send_timer = app_timer_register(backoffs[backoff], comm_send_handler, NULL);
@@ -621,6 +633,7 @@ void comm_send_handler_reschedule(void) {
 }
 
 void comm_send_handler(void *data) {
+
     // clear timer
     send_timer = NULL;
 
@@ -636,6 +649,7 @@ void comm_send_handler(void *data) {
 
 void comm_schedule_item(int32_t code, void *data, size_t size, enum comm_type type) {
     DEBUG("SCHEDULING: %d", code);
+
     // check if heartbeat or bgl request, only ever send one of those
     if (code == FRAMEWORK_HEARTBEAT || code == FRAMEWORK_BGL_VALUE) {
         comm_item *t = send_items;
@@ -689,6 +703,7 @@ void comm_schedule_item(int32_t code, void *data, size_t size, enum comm_type ty
 }
 
 void comm_unschedule_items(int32_t code) {
+
     if (send_items == NULL) return;
 
     comm_item *current = send_items;
