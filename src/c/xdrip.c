@@ -363,20 +363,14 @@ void reset_stale_timer_callback(void) {
     int32_t interval = now - state.cgm_time;
     /**
      * stale data timer logic:
+     * data is likely valid, time since last update > stale timer -> report stale message
      * data is valid, we have data and data present is smaller than sensor update interval -> wait till sensor interval + 5s
      * data is valid, time is greater than last known + sensor interval -> request update
-     * data is likely valid, time since last update > stale timer -> report stale message
      * data is invalid, we have some data and data present is smaller than sensor update interval -> request reset
      * data is invalid, we have no data -> request reset
      */
 
-    if (state.dirty.need_cgm == 0 && interval < state.sensor.interval) {
-        DEBUG("Normal reset");
-        timeout = (state.sensor.interval - (now - state.cgm_time) + SENSOR_DELAY_TIME) * MS_IN_A_SECOND;
-    } else if (state.dirty.need_cgm == 0 && interval > state.sensor.interval && interval < state.sensor.interval + 60) {
-        DEBUG("Normal interval");
-        timeout = (state.sensor.interval + SENSOR_DELAY_TIME) * MS_IN_A_SECOND;
-    } else if (interval > (int32_t) state.stale_data_timeout / 1000 && state.cgm_time != 0) {
+    if (interval > (int32_t) state.stale_data_timeout / 1000 && state.cgm_time != 0) {
         DEBUG("Stale data: %d %d", state.stale_data_timeout / 1000, interval);
         CALLBACK(state.wf_cb.set_delta, "Stale Data!", sizeof("Stale Data!")); // this has no effect if bluetooth is off 
         CALLBACK(state.gl_cb.alert_handler, APPSYNC_ERR_VIBE);
@@ -392,6 +386,12 @@ void reset_stale_timer_callback(void) {
 #else
         if (NULL == deffered_send_cmd_cgm_timer) deffered_send_cmd_cgm_timer = app_timer_register(500, deferred_send_cmd_cgm, NULL);
 #endif
+    } else if (state.dirty.need_cgm == 0 && interval < state.sensor.interval) {
+        DEBUG("Normal reset");
+        timeout = (state.sensor.interval - (now - state.cgm_time) + SENSOR_DELAY_TIME) * MS_IN_A_SECOND;
+    } else if (state.dirty.need_cgm == 0 && interval > state.sensor.interval && interval < state.sensor.interval + 60) {
+        DEBUG("Normal interval");
+        timeout = (state.sensor.interval + SENSOR_DELAY_TIME) * MS_IN_A_SECOND;
     } else {
         DEBUG("Invalid data");
         DEBUG("%d %d %d", state.dirty.need_cgm, interval, state.stale_data_timeout);
