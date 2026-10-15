@@ -1,5 +1,5 @@
 #include <pebble.h>
-#ifdef PBL_TOUCH
+#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_GABBRO)
 #include <stdarg.h>
 #include "../debug.h"
 #include "ui_treatment.h"
