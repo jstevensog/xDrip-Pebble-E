@@ -8,6 +8,7 @@
 #include "api/trend.h"
 #endif
 #include "ui/ui_og.h"
+#include "ui/ui_gabbro.h"
 #include "api/settings.h"
 
 /**
@@ -44,6 +45,7 @@ static void send_cmd_cgm(void);
 // rest, so we read on demand from health_handler and the minute tick rather
 // than keying off a specific event.
 void health_poll(void) {
+
     if (!state.collect_health) return;
 
     time_t now = time(NULL);
@@ -65,6 +67,7 @@ void health_poll(void) {
 
 // health_handler - handler to deal with health events
 void health_handler(HealthEventType event, void *context) {
+
     // Which type of event occurred?
     switch(event) {
         case HealthEventSignificantUpdate:
@@ -91,16 +94,18 @@ void health_handler(HealthEventType event, void *context) {
 
     }
     health_poll();
-    update_health_metric_displays();
+    CALLBACK(state.wf_cb.update_health_displays);
 } //end health_handler
 
 void health_send(void *data) {
+
     health_send_timer = NULL;
     health_send_values(NULL);
 }
 // health_schedule_send - arm the one-shot send timer. Called from the CGM
 // receive path so the reply goes out while the phone is awake.
 void health_schedule_send(void) {
+
     INFO("HEALTH SEND SCHEDULE: %d", state.collect_health);
     if (!state.collect_health) return;
     if (health_send_timer == NULL || !app_timer_reschedule(health_send_timer, 2000)) {
@@ -113,6 +118,7 @@ void health_schedule_send(void) {
 // battery_handler - updates the pebble battery percentage.
 static void battery_handler()
 {
+
     BatteryChargeState charge_state = battery_state_service_peek();
 
     state.battery_is_charging = charge_state.is_charging;
@@ -123,6 +129,7 @@ static void battery_handler()
 
 static void alert_handler_cgm(uint8_t alertValue)
 {
+
     TRACE("ALERT HANDLER");
     LOG("alert_handler: alertValue: %d", alertValue);
     // CONSTANTS
@@ -215,6 +222,7 @@ void BT_timer_callback(void *data);
 
 void handle_bluetooth_cgm(bool bt_connected)
 {
+
     TRACE("HANDLE BT: ENTER CODE");
 
     state.bluetooth_is_connected = bt_connected;
@@ -269,7 +277,7 @@ void handle_bluetooth_cgm(bool bt_connected)
             // make sure we get the data we need
             //dirty.need_cgm = 1;
             state.cgm_time = 0;
-                        state.gl_cb.update_stale_timeout();
+            CALLBACK(state.gl_cb.update_stale_timeout);
         }
 
         // erase cgm and app ago times
@@ -290,7 +298,7 @@ void handle_bluetooth_cgm(bool bt_connected)
         }
         // mark data as dirty to prompt hb send
 #ifdef PBL_COLOR
-                CALLBACK(state.wf_cb.update_colours);
+        CALLBACK(state.wf_cb.update_colours);
 #endif
 
     }
@@ -301,6 +309,7 @@ void handle_bluetooth_cgm(bool bt_connected)
 
 void BT_timer_callback(void *data)
 {
+
     TRACE("BT TIMER CALLBACK: ENTER CODE");
 
     // reset timer pop and timer
@@ -321,6 +330,7 @@ void BT_timer_callback(void *data)
 static void send_cmd_cgm(void)
 {
 
+
     if(state.bluetooth_alert)
     {
         //BT is down rignt now, so don't do anything.
@@ -338,6 +348,7 @@ static void send_cmd_cgm(void)
 
 
 bool stale_receiver(Tuple *data) {
+
     //assume dictionary from xDrip.  So reset the stale_data_timer
     if(data->key == FRAMEWORK_BGL_VALUE || data->key == FRAMEWORK_BGL_SERIES) 
     {
@@ -350,12 +361,14 @@ bool stale_receiver(Tuple *data) {
 
 AppTimer *deffered_send_cmd_cgm_timer = NULL;
 void deferred_send_cmd_cgm(void *data) {
+
     deffered_send_cmd_cgm_timer = NULL;
     send_cmd_cgm();
 }
 
 #define SENSOR_DELAY_TIME 15 // average is about 5-7s for DxOne+
 void reset_stale_timer_callback(void) {
+
     INFO("STALE TIMER RESET");
 
     int32_t timeout = MS_IN_A_SECOND; // 1s
@@ -415,6 +428,7 @@ void reset_stale_timer_callback(void) {
 // stale data tick handler
 void handle_stale_data_tick(void *data)
 {
+
     INFO("handle_stale_data_tick: entered");
     stale_data_timer = NULL;
     reset_stale_timer_callback();
@@ -424,6 +438,7 @@ void handle_stale_data_tick(void *data)
 // second tick handler, used for seconds display
 void handle_second_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cgm)
 {
+
     TRACE("handle_second_tick_cgm:");
     // CODE START
     handling_second = true;
@@ -455,6 +470,7 @@ void handle_minute_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
 
 static void init_cgm(void)
 {
+
     LOG("init_cgm");
     comm_init();
     settings_init(&state); // register appmg updates and callbacks
@@ -464,10 +480,10 @@ static void init_cgm(void)
 #ifdef ENABLE_TREND_RENDERER
     comm_add_receiver(trend_receiver);
 #endif
-
+    state.use_analogue_wf = 1;
     if (state.use_analogue_wf) {
 #ifdef PBL_PLATFORM_GABBRO
-        // not yet implemented
+        ui_gabbro_init();
 #endif
     } else {
         ui_og_init(&state); // register main ui and callbacks
@@ -482,9 +498,9 @@ static void init_cgm(void)
     TRACE("INIT CODE IN");
 
     // subscribe to the tick timer service
-    if (state.enable_seconds) tick_timer_service_subscribe(SECOND_UNIT, &handle_second_tick_cgm);
+    if (state.enable_seconds) tick_timer_service_subscribe(SECOND_UNIT, handle_second_tick_cgm);
 
-    tick_timer_service_subscribe(MINUTE_UNIT, &handle_minute_tick_cgm);
+    tick_timer_service_subscribe(MINUTE_UNIT, handle_minute_tick_cgm);
 
     stale_data_timer = app_timer_register(state.stale_data_timeout, handle_stale_data_tick, NULL);
 
@@ -494,12 +510,6 @@ static void init_cgm(void)
     //subscribe to the battery handler
     battery_state_service_subscribe(battery_handler);
     battery_handler();
-
-
-    // subscribe to the minute and second timers
-    if (state.enable_seconds) tick_timer_service_subscribe(SECOND_UNIT, state.gl_cb.second_tick);
-
-    tick_timer_service_subscribe(MINUTE_UNIT, state.gl_cb.minutes_tick);
 
 #ifdef PBL_HEALTH
     //subscribe to the health service
@@ -525,6 +535,7 @@ static void init_cgm(void)
 
 static void deinit_cgm(void)
 {
+
     INFO("DEINIT CODE IN");
     // Make sure we are not handling a second tick.
     while (handling_second) {};
@@ -598,7 +609,8 @@ int mgdl_to_mmoll_str(int mgdl, char *result, const int size, int unit) {
 
 int main(void)
 {
+
     init_cgm();
     app_event_loop();
     deinit_cgm();
-} // end mai
+} // end main

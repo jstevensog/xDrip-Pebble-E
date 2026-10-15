@@ -102,6 +102,8 @@ void load_cgmtime(void);
 void load_bg_delta(void);
 void load_battlevel_phone(void);
 
+void update_health_metric_displays();
+
 extern AppState state;
 
 /**
@@ -194,6 +196,7 @@ void create_update_bitmap(GBitmap **bmp_image, BitmapLayer *bmp_layer, const int
 void draw_date_from_app()
 {
 
+
     // VARIABLES
     time_t d_app = time(NULL);
     struct tm *current_d_app = localtime(&d_app);
@@ -229,6 +232,7 @@ void draw_date_from_app()
 #else
 #if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_DEORITE)
 static void hr_draw_callback(void *context) {
+
     INFO("Drawing HRM");
     if (state.left_text_field == METRIC_HEARTRATE && state.dirty.hbm) {
         if (state.hbm == 0) snprintf(left_text, STATUS_TEXT_SIZE, "Wait.. " HRM_ICON);
@@ -246,6 +250,7 @@ static void hr_draw_callback(void *context) {
 #endif
 
 void update_health_metric_displays() {
+
     int step_count = 0;
 
     // If there are no health metrics to display, do nothing and return.
@@ -313,6 +318,7 @@ void update_health_metric_displays() {
  * Sensor info drawing into the two state fields
  */
 void update_sensor_info_displays(void) {
+
     // should only get triggered on redraw is requested
     if ((state.left_text_field == METRIC_SENSOR_EXPIRY || state.right_text_field == METRIC_SENSOR_EXPIRY)) {
         char *sensor_info_text = state.left_text_field == METRIC_SENSOR_EXPIRY ? left_text : right_text;
@@ -380,6 +386,7 @@ void touch_timer_handler(void *context) {
 #define TOUCH_TICKS_REQUIRED 5
 
 void touch_handler(const TouchEvent *event, void *context) {
+
     switch(event->type) {
         case TouchEvent_Touchdown:
             TRACE("DOWN : %dx%d", event->x, event->y);
@@ -447,6 +454,7 @@ void touch_handler(const TouchEvent *event, void *context) {
 }
 
 static void swipe_handler(const Recognizer *recognizer, RecognizerEvent event) {
+
     switch (event) {
     case RecognizerEvent_Updated: {
         // delta_since_start is (0, 0) at Start, so the content does not jump.
@@ -469,6 +477,7 @@ Recognizer *swipe_treatment = NULL;
 Recognizer *swipe_alert_snooze = NULL;
 
 void update_touch_method(void) {
+
     // touch setting has changed, resubscribe
     touch_service_unsubscribe(); 
 
@@ -536,6 +545,7 @@ void update_touch_method(void) {
  * Ticks
  */
 void seconds_tick(struct tm* tick_time_cgm, TimeUnits units_changed) {
+
     // VARIABLES
     size_t tick_return_cgm = 0;
     if (SECOND_UNIT && state.enable_seconds)
@@ -550,6 +560,7 @@ void seconds_tick(struct tm* tick_time_cgm, TimeUnits units_changed) {
 }
 
 void minutes_tick(struct tm *tick_time_cgm, TimeUnits units_changed) {
+
 
     // VARIABLES
     size_t tick_return_cgm = 0;
@@ -591,6 +602,7 @@ void minutes_tick(struct tm *tick_time_cgm, TimeUnits units_changed) {
 // message/delta tick layer
 void handle_message_tick(void *data) 
 {
+
     INFO("handle_message_tick: Handling alert tick, display_message is %i", state.show_message);
     if (state.show_message) update_message_timeout(state.message_timeout);
 }
@@ -614,6 +626,7 @@ void set_battery_data(char *watch_battlevel_percent, size_t length, int value) {
 }
 
 void load_battery_watch(void) {
+
     LOG(" load_battery_watch: BackLightOnCharge: %u", state.backlight_on_charge);
     if(state.backlight_on_charge)
     {
@@ -742,6 +755,7 @@ void load_battery_watch(void) {
  */
 void update_colours(void)
 {
+
 #ifdef PBL_COLOR
     if(state.fields_same_colour) {
         bitmap_layer_set_background_color(upper_face_layer, state.background_colour);
@@ -780,6 +794,7 @@ void update_colours(void)
 
 #ifdef ENABLE_TOUCH
 void update_touch(void) {
+
     if (state.touch_support) {
         app_touch_navigation_enable(true);
         update_touch_method();
@@ -790,6 +805,7 @@ void update_touch(void) {
 }
 #endif
 void update_text_fields(TextLayer *txt, uint8_t field) {
+
     update_colours(); // in case it's not visible
     switch (field) {
         case METRIC_NONE: // fall through
@@ -817,16 +833,19 @@ void update_text_fields(TextLayer *txt, uint8_t field) {
 }
 
 void update_left_field(void) {
+
     LOG("Left field");
     update_text_fields(bottom_left_text_layer, state.left_text_field);
 }
 
 void update_right_field(void) {
+
     LOG("Right field");
     update_text_fields(bottom_right_text_layer, state.right_text_field);
 }
 
 void update_trend(void) {
+
     LOG("Update trend?");
     if (!state.use_png) {
         trend_init(bitmap_layer_get_layer(bg_trend_layer_draw));
@@ -842,6 +861,7 @@ void update_trend(void) {
 }
 
 void update_timeago(void) {
+
     if(state.bold_timeago) {
         text_layer_set_font(cgmtime_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
     }
@@ -852,6 +872,7 @@ void update_timeago(void) {
 }
 
 void update_seconds_timer(bool sw) {
+
     if(state.enable_seconds)
     {
         if (sw) {
@@ -907,12 +928,14 @@ void update_seconds_timer(bool sw) {
 }
 
 void update_message_timeout(uint32_t timeout) {
+
     if (message_tick_timer != NULL && !app_timer_reschedule(message_tick_timer, timeout)) {
         message_tick_timer = app_timer_register(timeout, handle_message_tick, NULL);
     }
 }
 
 void update_collect_health(void) {
+
 #ifdef PBL_HEALTH
 #if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_DIORITE)
     // sample HR on a fixed cadence while collecting so we
@@ -939,6 +962,7 @@ void update_collect_health(void) {
 }
 
 void update_message(void) {
+
     if(state.show_message)
     {
         layer_set_hidden((Layer *)message_layer, !(layer_get_hidden((Layer *)message_layer)));
@@ -967,6 +991,7 @@ void update_message(void) {
  */
 // snprintf does not support float!
 void comm_set_bgl_delta(comm_bgl_delta value) {
+
     char text[14];
     state.delta = value;
     DEBUG("Delta units: undefined: %d mmol: %d display: %d value: %d hidden: %d", 
@@ -990,26 +1015,31 @@ void comm_set_bgl_delta(comm_bgl_delta value) {
 }
 
 void comm_set_icon(comm_slopeval value) {
+
     DEBUG("set_icon: comm_slopeval = %d, set_icon = %d, icon visibility = %d", value, state.show_slope, layer_get_hidden(bitmap_layer_get_layer(icon_layer)));
     set_icon(value);
 }
 
 void comm_set_phone_battery(comm_phonebat value) {
+
     state.phone_battery_level = value;
     load_battlevel_phone();
 }
 
 void comm_set_bwp(comm_bwp_value value) {
+
     snprintf(current_bg_delta, sizeof(current_bg_delta), BWP_SYMBOL "%lu", value);
     state.dirty.delta = 1;
     load_bg_delta();
 }
 
 void comm_set_vibrate(comm_vibe value) {
+
     if (!state.bluetooth_alert) state.gl_cb.alert_handler(value);
 }
 
 void comm_set_bgl_timestamp(uint32_t timestamp) {
+
     TRACE("Set BGL Timestamp");
     if (state.use_png) {
         state.cgm_time = timestamp;
@@ -1023,6 +1053,7 @@ void comm_set_bgl_timestamp(uint32_t timestamp) {
 }
 
 void comm_set_bgl_value(comm_bgl_value value) {
+
     TRACE("Set BGL Value");
     state.bgl_value = value;
     if (value.is_mmol) {
@@ -1037,6 +1068,7 @@ void comm_set_bgl_value(comm_bgl_value value) {
  * update bgl values and timestamp
  */
 void comm_set_bgl_data(comm_bgl_data *value) {
+
     TRACE("Set BGL Data");
     if (value->timestamp != state.cgm_time) {
         DEBUG("%d vs %d %d", value->timestamp, state.cgm_time, value->timestamp - state.cgm_time);
@@ -1054,6 +1086,7 @@ void comm_set_bgl_data(comm_bgl_data *value) {
  * do not have to copy it
  */
 void comm_set_png(comm_png_data *data) {
+
     TRACE("Setting PNG");
     if (data->hidden != state.show_trend) {
         state.show_trend = !data->hidden;
@@ -1083,6 +1116,7 @@ void comm_set_png(comm_png_data *data) {
 }
 
 void comm_set_bgl_series(comm_bgl_series *series) {
+
     state.dirty.need_cgm = 0;
     trend_set_series(series);
     if (series->hidden != state.show_trend) {
@@ -1094,10 +1128,12 @@ void comm_set_bgl_series(comm_bgl_series *series) {
 }
 
 void comm_set_message(comm_message message) {
+
     set_message(message.message, message.length);
 }
 
 void comm_set_sensor_info(comm_sensor_info *value) {
+
     // only update if need be, which it likely is since we received this message
     if (state.left_text_field == METRIC_SENSOR_EXPIRY || state.right_text_field == METRIC_SENSOR_EXPIRY) {
         // store state.sensor_end_time
@@ -1114,6 +1150,7 @@ void comm_set_sensor_info(comm_sensor_info *value) {
  */
 
 void set_message(char *message, size_t length) {
+
     LOG("Setting message_layer visible");
     memcpy(
             message_layer_text,
@@ -1129,11 +1166,13 @@ void set_message(char *message, size_t length) {
 }
 
 void set_icon(uint8_t icon) {
+
     state.icon = icon;
     load_icon();
 }
 
 void set_delta(char *message, size_t length) {
+
     length = length < sizeof(current_bg_delta) ? length : sizeof(current_bg_delta) - 1;
     memcpy(current_bg_delta, message, length);
     current_bg_delta[length] = '\0';
@@ -1142,11 +1181,13 @@ void set_delta(char *message, size_t length) {
 }
 
 void set_delta_colour(GColor colour) {
+
     text_layer_set_text_color(delta_layer, colour);
     load_bg_delta();
 }
 
 void set_cgmtime(char *message, size_t length) {
+
     length = length < sizeof(formatted_cgm_timeago) ? length : sizeof(formatted_cgm_timeago) - 1;
     memcpy(formatted_cgm_timeago, message, length);
     formatted_cgm_timeago[length] = '\0';
@@ -1159,6 +1200,7 @@ void set_cgmtime(char *message, size_t length) {
  **************************************************************************/
 void load_icon()
 {
+
     TRACE("load_icon: Start");
 
     // check if special value set
@@ -1285,6 +1327,7 @@ void load_icon()
 
 void load_bg()
 {
+
     TRACE("load_bg: start");
 
     // CODE START
@@ -1359,6 +1402,7 @@ time_t get_UTC_offset(struct tm *t)
 
 void load_cgmtime()
 {
+
     TRACE("load_cgmtime: START");
 
     // VARIABLES
@@ -1447,6 +1491,7 @@ void load_cgmtime()
 
 void load_bg_delta()
 {
+
     LOG("load_bg_delta: current_bg_delta is \"%s\"", current_bg_delta);
  
 
@@ -1526,6 +1571,7 @@ void load_bg_delta()
 
 void load_battlevel_phone()
 {
+
     TRACE("load_battlevel: START");
 
     // CONSTANTS
@@ -1551,20 +1597,20 @@ void load_battlevel_phone()
         return;
     }
 
-	if (state.phone_battery_level > 0 && state.phone_battery_level <= 5)
-	{
-		// Zero battery level; set here, so if we get zero later we know we have an error instead
-		INFO("load_battlevel: 0 value");
-		if(state.left_text_field == METRIC_PHONEBATT) text_layer_set_text(bottom_left_text_layer, PHONE_ICON "0%");
-		if(state.right_text_field == METRIC_PHONEBATT) text_layer_set_text(bottom_right_text_layer, PHONE_ICON "0%");
-		if (!state.battery_low_alert)
-		{
-			INFO("load_battlevel: 0 value, vibe");
-			CALLBACK(state.gl_cb.alert_handler, LOWBATTERY_VIBE);
-			state.battery_low_alert = true;
-		}
-		return;
-	}
+    if (state.phone_battery_level > 0 && state.phone_battery_level <= 5)
+    {
+        // Zero battery level; set here, so if we get zero later we know we have an error instead
+        INFO("load_battlevel: 0 value");
+        if(state.left_text_field == METRIC_PHONEBATT) text_layer_set_text(bottom_left_text_layer, PHONE_ICON "0%");
+        if(state.right_text_field == METRIC_PHONEBATT) text_layer_set_text(bottom_right_text_layer, PHONE_ICON "0%");
+        if (!state.battery_low_alert)
+        {
+            INFO("load_battlevel: 0 value, vibe");
+            CALLBACK(state.gl_cb.alert_handler, LOWBATTERY_VIBE);
+            state.battery_low_alert = true;
+        }
+        return;
+    }
 
     if (current_battlevel == state.phone_battery_level) {
         TRACE("Battery level early exit to not mark layers dirty");
@@ -1652,6 +1698,7 @@ void load_battlevel_phone()
 
 void window_load_cgm(Window *window_cgm)
 {
+
     TRACE("window_load_cgm: start");
 
     // VARIABLES
@@ -2148,6 +2195,7 @@ void window_load_cgm(Window *window_cgm)
 
 void window_unload_cgm(Window *window_cgm)
 {
+
 //    TRACE("WINDOW UNLOAD IN");
 
 
@@ -2187,6 +2235,7 @@ void window_unload_cgm(Window *window_cgm)
 
 void ui_og_init(AppState *value)
 {
+
     state.wf_cb.set_message = set_message;
     state.wf_cb.set_icon = set_icon;
     state.wf_cb.set_delta = set_delta;
@@ -2211,10 +2260,13 @@ void ui_og_init(AppState *value)
     state.wf_cb.update_colours = update_colours;
 #endif
     state.wf_cb.trend_bounds = ui_og_trend_bounds;
+#ifdef PBL_HEALTH
+    state.wf_cb.update_health_displays = update_health_metric_displays;
+#endif
 
     // timers
-    state.gl_cb.minutes_tick = minutes_tick;
-    state.gl_cb.second_tick = seconds_tick;
+    state.wf_cb.minutes_tick = minutes_tick;
+    state.wf_cb.seconds_tick = seconds_tick;
 
     // malloc text archives
 
@@ -2307,6 +2359,7 @@ void ui_og_init(AppState *value)
 
 void ui_og_deinit(void)
 {
+
     trend_deinit();
     app_timer_cancel(message_tick_timer);
 
@@ -2329,5 +2382,6 @@ void ui_og_deinit(void)
 
 GRect ui_og_trend_bounds(void) 
 {
+
     return layer_get_bounds(bitmap_layer_get_layer(bg_trend_layer_png));
 }
