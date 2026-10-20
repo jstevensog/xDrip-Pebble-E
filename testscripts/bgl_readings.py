@@ -179,6 +179,7 @@ def main():
         # Calculate new point and raw numerical delta
         curr_raw_value = calculate_sine_val(current_step)
         print(f"curr_raw_value = {curr_raw_value}")
+        delta=curr_raw_value - prev_raw_value
         if args.send_slope:
             slope_val = slope_ordinal(curr_raw_value - prev_raw_value)
         else:

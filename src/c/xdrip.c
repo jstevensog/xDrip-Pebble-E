@@ -370,6 +370,7 @@ void reset_stale_timer_callback(void) {
      * data is invalid, we have no data -> request reset
      */
 
+    DEBUG("Stale data: stale_data_timeout=%d, inteval=%d, cgm_time=%d", state.stale_data_timeout / 1000, interval, state.cgm_time);
     if (interval > (int32_t) state.stale_data_timeout / 1000 && state.cgm_time != 0) {
         DEBUG("Stale data: %d %d", state.stale_data_timeout / 1000, interval);
         CALLBACK(state.wf_cb.set_delta, "Stale Data!", sizeof("Stale Data!")); // this has no effect if bluetooth is off 
@@ -379,7 +380,8 @@ void reset_stale_timer_callback(void) {
             CALLBACK(state.wf_cb.set_message, "Conn. lost", sizeof("Conn. lost"));
         }
         state.dirty.need_cgm = 1;
-        timeout = 1 * SECONDS_PER_MINUTE * MS_IN_A_SECOND;
+        //timeout = 1 * SECONDS_PER_MINUTE * MS_IN_A_SECOND; // this was too agressive, especially overnight.  Best to be the same as the initial timeout.
+        timeout = (int32_t) state.stale_data_timeout;
         // defer update a bit, we might have a settings update, if debug wait longer 
 #if DEBUG_LEVEL >= DEBUG_LEVEL_INFO
         if (NULL == deffered_send_cmd_cgm_timer) deffered_send_cmd_cgm_timer = app_timer_register(2000, deferred_send_cmd_cgm, NULL);
