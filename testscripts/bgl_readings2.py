@@ -61,19 +61,19 @@ def pack_bgl_delta(
     return raw_int16, raw_bytes.hex()
 
 
-def generate_initial_series(
-    num_points=16,
-    interval_minutes=5,
+def generate_series_payload(
+    start_step,
+    num_points,
     min_val=40,
     max_val=400,
     period=20,
     mmol=False,
 ):
-    """Generates the initial bulk payload (index 2009) for the starting window."""
+    """Generates a bulk payload (index 2009) starting from start_step for num_points."""
     last_timestamp = int(time.time())
 
     raw_values = [
-        calculate_sine_val(i, min_val, max_val, period)
+        calculate_sine_val(start_step + i, min_val, max_val, period)
         for i in range(num_points)
     ]
 
@@ -127,7 +127,7 @@ def main():
         "--num-points",
         type=int,
         default=16,
-        help="Initial number of data points (default: 16)",
+        help="Initial/max number of data points for bulk load (default: 16)",
     )
     parser.add_argument(
         "-i",
@@ -169,11 +169,11 @@ def main():
     state = None if args.reset else load_state()
 
     if state is None:
-        # 1. Initial run or reset requested: send 2009 initial series
+        # 1. Initial run or reset: start series from index 0
         slope_val = 0
-        hex_output, initial_raw_values, last_timestamp = generate_initial_series(
+        hex_output, initial_raw_values, last_timestamp = generate_series_payload(
+            start_step=0,
             num_points=args.num_points,
-            interval_minutes=args.interval,
             mmol=args.mmol,
         )
 
@@ -200,12 +200,67 @@ def main():
         current_step = args.num_points - 1
         prev_raw_value = initial_raw_values[-1]
         save_state(current_step, prev_raw_value, last_timestamp)
-    else:
-        # Resume from saved state
-        current_step = state["current_step"]
-        prev_raw_value = state["prev_raw_value"]
 
-    # 2. Continuous loop
+    else:
+        # 2. Restarted run: compute missed steps and backfill
+        now = int(time.time())
+        last_ts = state["last_timestamp"]
+        elapsed_seconds = max(0, now - last_ts)
+        
+        # Calculate how many intervals elapsed since last run
+        missed_intervals = elapsed_seconds // interval_seconds
+
+        if missed_intervals > 0:
+            # Cap backfill points to num_points or the number of missed steps
+            backfill_points = min(args.num_points, int(missed_intervals))
+            start_step = (state["current_step"] + 1) - (backfill_points - 1)
+
+            hex_output, backfill_values, last_timestamp = generate_series_payload(
+                start_step=start_step,
+                num_points=backfill_points,
+                mmol=args.mmol,
+            )
+
+            current_step = state["current_step"] + int(missed_intervals)
+            prev_raw_value = backfill_values[-1]
+            delta = backfill_values[-1] - (
+                backfill_values[-2] if len(backfill_values) > 1 else state["prev_raw_value"]
+            )
+
+            if args.send_slope:
+                slope_val = slope_ordinal(delta)
+            else:
+                slope_val = 0
+
+            delta_raw_int, delta_hex = pack_bgl_delta(
+                delta_value=delta,
+                undefined=0,
+                display_units=is_deltau_flag,
+                is_mmol=is_mmol_flag,
+            )
+
+            print(
+                f"Backfilling {backfill_points} missed readings (2009={hex_output})..."
+            )
+            subprocess.run(
+                [
+                    "pebble",
+                    "send-app-message",
+                    "--bytes",
+                    f"2001={delta_hex}",
+                    f"2009={hex_output}",
+                    "--int",
+                    f"2008={slope_val}",
+                ]
+            )
+
+            save_state(current_step, prev_raw_value, last_timestamp)
+        else:
+            print("No missed intervals since last execution. Resuming live loop...")
+            current_step = state["current_step"]
+            prev_raw_value = state["prev_raw_value"]
+
+    # 3. Continuous live loop
     while True:
         print(f"\nWaiting {args.interval} minutes for next reading...")
         time.sleep(interval_seconds)
@@ -248,7 +303,6 @@ def main():
             f"Sending 2002 (--bytes) = {packed_2002} | 2001 (--bytes) = {delta} as {delta_hex} | 2008 (--int) = {slope_val}"
         )
 
-        # Send index 2001 (--bytes hex representation), 2002 (--bytes timestamped value), and 2008 (--int slope)
         subprocess.run(
             [
                 "pebble",
@@ -261,7 +315,6 @@ def main():
             ]
         )
 
-        # Update and persist state
         prev_raw_value = curr_raw_value
         save_state(current_step, prev_raw_value, current_time)
 
