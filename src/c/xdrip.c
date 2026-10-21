@@ -268,12 +268,12 @@ void handle_bluetooth_cgm(bool bt_connected)
             CALLBACK(state.wf_cb.set_delta, "NO BLUETOOTH", 12);
             // make sure we get the data we need
             //dirty.need_cgm = 1;
-            state.cgm_time = 0;
-                        state.gl_cb.update_stale_timeout();
+            //state.cgm_time = 0; //commented out to make sure time ago (cgm_time) is displayed during BT outage
+            state.gl_cb.update_stale_timeout();
         }
 
         // erase cgm and app ago times
-        CALLBACK(state.wf_cb.set_cgmtime, "", 0);
+        //CALLBACK(state.wf_cb.set_cgmtime, "", 0); //commented out to ensure cgmtime is displayed during bt outage
     }
 
     else
@@ -290,7 +290,7 @@ void handle_bluetooth_cgm(bool bt_connected)
         }
         // mark data as dirty to prompt hb send
 #ifdef PBL_COLOR
-                CALLBACK(state.wf_cb.update_colours);
+        CALLBACK(state.wf_cb.update_colours);
 #endif
 
     }
