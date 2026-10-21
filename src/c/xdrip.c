@@ -289,6 +289,7 @@ void handle_bluetooth_cgm(bool bt_connected)
             state.bluetooth_timer_pop = false;
         }
         // mark data as dirty to prompt hb send
+        CALLBACK(state.wf_cb.set_delta, "???", 3);
 #ifdef PBL_COLOR
         CALLBACK(state.wf_cb.update_colours);
 #endif

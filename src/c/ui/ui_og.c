@@ -1138,6 +1138,7 @@ void set_delta(char *message, size_t length) {
     length = length < sizeof(current_bg_delta) ? length : sizeof(current_bg_delta) - 1;
     memcpy(current_bg_delta, message, length);
     current_bg_delta[length] = '\0';
+    text_layer_set_text(delta_layer, current_bg_delta);
     state.dirty.delta = 1;
     load_bg_delta();
 }
