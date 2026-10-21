@@ -594,6 +594,7 @@ void minutes_tick(struct tm *tick_time_cgm, TimeUnits units_changed) {
 
     // We wake up every minute anyway and the resolution of all display time items
     // is 1m except for the clock
+    TRACE("minutes_tick: %s", text_layer_get_text(delta_layer));
     load_cgmtime();
     load_bg_delta();
 
@@ -1176,14 +1177,15 @@ void set_delta(char *message, size_t length) {
     length = length < sizeof(current_bg_delta) ? length : sizeof(current_bg_delta) - 1;
     memcpy(current_bg_delta, message, length);
     current_bg_delta[length] = '\0';
+    text_layer_set_text(delta_layer, current_bg_delta);
     state.dirty.delta = 1;
     load_bg_delta();
 }
 
 void set_delta_colour(GColor colour) {
-
+    TRACE("set_delta_colour: %s", text_layer_get_text(delta_layer));
     text_layer_set_text_color(delta_layer, colour);
-    load_bg_delta();
+    //load_bg_delta();
 }
 
 void set_cgmtime(char *message, size_t length) {
@@ -1555,7 +1557,8 @@ void load_bg_delta()
         layer_set_hidden(text_layer_get_layer(delta_layer), !state.show_delta);
     }
 
-    text_layer_set_text(delta_layer, formatted_bg_delta);
+    // only display formatted delta IF BT is connected.
+    if (state.bluetooth_is_connected) text_layer_set_text(delta_layer, formatted_bg_delta);
 #ifdef PBL_COLOR
     if(state.fields_same_colour) {
         text_layer_set_text_color(delta_layer,state.foreground_colour);
