@@ -410,12 +410,11 @@ void reset_stale_timer_callback(void) {
     } else if (state.dirty.need_cgm == 0 && interval < state.sensor.interval) {
         DEBUG("reset_stale_timer: Normal reset");
         timeout = (state.sensor.interval - (now - state.cgm_time) + SENSOR_DELAY_TIME) * MS_IN_A_SECOND;
-    } else if (state.dirty.need_cgm == 0 && interval > state.sensor.interval && interval < state.sensor.interval + 60) {
+/*    } else if (state.dirty.need_cgm == 0 && interval > state.sensor.interval && interval < state.sensor.interval + 60) {
         // need to understand this calculation as it comes out way too large.  I think it is the MS_IN_A_SECOND that is causing this.  It should be resetting the timer to around state.stale_data_timeout
         DEBUG("reset_stale_timer: Normal interval");
-        //timeout = (state.sensor.interval + SENSOR_DELAY_TIME) * MS_IN_A_SECOND;
-        timeout = (state.sensor.interval + SENSOR_DELAY_TIME);
-    } else {
+        timeout = (state.sensor.interval + SENSOR_DELAY_TIME) * MS_IN_A_SECOND;
+*/    } else {
         DEBUG("reset_stale_timer: Invalid data");
         DEBUG("%d %d %d", state.dirty.need_cgm, interval, state.stale_data_timeout);
         // likely invalid data, request reset
