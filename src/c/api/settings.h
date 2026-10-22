@@ -74,6 +74,7 @@ typedef struct {
             uint32_t app_time;
             uint32_t sensor_end_time;
             uint32_t stale_data_timeout;
+            uint32_t stale_data_last_tick_time; // last time the stale data timer ticked
         
             int32_t step_count;
             int32_t hbm;
