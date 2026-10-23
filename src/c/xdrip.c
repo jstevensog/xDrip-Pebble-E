@@ -480,7 +480,6 @@ static void init_cgm(void)
 #ifdef ENABLE_TREND_RENDERER
     comm_add_receiver(trend_receiver);
 #endif
-    state.use_analogue_wf = 1;
     if (state.use_analogue_wf) {
 #ifdef PBL_PLATFORM_GABBRO
         ui_gabbro_init();
