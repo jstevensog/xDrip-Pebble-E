@@ -100,7 +100,7 @@ typedef struct {
             comm_bgl_delta delta;
             comm_bgl_value bgl_value;
         };
-        uint8_t state_blob[(sizeof(uint32_t) * 7) + (sizeof(uint8_t) * 4) + sizeof(comm_sensor_info) + sizeof(comm_bgl_value) + sizeof(comm_bgl_delta) + sizeof(int32_t)];
+        uint8_t state_blob[(sizeof(uint32_t) * 7) + (sizeof(uint8_t) * 4) + sizeof(comm_sensor_info) + sizeof(comm_bgl_value) + sizeof(comm_bgl_delta) + (sizeof(int32_t) * 2)];
     };
 
     // global dirty markers
@@ -127,5 +127,5 @@ typedef enum {
     TOUCH_PALM = 5,
 } touch_method;
 
-#define STORAGE_MARKER 0x0B
+#define STORAGE_MARKER 0x0C
 #endif // __SETTINGS_H__

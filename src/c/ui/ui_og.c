@@ -2075,7 +2075,6 @@ void window_load_cgm(Window *window_cgm)
     update_health_metric_displays();
     draw_date_from_app();
     load_cgmtime();
-    load_bg();
     load_icon();
     load_bg_delta();
     load_battlevel_phone();
