@@ -2,17 +2,15 @@
 #include "../xdrip.h"
 #include <stdint.h>
 #include "../debug.h"
+// API
 #include "../api/settings.h"
 #include "../api/trend.h"
+#include "../api/callbacks.h"
+#include "../api/communication.h"
 #include "ui_og.h"
+// experimental
 #ifdef ENABLE_TOUCH
 #include "ui_treatment.h"
-#endif
-#include "../api/callbacks.h"
-
-
-#ifdef ENABLE_COMM_FRAMEWORK
-#include "../api/communication.h"
 #endif
 // UI timers
 AppTimer *hr_draw_timer = NULL;
@@ -846,18 +844,19 @@ void update_right_field(void) {
 
 void update_trend(void) {
 
-    LOG("Update trend?");
-    if (!state.use_png) {
+    LOG("Update trend");
+    // if layer state changed, update and force reset of data
+    if (!state.use_png && layer_get_hidden(bitmap_layer_get_layer(bg_trend_layer_draw))) {
         trend_init(bitmap_layer_get_layer(bg_trend_layer_draw));
         layer_set_hidden(bitmap_layer_get_layer(bg_trend_layer_png), true);
-    } else {
+        state.dirty.need_cgm = 1;
+        state.cgm_time = 0; // force update all
+    } else if (state.use_png && layer_get_hidden(bitmap_layer_get_layer(bg_trend_layer_png))) {
         trend_deinit();
         layer_set_hidden(bitmap_layer_get_layer(bg_trend_layer_png), false);
+        state.dirty.need_cgm = 1;
+        state.cgm_time = 0; // force update all
     }
-    // reset
-    state.dirty.need_cgm = 1;
-    state.cgm_time = 0; // force update all
-    CALLBACK(state.gl_cb.update_stale_timeout);
 }
 
 void update_timeago(void) {
@@ -986,106 +985,21 @@ void update_message(void) {
 }
 
 
-/*
- * Comm framework callback functions
- */
-// snprintf does not support float!
-void comm_set_bgl_delta(comm_bgl_delta value) {
-
-    char text[14];
-    state.delta = value;
-    DEBUG("Delta units: undefined: %d mmol: %d display: %d value: %d hidden: %d", 
-            value.undefined, value.is_mmol, value.display_units, value.value, value.hidden);
-    if (value.expired) set_delta("Expired", sizeof("Expired"));
-    else if (value.undefined) set_delta("???", sizeof("???"));
-    else if (value.is_mmol && value.display_units) {
-        mgdl_to_mmoll_str(value.value, text, sizeof(text), 1);
-                set_delta(text, strlen(text));
-    } else if (value.display_units && !value.is_mmol) {
-        int l = snprintf(text, sizeof(text), "%hd mg/dL", value.value);
-                set_delta(text, l);
-    } else if (value.is_mmol) {
-        mgdl_to_mmoll_str(value.value, text, sizeof(text), 0);
-                set_delta(text, strlen(text));
-    } else {
-        int l = snprintf(text, sizeof(text), "%hd", (int16_t) value.value);
-                set_delta(text, l);
-    }
-    state.show_delta = value.hidden ? false : true;
-}
-
-void comm_set_icon(comm_slopeval value) {
-
-    DEBUG("set_icon: comm_slopeval = %d, set_icon = %d, icon visibility = %d", value, state.show_slope, layer_get_hidden(bitmap_layer_get_layer(icon_layer)));
-    set_icon(value);
-}
-
-void comm_set_phone_battery(comm_phonebat value) {
-
-    state.phone_battery_level = value;
-    load_battlevel_phone();
-}
-
-void comm_set_bwp(comm_bwp_value value) {
-
-    snprintf(current_bg_delta, sizeof(current_bg_delta), BWP_SYMBOL "%lu", value);
-    state.dirty.delta = 1;
-    load_bg_delta();
-}
-
-void comm_set_vibrate(comm_vibe value) {
-
-    if (!state.bluetooth_alert) state.gl_cb.alert_handler(value);
-}
-
-void comm_set_bgl_timestamp(uint32_t timestamp) {
-
-    TRACE("Set BGL Timestamp");
-    if (state.use_png) {
-        state.cgm_time = timestamp;
-    } else if (time(NULL) - timestamp > 310) {
-        state.dirty.need_cgm = 1;
-    } else {
-        state.cgm_time = timestamp;
-    }
-    CALLBACK(state.gl_cb.update_stale_timeout);
-    load_cgmtime();
-}
-
-void comm_set_bgl_value(comm_bgl_value value) {
-
+void update_bgl_value(void) {
     TRACE("Set BGL Value");
-    state.bgl_value = value;
-    if (value.is_mmol) {
-        mgdl_to_mmoll_str(value.value, last_bg, sizeof(last_bg), 0);
+    if (state.bgl_value.is_mmol) {
+        mgdl_to_mmoll_str(state.bgl_value.value, last_bg, sizeof(last_bg), 0);
     } else {
-        snprintf(last_bg, sizeof(last_bg), "%d", value.value);
+        snprintf(last_bg, sizeof(last_bg), "%d", state.bgl_value.value);
     }
     load_bg();
-}
-
-/**
- * update bgl values and timestamp
- */
-void comm_set_bgl_data(comm_bgl_data *value) {
-
-    TRACE("Set BGL Data");
-    if (value->timestamp != state.cgm_time) {
-        DEBUG("%d vs %d %d", value->timestamp, state.cgm_time, value->timestamp - state.cgm_time);
-        comm_set_bgl_value(value->bgl); // always show bgl value
-        comm_set_bgl_timestamp(value->timestamp); // can be marked dirty
-        if (!state.use_png && !state.dirty.need_cgm) trend_set_value(value);
-    } else {
-        WARNING("Received same bgl value twice!");
-    }
-
 }
 
 /**
  * Since all data is in flight and copied by the Bitmap creation we 
  * do not have to copy it
  */
-void comm_set_png(comm_png_data *data) {
+void set_png(comm_png_data *data) {
 
     TRACE("Setting PNG");
     if (data->hidden != state.show_trend) {
@@ -1115,36 +1029,6 @@ void comm_set_png(comm_png_data *data) {
     state.dirty.need_cgm = 0;
 }
 
-void comm_set_bgl_series(comm_bgl_series *series) {
-
-    state.dirty.need_cgm = 0;
-    trend_set_series(series);
-    if (series->hidden != state.show_trend) {
-        state.show_trend = !series->hidden;
-        layer_set_hidden(bitmap_layer_get_layer(bg_trend_layer_png), series->hidden || !state.use_png);
-        trend_set_hidden(!state.show_trend && !state.use_png);
-        persist_write_bool(SET_SHOW_TREND, state.show_trend);
-    }
-}
-
-void comm_set_message(comm_message message) {
-
-    set_message(message.message, message.length);
-}
-
-void comm_set_sensor_info(comm_sensor_info *value) {
-
-    // only update if need be, which it likely is since we received this message
-    if (state.left_text_field == METRIC_SENSOR_EXPIRY || state.right_text_field == METRIC_SENSOR_EXPIRY) {
-        // store state.sensor_end_time
-        if (value->end != (uint32_t) state.sensor_end_time) {
-            state.sensor_end_time = value->end; // replicate
-            state.dirty.sensor_info = 1;
-            update_sensor_info_displays();
-        }
-    }
-}
-
 /**
  * parsers
  */
@@ -1172,10 +1056,26 @@ void set_icon(uint8_t icon) {
 }
 
 void set_delta(char *message, size_t length) {
+    if (message != NULL && length > 0) {
+        length = length < sizeof(current_bg_delta) ? length : sizeof(current_bg_delta) - 1;
+        memcpy(current_bg_delta, message, length);
+        current_bg_delta[length] = '\0';
+    } else {
+        DEBUG("Delta units: undefined: %d mmol: %d display: %d value: %d hidden: %d", 
+                state.delta.undefined, state.delta.is_mmol, state.delta.display_units, state.delta.value, state.delta.hidden);
+        if (state.delta.expired) snprintf(current_bg_delta, sizeof(current_bg_delta), "%s", "Expired");
+        else if (state.delta.undefined) snprintf(current_bg_delta, sizeof(current_bg_delta), "%s", "???");
+        else if (state.delta.is_mmol && state.delta.display_units) {
+            mgdl_to_mmoll_str(state.delta.value, current_bg_delta, sizeof(current_bg_delta), 1);
+        } else if (state.delta.display_units && !state.delta.is_mmol) {
+            snprintf(current_bg_delta, sizeof(current_bg_delta), "%hd mg/dL", state.delta.value);
+        } else if (state.delta.is_mmol) {
+            mgdl_to_mmoll_str(state.delta.value, current_bg_delta, sizeof(current_bg_delta), 0);
+        } else {
+            snprintf(current_bg_delta, sizeof(current_bg_delta), "%hd", (int16_t) state.delta.value);
+        }
+    }
 
-    length = length < sizeof(current_bg_delta) ? length : sizeof(current_bg_delta) - 1;
-    memcpy(current_bg_delta, message, length);
-    current_bg_delta[length] = '\0';
     state.dirty.delta = 1;
     load_bg_delta();
 }
@@ -2160,8 +2060,8 @@ void window_load_cgm(Window *window_cgm)
     state.dirty.hbm = 1;
     state.dirty.sensor_info = 1;
     state.dirty.step_count = 1;
-    comm_set_bgl_value(state.bgl_value);
-    comm_set_bgl_delta(state.delta);
+    update_bgl_value();
+    set_delta(NULL, 0); // update from state.delta
     update_colours();
     load_battery_watch();
     update_timeago();
@@ -2241,17 +2141,20 @@ void ui_og_init(AppState *value)
     state.wf_cb.set_delta = set_delta;
     state.wf_cb.set_delta_colour = set_delta_colour;
     state.wf_cb.set_cgmtime = set_cgmtime;
+    state.wf_cb.set_png = set_png; // will be depricated!
     state.wf_cb.update_battery_state = load_battery_watch;
     state.wf_cb.update_phone_battery_state = load_battlevel_phone;
     state.wf_cb.update_seconds_timer = update_seconds_timer;
     state.wf_cb.update_timeago = update_timeago;
     state.wf_cb.update_message_timeout = update_message_timeout;
-    state.wf_cb.update_timeago = update_timeago;
+    state.wf_cb.update_timestamp = load_cgmtime;
     state.wf_cb.update_left_field = update_left_field;
     state.wf_cb.update_right_field = update_right_field;
     state.wf_cb.update_trend = update_trend;
     state.wf_cb.update_collect_health = update_collect_health;
     state.wf_cb.update_message = update_message;
+    state.wf_cb.update_sensor_info = update_sensor_info_displays;
+    state.wf_cb.update_bgl_value = update_bgl_value;
 #ifdef ENABLE_TOUCH
     state.wf_cb.update_touch = update_touch;
     state.wf_cb.update_touch_methods = update_touch_method;
@@ -2322,24 +2225,6 @@ void ui_og_init(AppState *value)
         .unload = window_unload_cgm
     });
 
-
-#ifdef ENABLE_TREND_RENDERER
-    state.comm_callbacks.low_limit = trend_set_low_line;
-    state.comm_callbacks.high_limit = trend_set_high_line;
-#endif
-    state.comm_callbacks.message = comm_set_message;
-    state.comm_callbacks.phonebat = comm_set_phone_battery;
-    state.comm_callbacks.slopeval = comm_set_icon;
-    state.comm_callbacks.vibe = comm_set_vibrate;
-    state.comm_callbacks.bgl_delta = comm_set_bgl_delta;
-    state.comm_callbacks.bgl_series = comm_set_bgl_series; 
-    state.comm_callbacks.bgl_data = comm_set_bgl_data;
-    state.comm_callbacks.bgl_timestamp = comm_set_bgl_timestamp;
-    state.comm_callbacks.bgl_value = comm_set_bgl_value;
-    state.comm_callbacks.png = comm_set_png;
-    state.comm_callbacks.sensor_info = comm_set_sensor_info;
-    // the watch is the health data source, so nothing to receive
-    state.comm_callbacks.health = NULL;
 
     const bool animated_cgm = true;
     window_stack_push(window_cgm, animated_cgm);

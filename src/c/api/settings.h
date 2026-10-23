@@ -106,7 +106,6 @@ typedef struct {
     dirty_markers dirty;
 
     // Callbacks
-    CommunicationCallbacks comm_callbacks;
     GlobalCallbacks gl_cb;
     WatchfaceCallbacks wf_cb;
     
