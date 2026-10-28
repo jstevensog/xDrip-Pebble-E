@@ -93,6 +93,7 @@ void set_cgmtime(char *message, size_t length);
 
 // update functions
 void update_message_timeout(uint32_t timeout);
+void update_message(void);
 GRect ui_og_trend_bounds(void);
 
 // draw functions
@@ -604,8 +605,11 @@ void minutes_tick(struct tm *tick_time_cgm, TimeUnits units_changed) {
 void handle_message_tick(void *data) 
 {
 
-    INFO("handle_message_tick: Handling alert tick, display_message is %i", state.show_message);
-    if (state.show_message) update_message_timeout(state.message_timeout);
+    INFO("handle_message_tick: Handling alert tick, show_message is %i", state.show_message);
+    if (state.show_message) {
+        update_message_timeout(state.message_timeout);
+    }
+    update_message();
 }
 /** 
  * Callbacks
@@ -930,9 +934,9 @@ void update_seconds_timer(bool sw) {
 
 void update_message_timeout(uint32_t timeout) {
 
-    if (message_tick_timer != NULL && !app_timer_reschedule(message_tick_timer, timeout)) {
-        message_tick_timer = app_timer_register(timeout, handle_message_tick, NULL);
-    }
+    TRACE("update_message_timeout: message_tick_timer=%u, timeout=%u", message_tick_timer, timeout);
+    message_tick_timer = app_timer_register(timeout, handle_message_tick, NULL);
+    app_timer_reschedule(message_tick_timer, timeout);
 }
 
 void update_collect_health(void) {
@@ -1152,12 +1156,12 @@ void comm_set_sensor_info(comm_sensor_info *value) {
 
 void set_message(char *message, size_t length) {
 
-    LOG("Setting message_layer visible");
     memcpy(
             message_layer_text,
             message, length > sizeof(message_layer_text) - 1 ? sizeof(message_layer_text) : length);
     text_layer_set_text(message_layer, message_layer_text);
-    state.show_message = length > 0 ? true : false;
+    state.show_message = length > 1 ? true : false;
+    LOG("Setting message_layer visible=%d", state.show_message);
     layer_set_hidden((Layer *)message_layer, false); // show and mark dirty
 #ifdef PBL_ROUND
     layer_set_hidden((Layer *)delta_layer, true);

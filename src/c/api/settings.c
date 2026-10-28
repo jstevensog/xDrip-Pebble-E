@@ -197,7 +197,10 @@ bool settings_receiver(Tuple *data) {
             break;
 
         case SET_MESSAGE_TIMEOUT:
-            SETTING_INT_CB(message_timeout, data->value->uint8, SET_MESSAGE_TIMEOUT, update_message_timeout, state->message_timeout);
+            //SETTING_INT_CB(message_timeout, data->value->uint8, SET_MESSAGE_TIMEOUT, update_message_timeout, state->message_timeout);
+            SETTING_INT(message_timeout, data->value->uint8, SET_MESSAGE_TIMEOUT);
+            state->message_timeout = data->value->uint8 * 1000;
+            CALLBACK(state->wf_cb.update_message_timeout, state->message_timeout);
             break;
 
         case SET_BOLD_TIMEAGO:
