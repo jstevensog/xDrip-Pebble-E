@@ -46,6 +46,7 @@ typedef struct {
     uint32_t vibrate_strong_off : 1;
     uint32_t backlight_on_charge : 1;
     uint32_t collect_health : 1;
+    uint32_t night_window_enabled : 1;
 
     // UX
     uint32_t fields_same_colour : 1;
@@ -71,6 +72,9 @@ typedef struct {
 
     uint8_t touch_treatment;
     uint8_t touch_alert_snooze;
+
+    uint32_t night_window_start;
+    uint32_t night_window_end;
 
     // state
     union {
@@ -137,5 +141,5 @@ typedef enum {
     TOUCH_PALM = 5,
 } touch_method;
 
-#define STORAGE_MARKER 0x0F
+#define STORAGE_MARKER 0x10
 #endif // __SETTINGS_H__

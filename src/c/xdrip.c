@@ -127,6 +127,20 @@ static void battery_handler()
     CALLBACK(state.wf_cb.update_battery_state);
 } // end battery_handler
 
+static bool alert_in_night_window(void) {
+    time_t now = time(NULL);
+    struct tm *t = localtime(&now);
+
+    uint32_t c = t->tm_hour * 60 + t->tm_min;
+
+    DEBUG("Alert disable window [%d]: now=%d start=%d stop=%d", state.night_window_enabled, state.night_window_start, state.night_window_end, now);
+
+    if (!state.night_window_enabled) return false;
+
+    // allow for both during day and past night transition
+    return state.night_window_start < state.night_window_end ? c >= state.night_window_start && c < state.night_window_end : c >= state.night_window_start || c < state.night_window_end;
+}
+
 static void alert_handler_cgm(uint8_t alertValue)
 {
 
@@ -152,7 +166,7 @@ static void alert_handler_cgm(uint8_t alertValue)
 
     // CODE START
 
-    if (state.vibrate_off)
+    if (state.vibrate_off || alert_in_night_window())
     {
         //turn off all vibrations is set, return out here
         return;
