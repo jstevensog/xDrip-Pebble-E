@@ -1948,7 +1948,7 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context)
                 DEBUG("PNG set to %d %d", use_png, data->value->int32);
                 persist_write_bool(SET_USE_PNG, use_png);
                 // reinit
-                if (!use_png) trend_init(bitmap_layer_get_layer(bg_trend_layer));
+                if (!use_png) trend_init(bitmap_layer_get_layer(bg_trend_layer_draw));
                 else trend_deinit();
                 // reset
                 dirty.need_cgm = 1;
