@@ -156,6 +156,22 @@ module.exports = function(minified) {
         touch.on('change', touch_function);
         touch.trigger('change');
 
+        var night_time = clayConfig.getItemByMessageKey("night_window_enabled");
+        var night_time_function = function() {
+            const start = clayConfig.getItemByMessageKey("night_window_start");
+            const end = clayConfig.getItemByMessageKey("night_window_end");
+            if (this.get()) {
+                start.enable();
+                end.enable();
+            } else {
+                start.disable();
+                end.disable();
+            }
+        }
+
+        night_time.on("change", night_time_function);
+        night_time.trigger("change");
+
 
         // this is also done by the "selector" values, but there is overlap in those
         if (!clayConfig.meta.activeWatchInfo || 

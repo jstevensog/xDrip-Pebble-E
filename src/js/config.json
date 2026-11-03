@@ -326,6 +326,32 @@
       "type": "section",
       "items": [
           {
+              "type": "toggle",
+              "messageKey": "night_window_enabled",
+              "label": "Disable vibration during set hours",
+              "defaultValue": false,
+              "description": "Disable the vibration during specific hours, e.g. night time."
+          },
+          {
+              "type": "input",
+              "messageKey": "night_window_start",
+              "label": "Starting time",
+              "defaultValue": "22:00",
+              "attributes": { "type": "time" }
+          },
+          {
+              "type": "input",
+              "messageKey": "night_window_end",
+              "label": "Ending time",
+              "defaultValue": "07:00",
+              "attributes": { "type": "time" }
+          }
+      ]
+  },
+  {
+      "type": "section",
+      "items": [
+          {
               "type": "heading",
               "defaultValue": "Trend line graphics"
           },

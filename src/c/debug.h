@@ -14,7 +14,8 @@ this is for testing purposes only until I can get the PebbleKit.JS code operatin
 Make sure you udefine this before building a release.
 */
 /* #define TEST_MODE */
-
+/* #define TRACE_LOG */
+/* #define TRACE_COUNT 2048 */
 
 /*
  * Set debug text to show and compile DEBUG_APP_[NONE,INFO,DEBUG,TRACE]
@@ -84,5 +85,30 @@ char *translate_app_error(AppMessageResult result);
 char *translate_dict_error(DictionaryResult result);
 #else
 #define translate_dict_error(...)
+#endif
+
+#if defined(TRACE_LOG) && !defined(PBL_PLATFORM_GABBRO) && !defined(PBL_PLATFORM_EMERY)
+#pragma message("Trace disabled for nont emery or gabbro due to memory usage")
+#undef TRACE_LOG
+#endif
+#ifdef TRACE_LOG
+typedef enum {
+    TRACE_BLUETOOTH_RECEIVED = 0, 
+    TRACE_BLUETOOTH_SEND, 
+} tracetype;
+
+typedef struct trace_item {
+    uint32_t timestamp;
+    tracetype type;
+    uint32_t value;
+} traceitem;
+
+void trace_init(void);
+void trace_add(tracetype type, uint32_t value);
+void trace_print(void);
+#else
+#define trace_init(...)
+#define trace_add(...)
+#define trace_print(...)
 #endif
 #endif // __DEBUG_H__ 

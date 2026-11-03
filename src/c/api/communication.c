@@ -22,9 +22,6 @@
  */
 
 extern AppState state;
-CommunicationCallbacks *cb = NULL;
-
-
 
 comm_iterator *comm_handlers;
 int comm_handlers_count = 0;
@@ -33,9 +30,6 @@ void comm_inbox_received_handler(DictionaryIterator *iterator, void *context);
 
 void comm_init(void)
 {
-
-    /* state = value; */
-    cb = &state.comm_callbacks;
 
     TRACE("INIT CODE, ABOUT TO CALL APP MSG OPEN");
 #ifdef PBL_PLATFORM_APLITE
@@ -54,93 +48,157 @@ void comm_init(void)
     app_message_register_inbox_received(comm_inbox_received_handler);
 }
 
+static void set_timestamp(time_t timestamp) {
+    if (state.use_png) {
+        state.cgm_time = timestamp;
+    } else if ((state.sensor.interval != 0) && (time(NULL) - timestamp > (state.sensor.interval + 10))) {
+        state.dirty.need_cgm = 1;
+        state.dirty.need_cgm_reset = 1;
+    } else if ((state.sensor.interval == 0) && (time(NULL) - timestamp > (310))) { // fallback 5 min for when sensor interval is not known
+        state.dirty.need_cgm = 1;
+        state.dirty.need_cgm_reset = 1;
+    } else {
+        state.cgm_time = timestamp;
+    }
+    // reset global timer if present
+    CALLBACK(state.gl_cb.update_stale_timeout);
+    // allow display to do update magic e.g. time since last sensor reading
+    CALLBACK(state.wf_cb.update_timestamp);
+}
+
 bool comm_receiver(Tuple *data)
 {
 
     uint32_t key = data->key;
     INFO(CM "Key: %d", key);
 
-    if (cb == NULL) {
-        WARNING(CM "Cannot perform anu actions, no callback registered");
-        return false;
-    }
     bool rv = true;
+
+    if (data->key < 2000 || data->key > 3000) return false; // out of scope
     
     switch (key) {
         case FRAMEWORK_HIGHLIMIT:
             TRACE(CM "High limit");
-            if (cb->high_limit) cb->high_limit((comm_high_limit) { .raw = data->value->uint32 });
+            trend_set_high_line((comm_high_limit) { .raw = data->value->uint32 });
             break;
         case FRAMEWORK_LOWLIMIT:
             TRACE(CM "Low  limit");
-            if (cb->low_limit) cb->low_limit((comm_low_limit) { .raw = data->value->uint32 });
+            trend_set_low_line((comm_low_limit) { .raw = data->value->uint32 });
             break;
         case FRAMEWORK_SLOPEVAL:
             TRACE(CM "Slope icon value");
-            if (cb->slopeval != NULL) cb->slopeval(data->value->uint8);
+            CALLBACK(state.wf_cb.set_icon, data->value->uint8);
             break;
         case FRAMEWORK_PHONEBAT:
             TRACE(CM "Phone battery level");
-            if (cb->phonebat != NULL) cb->phonebat(data->value->uint8);
+            state.phone_battery_level = data->value->uint8;
+            CALLBACK(state.wf_cb.update_phone_battery_state);
             break;
         case FRAMEWORK_VIBE:
             TRACE(CM "Vibrate");
-            if (cb->vibe != NULL) cb->vibe(data->value->uint8);
+            CALLBACK(state.gl_cb.alert_handler, data->value->uint8);
             break;
         case FRAMEWORK_BGL_DELTA:
             TRACE(CM "Delta value");
-            if (cb->bgl_delta != NULL) cb->bgl_delta((comm_bgl_delta) { .raw = data->value->uint16 });
+            state.delta.raw = data->value->uint16;
+            state.show_delta = state.delta.hidden ? false : true;
+            if (state.bgl_state == BGL_STATE_VALID) {
+                CALLBACK(state.wf_cb.set_delta, NULL, 0); // update no message but use delta
+            }
             break;
         case FRAMEWORK_BGL_VALUE:
             TRACE(CM "Update value");
             comm_bgl_data *value = (comm_bgl_data *) data->value->data;
-            if (cb->bgl_data != NULL) cb->bgl_data(value);
-            if (cb->bgl_timestamp != NULL) cb->bgl_timestamp(value->timestamp);
-            if (cb->bgl_value != NULL) {
-                cb->bgl_value(value->bgl);
+            if (value->timestamp != state.cgm_time) {
+                state.bgl_value = value->bgl;
+                CALLBACK(state.wf_cb.update_bgl_value);
 #ifdef PBL_HEALTH
                 CALLBACK(state.gl_cb.health_schedule_send);
 #endif
+                switch (state.bgl_state) {
+                    case BGL_STATE_VALID:
+                    case BGL_STATE_STALE: {
+                            state.bgl_state = BGL_STATE_VALID;
+                            CALLBACK(state.wf_cb.set_delta, NULL, 0); // also update delta
+                            break;
+                        }
+                    case BGL_STATE_INVALID: {
+                            // if invalid, we likely need more data
+                            state.bgl_state = BGL_STATE_STALE;
+                            break;
+                        }
+                }
+                set_timestamp(value->timestamp);
+                // If we get a value and the trend store is not backfilled, move to a full update, we detect this
+                // here since if we get a value, it is highly likely the backfill has happened
+                if (trend_detect_gap(false)) {
+                    WARNING("Detected broken trace state");
+                    state.dirty.need_cgm = 1;
+                    state.dirty.need_cgm_reset = 1;
+                    comm_request_heartbeat();
+                } else if (!state.use_png) trend_set_value(value);
+            } else {
+                WARNING("Received same bgl value twice!");
             }
             break;
         case FRAMEWORK_BGL_SERIES:
             TRACE(CM "BGL Data stream");
             comm_bgl_series *series = (comm_bgl_series *) data->value->data;
             TRACE(CM "Since %d", series->timestamp);
-            if (cb->bgl_series != NULL) cb->bgl_series(series);
-            if (cb->bgl_timestamp != NULL) cb->bgl_timestamp(series->timestamp);
-            if (cb->bgl_value != NULL) {
-                cb->bgl_value(series->bgl_values[series->length - 1]);
+            if (!trend_isinitialized() && series->length < 12) {
+                // trend is smaller than minimum needed for initialization. Request full HB
+                // It's highly unlikely we end up here but it's a recovery if something fails.
+                WARNING("Trend series is too small to fill an uninitialized trend");
+                state.dirty.need_cgm = 1;
+                state.dirty.need_cgm_reset = 1;
+                comm_request_heartbeat();
+            } else {
+                state.dirty.need_cgm = 0; // series always results in latest state, checks for validity happen in the stale detector
+                state.dirty.need_cgm_reset = 0;
+                trend_set_series(series); // no callback, must be present, could be noop if disabled
+                // update only if not zero
+                if (series->bgl_values[series->length - 1].value != 0) state.bgl_value = series->bgl_values[series->length - 1];
+                // update show state
+                state.show_trend = !series->hidden;
+                persist_write_bool(SET_SHOW_TREND, state.show_trend);
+                CALLBACK(state.wf_cb.update_trend); // update trend layers if enabled
+                CALLBACK(state.wf_cb.update_bgl_value); // set bgl value on screen
 #ifdef PBL_HEALTH
-                CALLBACK(state.gl_cb.health_schedule_send);
+                CALLBACK(state.gl_cb.health_schedule_send); // update health values
 #endif
+                CALLBACK(state.wf_cb.set_delta, NULL, 0); // also update delta
+                // we got data, reset state to valid?
+                state.bgl_state = BGL_STATE_VALID;
+                set_timestamp(series->timestamp);
             }
             break;
         case FRAMEWORK_PNG_IMAGE:
             TRACE(CM "PNG image data");
-            if (cb->png != NULL) cb->png((comm_png_data *) data->value->data);
+            CALLBACK(state.wf_cb.set_png, (comm_png_data *) data->value->data);
 #ifdef PBL_HEALTH
             CALLBACK(state.gl_cb.health_schedule_send);
 #endif
             break;
         case FRAMEWORK_SENSOR_INFO:
             TRACE(CM "Sensor info");
-            if (cb->sensor_info != NULL) {
                 comm_sensor_info *info = (comm_sensor_info *) data->value->data;
+                if (info->end != (uint32_t) state.sensor_end_time) {
+                    state.sensor_end_time = info->end; // replicate
+                    state.dirty.sensor_info = 1;
+                }
                 memcpy(&state.sensor, info, sizeof(comm_sensor_info)); 
-                cb->sensor_info(info);
-            }
+                CALLBACK(state.wf_cb.update_sensor_info);
             break;
         case FRAMEWORK_BWP_VALUE:
             TRACE(CM "Bolus wizard previes value");
-            if (cb->bwp_value != NULL) cb->bwp_value(data->value->uint32);
             break;
         case FRAMEWORK_MESSAGE:
             TRACE(CM "Message received");
             // avoid malformed cstrings crashing the watch via OOB
-            if (cb->message != NULL) cb->message((comm_message){ .length = data->length, .message = data->value->cstring});
+            CALLBACK(state.wf_cb.set_message, data->value->cstring, data->length);
             break;
 #ifdef PBL_HEALTH
+            /*
         case FRAMEWORK_HEALTH_HR:
             TRACE(CM "Health heart rate");
             if (cb->health != NULL) cb->health((comm_health){ .heart_rate = data->value->uint32, .steps = 0 });
@@ -149,6 +207,10 @@ bool comm_receiver(Tuple *data)
             TRACE(CM "Health step count");
             if (cb->health != NULL) cb->health((comm_health){ .heart_rate = 0, .steps = data->value->uint32 });
             break;
+            */
+        /// health is only used to send data, not receive it?
+        case FRAMEWORK_HEALTH_HR:
+        case FRAMEWORK_HEALTH_STEPS:
 #endif
         default:
             DEBUG(CM "id %ld not handled by communications framework", key);
@@ -448,10 +510,16 @@ void comm_request_heartbeat(void)
     // xdrip decides what to send with respect to the CGM_TIME and if use_png is set or not
     // Due to xdrip possibly not knowing what the state of the screen is the png size is also
     // send to xdrip
-    if (state.dirty.need_cgm) {
+    if (state.dirty.need_cgm || !trend_isinitialized()) {
         hb.send_slope_arrow = 1;
         hb.send_delta_value = 1;
-        comm_schedule_item(FRAMEWORK_BGL_VALUE, &state.cgm_time, sizeof(state.cgm_time), COMM_TYPE_UINT32);
+        if (state.dirty.need_cgm_reset || !trend_isinitialized()) {
+            uint32_t zero = 0;
+            trend_reset(); // make sure trend is reset
+            comm_schedule_item(FRAMEWORK_BGL_VALUE, &zero, sizeof(uint32_t), COMM_TYPE_UINT32);
+        } else {
+            comm_schedule_item(FRAMEWORK_BGL_VALUE, &state.cgm_time, sizeof(state.cgm_time), COMM_TYPE_UINT32);
+        }
         if (state.use_png && state.wf_cb.trend_bounds != NULL) {
             comm_request_png(state.wf_cb.trend_bounds());
         }
@@ -534,6 +602,9 @@ void comm_inbox_received_handler(DictionaryIterator *iterator, void *context)
             TRACE("Iterator handler %d, processed: %d", i, processed);
 #pragma GCC diagnostic pop
         }
+#ifdef TRACE_LOG
+        trace_add(TRACE_BLUETOOTH_RECEIVED, data->key);
+#endif
         data = dict_read_next(iterator);
     }
 } // end comm_inbox_received_handler 
@@ -589,6 +660,10 @@ bool comm_send_next(void)
     while(item != NULL) {
         if (NULL != item) {
             DEBUG("Comm send [%d] [%d] %d, %08X, %08X", item->code, backoff, backoffs[backoff], item, item->next);
+#ifdef TRACE_LOG
+            trace_add(TRACE_BLUETOOTH_SEND, item->code);
+#endif
+
         }
     // schedule next items
         switch (item->type) {
