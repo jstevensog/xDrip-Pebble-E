@@ -64,7 +64,7 @@ void settings_init(AppState *values) {
     state->foreground_colour = persist_exists(SET_FG_COLOUR)? GColorFromHEX(persist_read_int(SET_FG_COLOUR)) : COLOR_FALLBACK(GColorWhite,GColorWhite);
     state->background_colour = persist_exists(SET_BG_COLOUR)? GColorFromHEX(persist_read_int(SET_BG_COLOUR)) : COLOR_FALLBACK(GColorDukeBlue,GColorBlack);
 #endif
-    state->stale_data_timeout = persist_exists(STALE_DATA_ALERT_TIMEOUT) ? persist_read_int(STALE_DATA_ALERT_TIMEOUT) : 6 * 60000;
+    state->stale_data_alert_timeout = persist_exists(STALE_DATA_ALERT_TIMEOUT) ? persist_read_int(STALE_DATA_ALERT_TIMEOUT) : 6 * 60000;
     state->collect_health = persist_exists(SET_COLLECT_HEALTH) ? persist_read_bool(SET_COLLECT_HEALTH) : false;
     state->touch_support = persist_exists(SET_TOUCH_SUPPORT) ? persist_read_bool(SET_TOUCH_SUPPORT) : false;
 
@@ -98,7 +98,7 @@ void settings_init(AppState *values) {
     LOG_SETTING_HEX(left_text_field);
     LOG_SETTING_HEX(right_text_field);
     LOG_SETTING_INT(message_timeout);
-    LOG_SETTING_INT(stale_data_timeout);
+    LOG_SETTING_INT(stale_data_alert_timeout);
     
     // check if we actually need a refresh
     if (time(NULL) - state->cgm_time < (uint32_t) state->sensor.interval) {
@@ -241,7 +241,7 @@ bool settings_receiver(Tuple *data) {
             break;
         case STALE_DATA_ALERT_TIMEOUT:
             if (data->value->uint32 >= 6) {
-                SETTING_INT_CB_GL(stale_data_timeout, data->value->int32 * 60000, STALE_DATA_ALERT_TIMEOUT, update_stale_timeout);
+                SETTING_INT_CB_GL(stale_data_alert_timeout, data->value->int32 * 60000, STALE_DATA_ALERT_TIMEOUT, update_stale_timeout);
             }
             rv = true;
             break;

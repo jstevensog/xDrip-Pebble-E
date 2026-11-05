@@ -27,10 +27,13 @@ AppTimer *timer_cgm = NULL;
 AppTimer *BT_timer = NULL;
 AppTimer *health_send_timer = NULL;
 AppTimer *stale_data_timer = NULL;
+AppTimer *stale_data_alert_timer = NULL;
 time_t time_now = 0;
 
 // global variable for bluetooth connection
 bool bluetooth_connected_cgm = true;
+// global boolean indicating stale_data_alert_timer is running
+bool stale_data_alert_timer_running = false;
 
 void reset_stale_timer_callback(void);
 static void send_cmd_cgm(void);
@@ -353,7 +356,7 @@ bool stale_receiver(Tuple *data) {
     //assume dictionary from xDrip.  So reset the stale_data_timer
     if(data->key == FRAMEWORK_BGL_VALUE || data->key == FRAMEWORK_BGL_SERIES) 
     {
-        INFO("Recieved comms from xDrip.  Resetting stale_data_timer to %i minutes", state.stale_data_timeout);
+        INFO("Recieved comms from xDrip.  Resetting stale_data_timer to %i minutes", state.stale_data_alert_timeout);
         reset_stale_timer_callback();
         return true;
     }
@@ -375,9 +378,19 @@ void reset_stale_timer_callback(void) {
     int32_t timeout = MS_IN_A_SECOND; // 1s
     int32_t now = time(NULL);
     int32_t interval = now - state.cgm_time;
-    if(state.stale_data_last_tick_time == 0) {
-        state.stale_data_last_tick_time = (int32_t)time(NULL);
+    /**
+    * Firstly, reset the stale_data_alert_timer as we have had valid comms.
+    */
+    if (stale_data_alert_timer_running) {
+        TRACE("reset_stale_timer: Valid data recieved, rescheduling stale_data_alert_timer");
+        app_timer_reschedule(stale_data_alert_timer, state.stale_data_alert_timeout);
     }
+    if (stale_data_alert_timer == NULL && !stale_data_alert_timer_running) {
+        stale_data_alert_timer_running = true;
+        TRACE("reset_stale_timer: Setting stale_data_alert_timer to %d", state.stale_data_alert_timeout);
+        stale_data_alert_timer = app_timer_register(state.stale_data_alert_timeout, handle_stale_data_alert_tick,NULL);
+    }
+
     /**
      * stale data timer logic:
      * data is likely valid, time since last update > stale timer -> report stale message
@@ -387,36 +400,12 @@ void reset_stale_timer_callback(void) {
      * data is invalid, we have no data -> request reset
      */
 
-    DEBUG("reset_stale_timer: stale_data_timeout=%d, cgm_time=%d ", state.stale_data_timeout, state.cgm_time);
-    DEBUG("reset_stale_timer: stale_data_last_tick_time=%d, now=%d", state.stale_data_last_tick_time, now);
-    if (state.cgm_time != 0 && now >= (int32_t) (state.stale_data_last_tick_time + state.stale_data_timeout)) {
-        state.stale_data_last_tick_time = (uint32_t)now;
-        DEBUG("reset_stale_timer: setting Stale Data and setting timer to %d", state.stale_data_timeout);
-        CALLBACK(state.wf_cb.set_delta, "Stale Data!", sizeof("Stale Data!")); // this has no effect if bluetooth is off 
-        CALLBACK(state.gl_cb.alert_handler, APPSYNC_ERR_VIBE);
-        if (!state.bluetooth_is_connected) {
-            CALLBACK(state.wf_cb.set_icon, NO_ANTENNA);
-            CALLBACK(state.wf_cb.set_message, "Conn. lost", sizeof("Conn. lost"));
-        }
-        state.dirty.need_cgm = 1;
-        //timeout = 1 * SECONDS_PER_MINUTE * MS_IN_A_SECOND; // this was too agressive, especially overnight.  Best to be the same as the initial timeout.
-        timeout = (int32_t) state.stale_data_timeout;
-        // defer update a bit, we might have a settings update, if debug wait longer 
-#if DEBUG_LEVEL >= DEBUG_LEVEL_INFO
-        if (NULL == deffered_send_cmd_cgm_timer) deffered_send_cmd_cgm_timer = app_timer_register(2000, deferred_send_cmd_cgm, NULL);
-#else
-        if (NULL == deffered_send_cmd_cgm_timer) deffered_send_cmd_cgm_timer = app_timer_register(500, deferred_send_cmd_cgm, NULL);
-#endif
-    } else if (state.dirty.need_cgm == 0 && interval < state.sensor.interval) {
+    if (state.dirty.need_cgm == 0 && interval < state.sensor.interval) {
         DEBUG("reset_stale_timer: Normal reset");
         timeout = (state.sensor.interval - (now - state.cgm_time) + SENSOR_DELAY_TIME) * MS_IN_A_SECOND;
-/*    } else if (state.dirty.need_cgm == 0 && interval > state.sensor.interval && interval < state.sensor.interval + 60) {
-        // need to understand this calculation as it comes out way too large.  I think it is the MS_IN_A_SECOND that is causing this.  It should be resetting the timer to around state.stale_data_timeout
-        DEBUG("reset_stale_timer: Normal interval");
-        timeout = (state.sensor.interval + SENSOR_DELAY_TIME) * MS_IN_A_SECOND;
-*/    } else {
+    } else {
         DEBUG("reset_stale_timer: Invalid data");
-        DEBUG("%d %d %d", state.dirty.need_cgm, interval, state.stale_data_timeout);
+        DEBUG("%d %d %d", state.dirty.need_cgm, interval, state.stale_data_alert_timeout);
         // likely invalid data, request reset
         state.dirty.need_cgm = 1;
         state.cgm_time = 0;
@@ -432,6 +421,27 @@ void reset_stale_timer_callback(void) {
     if (NULL == stale_data_timer || !app_timer_reschedule(stale_data_timer, timeout)) {
         stale_data_timer = app_timer_register(timeout, handle_stale_data_tick, NULL);
     }
+}
+
+// stale data alert tick handler
+void handle_stale_data_alert_tick(void *data)
+{
+
+    INFO("handle_stale_data_alet_tick: entered. Calling set_delta");
+    stale_data_alert_timer_running = false;
+    
+    CALLBACK(state.wf_cb.set_delta, "Stale Data!", sizeof("Stale Data!")); // this has no effect if bluetooth is off 
+    INFO("handle_stale_data_alet_tick: Calling alert_handler");
+    CALLBACK(state.gl_cb.alert_handler, APPSYNC_ERR_VIBE);
+    DEBUG("handle_stale_data_alert_tick: setting Stale Data and setting timer to %d", state.stale_data_alert_timeout);
+    if (!state.bluetooth_is_connected) {
+        CALLBACK(state.wf_cb.set_icon, NO_ANTENNA);
+        CALLBACK(state.wf_cb.set_message, "Conn. lost", sizeof("Conn. lost"));
+    }
+    state.dirty.need_cgm = 1;
+    stale_data_alert_timer = NULL;
+    INFO("handle_stale_data_alert_tick: reset stale_data_timer");
+    reset_stale_timer_callback();
 }
 
 // stale data tick handler
@@ -510,7 +520,7 @@ static void init_cgm(void)
 
     tick_timer_service_subscribe(MINUTE_UNIT, handle_minute_tick_cgm);
 
-    stale_data_timer = app_timer_register(state.stale_data_timeout, handle_stale_data_tick, NULL);
+    stale_data_timer = app_timer_register(state.stale_data_alert_timeout, handle_stale_data_tick, NULL);
 
     // subscribe to the bluetooth connection service
     bluetooth_connection_service_subscribe(handle_bluetooth_cgm);
