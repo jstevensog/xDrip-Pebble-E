@@ -20,6 +20,7 @@ void settings_init(AppState *values) {
     state->cgm_time = 0;
     state->app_time = 0;
     state->dirty.need_cgm = 1;
+    state->dirty.need_cgm_reset = 1;
     state->dirty.delta = 1;
     state->dirty.sensor_info = 1;
     state->phone_battery_level = 255;
@@ -78,6 +79,10 @@ void settings_init(AppState *values) {
     state->touch_treatment = persist_exists(SET_TOUCH_TREATMENT) ? persist_read_int(SET_TOUCH_TREATMENT) : TOUCH_TAP;
     state->touch_alert_snooze = persist_exists(SET_TOUCH_ALERT_SNOOZE) ? persist_read_int(SET_TOUCH_ALERT_SNOOZE) : TOUCH_TAP;
 
+    state->night_window_enabled = persist_exists(SET_NIGHT_WINDOW_ENABLE) ? persist_read_bool(SET_NIGHT_WINDOW_ENABLE) : false;
+    state->night_window_start = persist_exists(SET_NIGHT_WINDOW_START) ? persist_read_int(SET_NIGHT_WINDOW_START) : 0;
+    state->night_window_end = persist_exists(SET_NIGHT_WINDOW_END) ? persist_read_int(SET_NIGHT_WINDOW_END) : 0;
+
     if (state->sensor.interval == 0) state->sensor.interval = 5 * SECONDS_PER_MINUTE; // default to 5 mins unless xdrip tells otherwise
 
     LOG_SETTING(use_png);
@@ -103,6 +108,7 @@ void settings_init(AppState *values) {
     // check if we actually need a refresh
     if (time(NULL) - state->cgm_time < (uint32_t) state->sensor.interval) {
         state->dirty.need_cgm = 0;
+        state->dirty.need_cgm_reset = 0;
     }
 
     if (state->sensor.sensor_type == 0) state->dirty.sensor_info = 1;
@@ -152,7 +158,8 @@ void settings_deinit(void) {
 bool settings_receiver(Tuple *data) {
 
     bool rv = true;
-
+    if (data->key < 100 || data->key > 300) return false; // out of scope
+    
     switch (data->key)
     {
         case SET_SAMECOLOUR:
@@ -229,8 +236,8 @@ bool settings_receiver(Tuple *data) {
         case SET_USE_PNG:
             SETTING_BOOL_CB(use_png, data->value->uint8, SET_USE_PNG, update_trend);
             // special case, if this is received wipe storage and request data
-            state->cgm_time = 0;
             state->dirty.need_cgm = 1;
+            state->dirty.need_cgm_reset = 1;
             comm_request_heartbeat();
             break;
 
@@ -262,6 +269,15 @@ bool settings_receiver(Tuple *data) {
             break;
         case SET_SNOOZE_HIGH:
             SETTING_INT(snooze_high, data->value->uint16, SET_SNOOZE_HIGH);
+            break;
+        case SET_NIGHT_WINDOW_ENABLE:
+            SETTING_BOOL(night_window_enabled, data->value->int8, SET_NIGHT_WINDOW_ENABLE);
+            break;
+        case SET_NIGHT_WINDOW_START:
+            SETTING_INT(night_window_start, data->value->int32, SET_NIGHT_WINDOW_START);
+            break;
+        case SET_NIGHT_WINDOW_END:
+            SETTING_INT(night_window_end, data->value->int32, SET_NIGHT_WINDOW_END);
             break;
         default:
             rv = false;

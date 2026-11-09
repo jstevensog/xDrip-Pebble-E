@@ -42,6 +42,23 @@ void trend_init(Layer *layer) {
             free(tmp);
         }
     }
+
+    /* check for accidental weirdness
+     *
+     */
+
+    if (config.bgl.initialized == 1 && (config.bgl.size == 0 || config.bgl.index >  (uint16_t) (sizeof(config.bgl.values) / sizeof(trend_bgl_value)))) {
+        WARNING("Trend Reset due to invalid state");
+        config.bgl.initialized = 0;
+        config.bgl.index = 0;
+        config.bgl.size = 0;
+    } else if (config.bgl.initialized && trend_detect_gap(true)) {
+        // reset if a gap is detected
+        config.bgl.initialized = 0;
+        config.bgl.index = 0;
+        config.bgl.size = 0;
+    }
+
     /*
      * trend settings
      */
@@ -81,6 +98,8 @@ void trend_init(Layer *layer) {
 
     /* other */
     config.auto_adjust_max = persist_exists(SET_AUTO_ADJUST_MAX) ? persist_read_int(SET_AUTO_ADJUST_MAX) : 0;
+
+    DEBUG(TREND_LOG "Trend init: %d %d %d", config.bgl.initialized, config.bgl.index, config.bgl.size);
 
     TRACE(TREND_LOG "Setting callback");
     layer_set_update_proc((Layer *) config.layer, trend_layer_callback);
@@ -415,6 +434,19 @@ void trend_layer_callback(Layer *layer, GContext *ctx) {
 
     if (config.bgl.initialized) {
         TRACE(TREND_LOG "Drawing trend line");
+        TRACE(TREND_LOG "Trend values:");
+#if defined(DEBUG_LEVEL) && DEBUG_LEVEL == DEBUG_APP_TRACE
+        WARNING(TREND_LOG "Dataset: %d index %d", config.bgl.size, config.bgl.index);
+        int i = 0, y = config.bgl.size / 10;
+        char line[100];
+        for (; i < config.bgl.size;) {
+            int s = 0, o = i;
+            for (int j = 0; j < y && i < config.bgl.size; j++, i++) {
+                s += snprintf(&line[s], sizeof(line) - s, "%d ", config.bgl.values[i]);
+            }
+            WARNING(TREND_LOG "[%3d-%3d]: %s", o, i, line);
+        }
+#endif
         draw_trend(layer, ctx);
     }
     config.redraw = 0; 
@@ -435,12 +467,11 @@ void trend_draw(void) {
  */
 
 void trend_set_series(comm_bgl_series *values) {
-
-
+    // there is a race condition where the series can be 
     TRACE(TREND_LOG "Trend set series"); 
     if (!config.bgl.initialized) {
         DEBUG("Initializing");
-        config.bgl.size = values->length > PBL_DISPLAY_WIDTH ? PBL_DISPLAY_WIDTH : values->length;
+        config.bgl.size = values->length > sizeof(config.bgl.values) /sizeof(trend_bgl_value) ? sizeof(config.bgl.values) / sizeof(trend_bgl_value) : values->length;
         config.bgl.index = 0;
         config.bgl.initialized = 1;
         memset(config.bgl.values, 0x00, sizeof(config.bgl.values));
@@ -470,6 +501,8 @@ void trend_set_value(comm_bgl_data *value) {
 bool trend_receiver(Tuple *data) {
 
     bool rv = true;
+    if (data->key < 300 || data->key > 400) return false; // out of scope
+    
     DEBUG("Trend key: %d", data->key);
     switch (data->key) {
         case SET_BGL_CRITICAL_COLOUR:
@@ -588,3 +621,22 @@ void trend_reset(void) { config.bgl.initialized = 0; }
 void trend_set_hidden(bool value) {
     if (config.layer != NULL) layer_set_hidden(config.layer, value);
 }
+
+// should be improved
+bool trend_detect_gap(bool all) {
+    // check for gaps
+    DEBUG("Detecting gap");
+    bool gap = false;
+    int limit = all ? config.bgl.size : 10;
+    int start = all ? 0 : config.bgl.index - 10;
+    if (start < 0) start = config.bgl.size - start;
+    for (int i = 0; i < limit; i++) {
+        if (config.bgl.values[((int) start + i) % config.bgl.size] == 0) {
+            gap = true;
+            INFO("Gap found: %d %d", i, ((int) config.bgl.index - i) % config.bgl.size);
+            break; // missing value detected
+        }
+    }
+    return gap;
+}
+

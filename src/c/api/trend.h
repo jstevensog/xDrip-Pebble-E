@@ -192,6 +192,7 @@ int trend_isinitialized(void);
 int16_t trend_last_value(void);
 void trend_set_hidden(bool value);
 void trend_reset(void);
+bool trend_detect_gap(bool all);
 
 /**
  * convert bgl to y, respecting limits and bounds

@@ -10,10 +10,17 @@
 typedef struct {
     uint32_t delta : 1;     // mark delta layer as dirty and update 
     uint32_t need_cgm : 1;  // make the heartbeat request delta and slope
+    uint32_t need_cgm_reset : 1; // Make thee heartbeat request ALL data
     uint32_t step_count : 1;
     uint32_t hbm : 1;
     uint32_t sensor_info : 1;
 } dirty_markers;
+
+enum bgl_state {
+    BGL_STATE_VALID = 0,
+    BGL_STATE_STALE = 1,
+    BGL_STATE_INVALID = 2,
+};
 
 #pragma pack(push, a, 1)
 typedef struct {
@@ -39,6 +46,7 @@ typedef struct {
     uint32_t vibrate_strong_off : 1;
     uint32_t backlight_on_charge : 1;
     uint32_t collect_health : 1;
+    uint32_t night_window_enabled : 1;
 
     // UX
     uint32_t fields_same_colour : 1;
@@ -65,6 +73,9 @@ typedef struct {
     uint8_t touch_treatment;
     uint8_t touch_alert_snooze;
 
+    uint32_t night_window_start;
+    uint32_t night_window_end;
+
     // state
     union {
         struct {
@@ -75,6 +86,7 @@ typedef struct {
             uint32_t sensor_end_time;
             uint32_t stale_data_timeout;
             uint32_t stale_data_last_tick_time; // last time the stale data timer ticked
+            uint16_t stale_counter;             // number of times stale ticked
         
             int32_t step_count;
             int32_t hbm;
@@ -97,17 +109,18 @@ typedef struct {
 
             comm_sensor_info sensor;
 
+            enum bgl_state bgl_state;
+
             comm_bgl_delta delta;
             comm_bgl_value bgl_value;
         };
-        uint8_t state_blob[(sizeof(uint32_t) * 7) + (sizeof(uint8_t) * 4) + sizeof(comm_sensor_info) + sizeof(comm_bgl_value) + sizeof(comm_bgl_delta) + sizeof(int32_t)];
+        uint8_t state_blob[(sizeof(uint32_t) * 7) + (sizeof(uint8_t) * 4) + sizeof(int16_t) + sizeof(comm_sensor_info) + sizeof(comm_bgl_value) + sizeof(comm_bgl_delta) + (sizeof(int32_t) * 2) + sizeof(enum bgl_state)];
     };
 
     // global dirty markers
     dirty_markers dirty;
 
     // Callbacks
-    CommunicationCallbacks comm_callbacks;
     GlobalCallbacks gl_cb;
     WatchfaceCallbacks wf_cb;
     
@@ -128,5 +141,5 @@ typedef enum {
     TOUCH_PALM = 5,
 } touch_method;
 
-#define STORAGE_MARKER 0x0A
+#define STORAGE_MARKER 0x10
 #endif // __SETTINGS_H__
